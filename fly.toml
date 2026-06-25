@@ -1,0 +1,34 @@
+# fly.toml — Tracent Registry
+# Deploy: fly deploy
+# Secrets (run once):
+#   fly secrets set ALCHEMY_API_KEY=<key>
+#   fly secrets set DATABASE_URL=<postgres-connection-string>
+#   fly secrets set API_KEY=$(openssl rand -hex 32)
+
+app = "tracent-registry"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  INDEX_INTERVAL_MINUTES            = "10"
+  INITIAL_LOOKBACK_BLOCKS           = "500"
+  ENDPOINT_CHECK_INTERVAL_MINUTES   = "30"
+  CONTRACT_ADDRESS                  = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+
+[http_service]
+  internal_port        = 8000
+  force_https          = true
+  auto_stop_machines   = false
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type       = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
