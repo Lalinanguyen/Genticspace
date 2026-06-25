@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#0A1020}
+::selection{background:#3B6FF6;color:#fff}
+@keyframes fadeUp{from{transform:translateY(6px)}to{transform:none}}
+@media(max-width:920px){
+  #tr-search{display:none !important}
+}
+@media(max-width:560px){
+  #tr-band-scores{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#0A1020;font-family:'IBM Plex Sans',sans-serif;color:#E7ECF4;-webkit-font-smoothing:antialiased">
+
+  <!-- TOP BAR -->
+  <div style="position:sticky;top:0;z-index:30;background:rgba(10,16,32,0.86);backdrop-filter:blur(10px);border-bottom:1px solid #1B2742">
+    <div style="max-width:1260px;margin:0 auto;padding:0 22px;height:58px;display:flex;align-items:center;gap:18px">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;letter-spacing:.16em;color:#fff">TRACENT</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;color:#5A6B8C;border:1px solid #2A3A57;padding:2px 5px;border-radius:4px">BETA</span>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5A6B8C">/ agents / atlas-research</div>
+      <div id="tr-search" style="margin-left:auto;display:flex;align-items:center;gap:9px;background:#0F1A30;border:1px solid #233252;border-radius:9px;padding:8px 13px;width:260px">
+        <span style="color:#5A6B8C;font-size:13px">⌕</span>
+        <span style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#5A6B8C">Search 50,000+ AI agents</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;margin-left:auto">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#5A6B8C">Layout</span>
+        <div style="display:flex;background:#0F1A30;border:1px solid #233252;border-radius:9px;padding:3px">
+          <button onClick="{{ railOn }}" style="{{ railBtnStyle }}">Rail</button>
+          <button onClick="{{ bandOn }}" style="{{ bandBtnStyle }}">Band</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAND HEADER (treatment B) -->
+  <sc-if value="{{ isBand }}">
+    <div style="background:linear-gradient(180deg,#0E1A33 0%,#0B1426 100%);border-bottom:1px solid #1B2742">
+      <div style="max-width:1260px;margin:0 auto;padding:30px 22px 26px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:26px">
+        <div style="flex:1;min-width:280px">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(26px,3.4vw,36px);color:#fff;letter-spacing:-0.01em">Atlas Research Agent</h1>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(35,160,107,0.14);color:#3FCB8E;font-family:'IBM Plex Mono',monospace;font-size:11.5px;border:1px solid rgba(63,203,142,0.3)"><span style="width:6px;height:6px;border-radius:999px;background:#3FCB8E"></span>Verified owner</span>
+          </div>
+          <p style="margin:10px 0 0;font-size:15.5px;color:#9DAAC4;max-width:640px;line-height:1.5">Autonomous web-research agent that gathers, verifies, and summarizes information with linked citations to primary sources.</p>
+          <div class="tr-metarow" style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#7E8DAC">
+            <span>Built by <a href="#" style="color:{{ accent }};text-decoration:none">Cartograph Labs</a></span>
+            <span style="color:#2C3B58">•</span>
+            <span>First deployed Mar 2024</span>
+            <span style="color:#2C3B58">•</span>
+            <div style="display:flex;gap:8px">
+              <a href="#" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:5px 10px;border:1px solid #2A3A57;border-radius:7px;color:#C2CCDE;font-size:11.5px" style-hover="border-color:#3C507A"><span style="width:7px;height:7px;border-radius:2px;background:#F4A340"></span>Hugging Face ↗</a>
+              <a href="#" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:5px 10px;border:1px solid #2A3A57;border-radius:7px;color:#C2CCDE;font-size:11.5px" style-hover="border-color:#3C507A"><span style="width:7px;height:7px;border-radius:2px;background:#C9D2E0"></span>GitHub ↗</a>
+              <a href="#" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:5px 10px;border:1px solid #2A3A57;border-radius:7px;color:#C2CCDE;font-size:11.5px" style-hover="border-color:#3C507A"><span style="width:7px;height:7px;border-radius:2px;background:#8A7CF0"></span>ERC-8004 ↗</a>
+            </div>
+          </div>
+        </div>
+        <div id="tr-band-scores" style="display:flex;gap:12px">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid #233252;border-radius:12px;padding:14px 18px;min-width:120px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#7E8DAC">Trust</div>
+            <div style="display:flex;align-items:baseline;gap:5px;margin-top:6px"><span style="width:9px;height:9px;border-radius:999px;background:{{ trustColor }}"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff;line-height:1">{{ trustTargetTxt }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7E8DAC">/100</span></div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid #233252;border-radius:12px;padding:14px 18px;min-width:120px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#7E8DAC">Popularity</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:{{ popColor }};line-height:1;margin-top:6px">{{ gradeLetter }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- LAYOUT -->
+  <div style="max-width:1260px;margin:0 auto;padding:24px 22px 60px">
+    <div id="tr-layout" style="{{ layoutStyle }}">
+
+      <!-- MAIN -->
+      <main id="tr-main" style="{{ mainStyle }}">
+
+        <!-- RAIL HEADER (treatment A) -->
+        <sc-if value="{{ isRail }}">
+          <div style="background:#fff;border:1px solid #E7EBF1;border-radius:16px;padding:26px 28px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <div style="width:54px;height:54px;border-radius:13px;background:linear-gradient(135deg,#1B2A4A,#0E1A33);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:#7FA0F0">A</div>
+              <div>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                  <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(24px,3vw,32px);color:#0E1726;letter-spacing:-0.01em">Atlas Research Agent</h1>
+                  <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:11.5px"><span style="width:6px;height:6px;border-radius:999px;background:#23A06B"></span>Verified owner</span>
+                </div>
+                <p style="margin:7px 0 0;font-size:15px;color:#5A6678;line-height:1.5;max-width:600px">Autonomous web-research agent that gathers, verifies, and summarizes information with linked citations to primary sources.</p>
+              </div>
+            </div>
+            <div class="tr-metarow" style="display:flex;flex-wrap:wrap;align-items:center;gap:13px;margin-top:18px;padding-top:18px;border-top:1px solid #EEF1F5;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#64708A">
+              <span>Built by <a href="#" style="color:{{ accent }};text-decoration:none;font-weight:500">Cartograph Labs</a></span>
+              <span style="color:#CAD2DE">•</span>
+              <span>First deployed Mar 2024</span>
+              <span style="margin-left:auto"></span>
+              <div style="display:flex;gap:8px">
+                <a href="#" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:6px 11px;border:1px solid #E2E7EF;border-radius:8px;color:#384152;font-size:12px;background:#fff" style-hover="border-color:#B9C2D0;background:#F7F9FC"><span style="width:7px;height:7px;border-radius:2px;background:#F4A340"></span>Hugging Face ↗</a>
+                <a href="#" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:6px 11px;border:1px solid #E2E7EF;border-radius:8px;color:#384152;font-size:12px;background:#fff" style-hover="border-color:#B9C2D0;background:#F7F9FC"><span style="width:7px;height:7px;border-radius:2px;background:#2B3138"></span>GitHub ↗</a>
+                <a href="#" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:6px 11px;border:1px solid #E2E7EF;border-radius:8px;color:#384152;font-size:12px;background:#fff" style-hover="border-color:#B9C2D0;background:#F7F9FC"><span style="width:7px;height:7px;border-radius:2px;background:#8A7CF0"></span>ERC-8004 ↗</a>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- TABS -->
+        <div style="display:flex;gap:2px;border-bottom:1px solid #1F2C49;margin-bottom:20px;overflow-x:auto">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+            <button onClick="{{ t.on }}" style="{{ t.style }}" style-hover="color:#fff">
+              <span>{{ t.label }}</span>
+              <sc-if value="{{ t.active }}"><div style="position:absolute;left:14px;right:14px;bottom:-1px;height:2.5px;background:{{ accent }};border-radius:3px"></div></sc-if>
+            </button>
+          </sc-for>
+        </div>
+
+        <!-- ===== OVERVIEW ===== -->
+        <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both">
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:12px">What it does</div>
+              <p style="margin:0;font-size:15.5px;line-height:1.7;color:#36404F;text-wrap:pretty">Atlas takes a natural-language question and returns a sourced, structured brief. It plans a search strategy, queries the open web and a set of licensed databases, reads and cross-checks the results, then writes a summary with inline citations back to primary sources. It is built for analysts, journalists, and operations teams who need defensible answers rather than a single best guess — every claim in its output links to where it came from. Atlas runs as a hosted service and as a self-hostable package, and exposes its capabilities over MCP and A2A so it can be dropped into existing agent workflows.</p>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:16px">Capabilities at a glance</div>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+                  <div style="width:108px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;flex-shrink:0">PROTOCOLS</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <span style="padding:6px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px">MCP</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px">A2A</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px">x402</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px">REST</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;border-top:1px solid #F0F2F6;padding-top:16px">
+                  <div style="width:108px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;flex-shrink:0">FRAMEWORKS</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Mono',monospace;font-size:12px">LangChain</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Mono',monospace;font-size:12px">Custom orchestrator</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;border-top:1px solid #F0F2F6;padding-top:16px">
+                  <div style="width:108px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;flex-shrink:0">CATEGORIES</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px">Research</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px">Web Search</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px">Summarization</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px">Data Extraction</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px">Fact-checking</span>
+                    <span style="padding:6px 11px;border-radius:7px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px">Citations</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:14px">Built by</div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:42px;height:42px;border-radius:10px;background:#EEF2F8;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:600;color:#3A4456">CL</div>
+                  <div>
+                    <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;color:#0E1726">Cartograph Labs</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8A96A8;margin-top:2px">Founded 2023 · San Francisco</div>
+                  </div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#A6B0C0;margin:18px 0 10px">OTHER AGENTS</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid #EEF1F5;border-radius:9px"><span style="font-size:13.5px;color:#36404F;font-weight:500">Beacon Monitor</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8">Monitoring</span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid #EEF1F5;border-radius:9px"><span style="font-size:13.5px;color:#36404F;font-weight:500">Index Crawler</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8">Web indexing</span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid #EEF1F5;border-radius:9px"><span style="font-size:13.5px;color:#36404F;font-weight:500">Ledger Lens</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8">On-chain analytics</span></div>
+                </div>
+                <a href="#" style="display:inline-block;margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{ accent }};text-decoration:none">View builder page ↗</a>
+              </div>
+
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:16px">Registration</div>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;color:#5A6678">First indexed on Tracent</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#0E1726">Apr 9, 2024</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;color:#5A6678">ERC-8004 identity</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#0E1726">0x7a4c…b3f2</span></div>
+                  <div style="border-top:1px solid #F0F2F6;padding-top:14px">
+                    <div style="font-size:13.5px;color:#5A6678;margin-bottom:10px">Pulled from data sources</div>
+                    <div style="display:flex;gap:7px;flex-wrap:wrap">
+                      <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #E7EBF1;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4A5567"><span style="width:6px;height:6px;border-radius:2px;background:#F4A340"></span>Hugging Face</span>
+                      <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #E7EBF1;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4A5567"><span style="width:6px;height:6px;border-radius:2px;background:#2B3138"></span>GitHub</span>
+                      <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #E7EBF1;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4A5567"><span style="width:6px;height:6px;border-radius:2px;background:#8A7CF0"></span>ERC-8004</span>
+                      <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #E7EBF1;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4A5567"><span style="width:6px;height:6px;border-radius:2px;background:#3FA9B5"></span>ARD</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:16px">Ownership &amp; status</div>
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;color:#5A6678">Owner</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#1E8A5B">✓ Verified</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #F0F2F6;padding-top:13px"><span style="font-size:13.5px;color:#5A6678">First deployed</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#36404F">Mar 2024</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #F0F2F6;padding-top:13px"><span style="font-size:13.5px;color:#5A6678">Current owner</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#36404F">cartograph-labs.eth</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #F0F2F6;padding-top:13px"><span style="font-size:13.5px;color:#5A6678">Identity transfers</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#B9791A">⚠ 1 on record</span></div>
+                </div>
+                <div style="margin-top:14px;padding:10px 12px;background:#FDF6EA;border:1px solid #F0DDB6;border-radius:9px;font-size:12px;line-height:1.5;color:#7A6233">Identity token transferred Sep 20, 2025 — see Trust &amp; Safety for full context.</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== TRUST & SAFETY ===== -->
+        <sc-if value="{{ isTrust }}">
+          <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both">
+
+            <div style="display:flex;gap:14px;align-items:flex-start;background:#FDF6EA;border:1px solid #F0DDB6;border-radius:14px;padding:18px 22px">
+              <span style="font-size:18px;line-height:1.2">⚠</span>
+              <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;color:#8A5B14">Ownership transfer on record</div>
+                <p style="margin:6px 0 0;font-size:13.5px;line-height:1.6;color:#7A6233">This agent's ERC-8004 identity token was transferred to a new owner on <strong style="font-family:'IBM Plex Mono',monospace">Sep 20, 2025</strong> (cartograph.eth → cartograph-labs.eth). The reputation and incident history below may not fully reflect the current owner's behavior. Verify the owner before delegating sensitive tasks.</p>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:28px;display:flex;gap:30px;align-items:center;flex-wrap:wrap">
+              <div style="flex-shrink:0">{{ bigTrust }}</div>
+              <div style="flex:1;min-width:220px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8">Trust score</div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px">
+                  <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:24px;color:{{ trustColor }}">{{ trustVerdict }} trust</span>
+                </div>
+                <p style="margin:10px 0 0;font-size:14px;line-height:1.65;color:#5A6678;max-width:460px">A capable, popular agent with verified ownership, but a recent ownership transfer and a handful of resolved incidents keep this below the high-trust threshold. Suitable for non-critical tasks; review incident history before granting access to sensitive data.</p>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:6px">What contributes to this score</div>
+              <div>
+                <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5">
+                  <span style="width:9px;height:9px;border-radius:999px;background:#23A06B;flex-shrink:0"></span>
+                  <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#0E1726">Verification status</div><div style="font-size:12.5px;color:#7A8499;margin-top:2px">Human owner confirmed via ERC-8004 signature</div></div>
+                  <span style="padding:4px 10px;border-radius:6px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:11px">+ Positive</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5">
+                  <span style="width:9px;height:9px;border-radius:999px;background:#E0413E;flex-shrink:0"></span>
+                  <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#0E1726">Incident history</div><div style="font-size:12.5px;color:#7A8499;margin-top:2px">3 incidents in 24 months — all resolved</div></div>
+                  <span style="padding:4px 10px;border-radius:6px;background:#FBEAEA;color:#C0322F;font-family:'IBM Plex Mono',monospace;font-size:11px">− Negative</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5">
+                  <span style="width:9px;height:9px;border-radius:999px;background:#E0931F;flex-shrink:0"></span>
+                  <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#0E1726">Ownership transfers</div><div style="font-size:12.5px;color:#7A8499;margin-top:2px">1 transfer recorded (Sep 2025)</div></div>
+                  <span style="padding:4px 10px;border-radius:6px;background:#FCF1DF;color:#B9791A;font-family:'IBM Plex Mono',monospace;font-size:11px">⚠ Caution</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5">
+                  <span style="width:9px;height:9px;border-radius:999px;background:#E0931F;flex-shrink:0"></span>
+                  <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#0E1726">Community flags</div><div style="font-size:12.5px;color:#7A8499;margin-top:2px">2 active flags, 1 pending review</div></div>
+                  <span style="padding:4px 10px;border-radius:6px;background:#FCF1DF;color:#B9791A;font-family:'IBM Plex Mono',monospace;font-size:11px">⚠ Caution</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8">Incident history</div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#7A8499">3 incidents · all resolved</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+
+                <div style="border:1px solid #EEF1F5;border-radius:11px;overflow:hidden">
+                  <button onClick="{{ tg0 }}" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:none;cursor:pointer;text-align:left;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#FAFBFD">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;flex-shrink:0">2026 · 02 · 18</span>
+                    <span style="flex:1;font-size:14px;font-weight:600;color:#0E1726">Prompt-injection data exfiltration</span>
+                    <span style="padding:3px 9px;border-radius:6px;background:#FBEAEA;color:#C0322F;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">HIGH</span>
+                    <span style="padding:3px 9px;border-radius:6px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">✓ Resolved</span>
+                    <span style="color:#B6BFCC;font-size:13px;flex-shrink:0">⌄</span>
+                  </button>
+                  <sc-if value="{{ ex0 }}"><div style="padding:2px 16px 16px 16px;font-size:13.5px;line-height:1.65;color:#4A5567;border-top:1px solid #F2F4F8;padding-top:14px">A community researcher showed that a crafted web page could coax the agent into echoing snippets of prior task context in its summary output. Affected long-form runs that ingested untrusted pages directly. Cartograph Labs shipped input-isolation and output-scrubbing in <strong style="font-family:'IBM Plex Mono',monospace">v2.6 (Feb 25, 2026)</strong> and credited the reporter. No confirmed real-world data loss.</div></sc-if>
+                </div>
+
+                <div style="border:1px solid #EEF1F5;border-radius:11px;overflow:hidden">
+                  <button onClick="{{ tg1 }}" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:none;cursor:pointer;text-align:left;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#FAFBFD">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;flex-shrink:0">2025 · 08 · 12</span>
+                    <span style="flex:1;font-size:14px;font-weight:600;color:#0E1726">Hallucinated citations in summaries</span>
+                    <span style="padding:3px 9px;border-radius:6px;background:#FCF1DF;color:#B9791A;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">MEDIUM</span>
+                    <span style="padding:3px 9px;border-radius:6px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">✓ Resolved</span>
+                    <span style="color:#B6BFCC;font-size:13px;flex-shrink:0">⌄</span>
+                  </button>
+                  <sc-if value="{{ ex1 }}"><div style="padding:2px 16px 16px 16px;font-size:13.5px;line-height:1.65;color:#4A5567;border-top:1px solid #F2F4F8;padding-top:14px">Roughly 3% of multi-source summaries returned plausible but non-existent source URLs, traced to an over-eager citation formatter. Fixed in <strong style="font-family:'IBM Plex Mono',monospace">v2.4</strong> with live URL validation against the retrieved source set.</div></sc-if>
+                </div>
+
+                <div style="border:1px solid #EEF1F5;border-radius:11px;overflow:hidden">
+                  <button onClick="{{ tg2 }}" style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;background:#fff;border:none;cursor:pointer;text-align:left;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#FAFBFD">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;flex-shrink:0">2025 · 11 · 03</span>
+                    <span style="flex:1;font-size:14px;font-weight:600;color:#0E1726">Aggressive crawl rate flagged</span>
+                    <span style="padding:3px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">LOW</span>
+                    <span style="padding:3px 9px;border-radius:6px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">✓ Resolved</span>
+                    <span style="color:#B6BFCC;font-size:13px;flex-shrink:0">⌄</span>
+                  </button>
+                  <sc-if value="{{ ex2 }}"><div style="padding:2px 16px 16px 16px;font-size:13.5px;line-height:1.65;color:#4A5567;border-top:1px solid #F2F4F8;padding-top:14px">Two partner sites reported elevated 429 (rate-limit) responses traced to the agent's parallel fetch behavior. Default concurrency was lowered and per-domain backoff added the same week.</div></sc-if>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== TRACTION ===== -->
+        <sc-if value="{{ isTraction }}">
+          <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both">
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px;display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+              <div style="min-width:160px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:10px">Popularity</div>
+                {{ popBig }}
+              </div>
+              <div style="flex:1;min-width:220px;border-left:1px solid #EEF1F5;padding-left:28px">
+                <p style="margin:0;font-size:14.5px;line-height:1.65;color:#5A6678">A single heat signal combining stars, downloads, likes, usage volume and maintenance health. Atlas ranks in the <strong style="color:#0E1726">top 8%</strong> of research agents on Tracent and trended up across the last quarter.</p>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8">Monthly downloads · last 12 months</div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#1E8A5B">▲ +177% YoY</span>
+              </div>
+              <div style="margin-top:8px">{{ chart }}</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">1.24M</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">Downloads · HF</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">14.3k</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">GitHub stars</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">2,840</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">HF likes</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">1,120</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">Forks</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">4d</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">Last commit</div></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8">Maintenance health</div>
+                <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:11px"><span style="width:6px;height:6px;border-radius:999px;background:#23A06B"></span>Actively maintained</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px">
+                <div><div style="font-size:13px;color:#7A8499">Last updated</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;color:#0E1726;margin-top:4px">Jun 21, 2026</div></div>
+                <div><div style="font-size:13px;color:#7A8499">Avg. issue resolution</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;color:#0E1726;margin-top:4px">3.2 days</div></div>
+                <div><div style="font-size:13px;color:#7A8499">Commits (90 days)</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;color:#0E1726;margin-top:4px">218 · ~2.4/day</div></div>
+                <div><div style="font-size:13px;color:#7A8499">Open issues</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;color:#0E1726;margin-top:4px">37</div></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== CAPABILITIES & COST ===== -->
+        <sc-if value="{{ isCapabilities }}">
+          <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both">
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:16px">Skills · from agent card</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+                <div style="border:1px solid #E7EBF1;border-radius:12px;padding:17px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;color:#0E1726">Web Research</div><div style="font-size:13px;color:#5A6678;margin-top:6px;line-height:1.55">Plans a search strategy and synthesizes an answer across multiple live sources.</div><div style="display:flex;gap:6px;margin-top:12px"><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">search</span><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">synthesis</span></div></div>
+                <div style="border:1px solid #E7EBF1;border-radius:12px;padding:17px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;color:#0E1726">Document Summarization</div><div style="font-size:13px;color:#5A6678;margin-top:6px;line-height:1.55">Condenses long documents and PDFs into structured briefs with key points.</div><div style="display:flex;gap:6px;margin-top:12px"><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">summarization</span><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">NLP</span></div></div>
+                <div style="border:1px solid #E7EBF1;border-radius:12px;padding:17px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;color:#0E1726">Fact Verification</div><div style="font-size:13px;color:#5A6678;margin-top:6px;line-height:1.55">Cross-checks claims against primary sources and flags unsupported statements.</div><div style="display:flex;gap:6px;margin-top:12px"><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">verification</span><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">citations</span></div></div>
+                <div style="border:1px solid #E7EBF1;border-radius:12px;padding:17px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;color:#0E1726">Data Extraction</div><div style="font-size:13px;color:#5A6678;margin-top:6px;line-height:1.55">Pulls structured data out of unstructured web pages and returns clean tables.</div><div style="display:flex;gap:6px;margin-top:12px"><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">scraping</span><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">structured-output</span></div></div>
+                <div style="border:1px solid #E7EBF1;border-radius:12px;padding:17px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;color:#0E1726">Competitive Analysis</div><div style="font-size:13px;color:#5A6678;margin-top:6px;line-height:1.55">Compiles market and competitor briefs from public filings, news and the web.</div><div style="display:flex;gap:6px;margin-top:12px"><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">market-research</span></div></div>
+                <div style="border:1px solid #E7EBF1;border-radius:12px;padding:17px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15.5px;color:#0E1726">Citation Generation</div><div style="font-size:13px;color:#5A6678;margin-top:6px;line-height:1.55">Produces sourced, linkable references in your preferred format.</div><div style="display:flex;gap:6px;margin-top:12px"><span style="padding:3px 8px;border-radius:6px;background:#F1F4F8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E6B82">citations</span></div></div>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:6px">Protocols supported</div>
+              <div>
+                <div style="display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-top:1px solid #EEF1F5"><span style="padding:5px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px;flex-shrink:0;width:60px;text-align:center">MCP</span><div><div style="font-size:14px;font-weight:600;color:#0E1726">Model Context Protocol</div><div style="font-size:13px;color:#5A6678;margin-top:3px;line-height:1.55">Plugs the agent into tools and data sources in a standard way — like a universal adapter for AI tools.</div></div></div>
+                <div style="display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-top:1px solid #EEF1F5"><span style="padding:5px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px;flex-shrink:0;width:60px;text-align:center">A2A</span><div><div style="font-size:14px;font-weight:600;color:#0E1726">Agent-to-Agent</div><div style="font-size:13px;color:#5A6678;margin-top:3px;line-height:1.55">Lets this agent talk to and delegate to other agents automatically, without a human in the loop.</div></div></div>
+                <div style="display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-top:1px solid #EEF1F5"><span style="padding:5px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px;flex-shrink:0;width:60px;text-align:center">x402</span><div><div style="font-size:14px;font-weight:600;color:#0E1726">Pay-per-call payments</div><div style="font-size:13px;color:#5A6678;margin-top:3px;line-height:1.55">Supports micro-payments over HTTP — the agent can pay for data, or be paid, on a per-request basis.</div></div></div>
+                <div style="display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-top:1px solid #EEF1F5"><span style="padding:5px 11px;border-radius:7px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:12px;flex-shrink:0;width:60px;text-align:center">REST</span><div><div style="font-size:14px;font-weight:600;color:#0E1726">REST API</div><div style="font-size:13px;color:#5A6678;margin-top:3px;line-height:1.55">A standard web API — most developers can integrate it without any special tooling.</div></div></div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8;margin-bottom:14px">Frameworks</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <span style="padding:7px 13px;border-radius:8px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Mono',monospace;font-size:12.5px">LangChain</span>
+                  <span style="padding:7px 13px;border-radius:8px;background:#F1F4F8;color:#3A4456;font-family:'IBM Plex Mono',monospace;font-size:12.5px">Custom retrieval pipeline</span>
+                </div>
+                <p style="margin:14px 0 0;font-size:13px;color:#7A8499;line-height:1.55">Orchestration via LangChain with a bespoke retrieval and verification layer built in-house by Cartograph Labs.</p>
+              </div>
+
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8">Cost to run</div><span style="padding:5px 11px;border-radius:999px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:11px">Freemium</span></div>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#0E1726">$0.004 – $0.021</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8A96A8">/ task</span></div>
+                <p style="margin:12px 0 0;font-size:12.5px;color:#7A8499;line-height:1.55">Benchmarked on a standard 5-source web-research query producing a ~400-word sourced brief (GPT-4-class model, community benchmark Jun 2026, n=120).</p>
+                <p style="margin:10px 0 0;font-size:12.5px;color:#7A8499;line-height:1.55"><strong style="color:#36404F">Pricing:</strong> Free tier 50 tasks/mo · Pro is usage-based API billing.</p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== TRANSACTIONS ===== -->
+        <sc-if value="{{ isTransactions }}">
+          <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp .35s ease both">
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">48,210</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">On-chain events</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">$3,420</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">x402 volume · 90d</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">$0.011</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">Avg. payment</div></div>
+              <div style="background:#fff;border:1px solid #E7EBF1;border-radius:12px;padding:16px 18px"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;color:#0E1726">Apr 2024</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#94A1B8;margin-top:6px">On-chain since</div></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E7EBF1;border-radius:14px;padding:24px 26px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8A96A8">Recent on-chain activity</div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#7A8499">ERC-8004 · x402 settlement</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5;flex-wrap:wrap">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;width:90px;flex-shrink:0">2026·06·22</span>
+                <span style="padding:4px 9px;border-radius:6px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">x402 IN</span>
+                <div style="flex:1;min-width:170px"><div style="font-size:13.5px;color:#0E1726;font-weight:500">Payment received for research task</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;margin-top:2px">from 0x9c4f…2a · tx 0x4f1a…8d</div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#1E8A5B;flex-shrink:0">+$0.014</span>
+                <span style="padding:3px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">Confirmed</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5;flex-wrap:wrap">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;width:90px;flex-shrink:0">2026·06·22</span>
+                <span style="padding:4px 9px;border-radius:6px;background:#E6F4EC;color:#1E8A5B;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">x402 IN</span>
+                <div style="flex:1;min-width:170px"><div style="font-size:13.5px;color:#0E1726;font-weight:500">Payment received for summarization task</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;margin-top:2px">from 0x31b8…7e · tx 0xa20c…41</div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#1E8A5B;flex-shrink:0">+$0.009</span>
+                <span style="padding:3px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">Confirmed</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5;flex-wrap:wrap">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;width:90px;flex-shrink:0">2026·06·20</span>
+                <span style="padding:4px 9px;border-radius:6px;background:#EEF3FD;color:#2E5BC4;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">ATTEST</span>
+                <div style="flex:1;min-width:170px"><div style="font-size:13.5px;color:#0E1726;font-weight:500">Reputation attestation recorded</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;margin-top:2px">by tracent.eth · tx 0x77ef…b9</div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#B6BFCC;flex-shrink:0">—</span>
+                <span style="padding:3px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">Confirmed</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5;flex-wrap:wrap">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;width:90px;flex-shrink:0">2026·05·28</span>
+                <span style="padding:4px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">x402 OUT</span>
+                <div style="flex:1;min-width:170px"><div style="font-size:13.5px;color:#0E1726;font-weight:500">Paid external data-source API</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;margin-top:2px">to serpapi.eth · tx 0x12bd…3a</div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#5E6B82;flex-shrink:0">−$0.002</span>
+                <span style="padding:3px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">Confirmed</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:15px 10px;border-top:1px solid #EEF1F5;flex-wrap:wrap;background:#FDF9F0;border-radius:8px;box-shadow:inset 3px 0 0 #E0931F">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;width:84px;flex-shrink:0">2025·09·20</span>
+                <span style="padding:4px 9px;border-radius:6px;background:#FCF1DF;color:#B9791A;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">TRANSFER</span>
+                <div style="flex:1;min-width:170px"><div style="font-size:13.5px;color:#8A5B14;font-weight:600">Identity token transferred to new owner</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#B0975E;margin-top:2px">cartograph.eth → cartograph-labs.eth</div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#B6BFCC;flex-shrink:0">—</span>
+                <span style="padding:3px 9px;border-radius:6px;background:#FCF1DF;color:#B9791A;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">Confirmed</span>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid #EEF1F5;flex-wrap:wrap">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8;width:90px;flex-shrink:0">2024·04·09</span>
+                <span style="padding:4px 9px;border-radius:6px;background:#F1ECFC;color:#6E54C8;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">MINT</span>
+                <div style="flex:1;min-width:170px"><div style="font-size:13.5px;color:#0E1726;font-weight:500">ERC-8004 identity registered</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94A1B8;margin-top:2px">genesis · tx 0x00a1…ff</div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#B6BFCC;flex-shrink:0">—</span>
+                <span style="padding:3px 9px;border-radius:6px;background:#EEF1F6;color:#5E6B82;font-family:'IBM Plex Mono',monospace;font-size:10.5px;flex-shrink:0">Confirmed</span>
+              </div>
+
+              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #EEF1F5;padding-top:15px;margin-top:6px">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#94A1B8">Showing 6 of 48,210 events</span>
+                <a href="#" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{ accent }};text-decoration:none">View on block explorer ↗</a>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+      </main>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:920},&quot;treatment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;rail&quot;,&quot;band&quot;],&quot;default&quot;:&quot;rail&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#3B6FF6&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;trustScore&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:68,&quot;min&quot;:0,&quot;max&quot;:100,&quot;tsType&quot;:&quot;number&quot;},&quot;popularityScore&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:88,&quot;min&quot;:0,&quot;max&quot;:100,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { tab:0, treatment:'rail', trustDisp:0, popDisp:0, hoverIdx:null, expanded:{} };
+  }
+  componentDidMount(){
+    if(this.props.treatment) this.setState({treatment:this.props.treatment});
+    this.animate();
+  }
+  componentDidUpdate(prev){
+    if(prev.trustScore!==this.props.trustScore || prev.popularityScore!==this.props.popularityScore) this.animate();
+    if(this.props.treatment && prev.treatment!==this.props.treatment) this.setState({treatment:this.props.treatment});
+  }
+  accent(){ return this.props.accentColor || '#3B6FF6'; }
+  trustTarget(){ const v=this.props.trustScore; return (v==null?68:Math.max(0,Math.min(100,v))); }
+  popTarget(){ const v=this.props.popularityScore; return (v==null?88:Math.max(0,Math.min(100,v))); }
+  scoreColor(v){ return v>=70?'#15A06A':(v>=40?'#E0931F':'#E0413E'); }
+  popColor(v){ return v>=75?'#15A06A':(v>=50?'#E0931F':'#E0413E'); }
+  verdict(v){ return v>=70?'Strong':(v>=40?'Moderate':'Low'); }
+  grade(v){
+    if(v>=90)return'A'; if(v>=85)return'A−'; if(v>=80)return'B+'; if(v>=75)return'B';
+    if(v>=70)return'B−'; if(v>=60)return'C'; if(v>=50)return'D'; return'F';
+  }
+  animate(){
+    const tt=this.trustTarget(), pt=this.popTarget(), dur=1100, t0=performance.now();
+    const tick=(now)=>{ let p=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-p,3);
+      this.setState({trustDisp:tt*e, popDisp:pt*e});
+      if(p<1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  toggle(i){ this.setState(s=>({expanded:{...s.expanded,[i]:!s.expanded[i]}})); }
+  ringEl(value, size, stroke, color, sub){
+    const ce=React.createElement;
+    const r=(size-stroke)/2, c=2*Math.PI*r, cx=size/2, pct=Math.max(0,Math.min(100,value))/100, off=c*(1-pct);
+    return ce('svg',{width:size,height:size,viewBox:'0 0 '+size+' '+size,style:{display:'block'}},
+      ce('circle',{cx:cx,cy:cx,r:r,fill:'none',stroke:'#EAEEF4',strokeWidth:stroke}),
+      ce('circle',{cx:cx,cy:cx,r:r,fill:'none',stroke:color,strokeWidth:stroke,strokeLinecap:'round',strokeDasharray:c,strokeDashoffset:off,transform:'rotate(-90 '+cx+' '+cx+')'}),
+      ce('text',{x:cx,y:cx,textAnchor:'middle',dominantBaseline:'central',dy:sub?-size*0.04:0,style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:size*0.30,fill:'#0E1726'}}, String(Math.round(value))),
+      sub?ce('text',{x:cx,y:cx+size*0.20,textAnchor:'middle',dominantBaseline:'central',style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:size*0.105,fill:'#9AA6B8',letterSpacing:'0.04em'}}, sub):null
+    );
+  }
+  popEl(value, big){
+    const ce=React.createElement;
+    const g=this.grade(this.popTarget()), col=this.popColor(this.popTarget());
+    return ce('div',null,
+      ce('div',{style:{display:'flex',alignItems:'baseline',gap:'10px'}},
+        ce('div',{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:(big?52:34)+'px',lineHeight:1,color:col}}, g),
+        ce('div',{style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:(big?13:12)+'px',color:'#8A96A8'}}, Math.round(value)+' / 100')
+      ),
+      ce('div',{style:{height:(big?8:6)+'px',borderRadius:'6px',background:'#EAEEF4',overflow:'hidden',marginTop:(big?16:10)+'px'}},
+        ce('div',{style:{height:'100%',width:Math.max(0,Math.min(100,value))+'%',background:col,borderRadius:'6px',transition:'width .2s'}}))
+    );
+  }
+  chartEl(){
+    const ce=React.createElement;
+    const months=['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+    const yrs=['25','25','25','25','25','25','26','26','26','26','26','26'];
+    const data=[62,71,68,84,97,110,105,128,141,133,156,172];
+    const n=data.length, VBW=760, VBH=300, padL=46, padR=20, padT=20, padB=42;
+    const plotW=VBW-padL-padR, plotH=VBH-padT-padB, maxY=200;
+    const X=i=>padL+plotW*(i/(n-1));
+    const Y=v=>padT+plotH*(1-v/maxY);
+    const accent=this.accent();
+    const grids=[0,50,100,150,200].map((g,k)=>ce('g',{key:'g'+k},
+      ce('line',{x1:padL,x2:VBW-padR,y1:Y(g),y2:Y(g),stroke:'#EDF0F5',strokeWidth:1}),
+      ce('text',{x:padL-10,y:Y(g),textAnchor:'end',dominantBaseline:'central',style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:'11px',fill:'#A6B0C0'}}, g===0?'0':g+'k')
+    ));
+    let d=''; data.forEach((v,i)=>{ d+=(i?' L ':'M ')+X(i).toFixed(1)+' '+Y(v).toFixed(1); });
+    const area=d+' L '+X(n-1).toFixed(1)+' '+Y(0).toFixed(1)+' L '+X(0).toFixed(1)+' '+Y(0).toFixed(1)+' Z';
+    const xlab=months.map((m,i)=>ce('text',{key:'x'+i,x:X(i),y:VBH-padB+22,textAnchor:'middle',style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:'10.5px',fill:'#A6B0C0'}}, m));
+    const hi=this.state.hoverIdx;
+    let hov=null, tip=null;
+    if(hi!=null){
+      hov=ce('g',null,
+        ce('line',{x1:X(hi),x2:X(hi),y1:padT,y2:Y(0),stroke:accent,strokeWidth:1,strokeDasharray:'3 3',opacity:0.5}),
+        ce('circle',{cx:X(hi),cy:Y(data[hi]),r:5,fill:'#fff',stroke:accent,strokeWidth:2.5})
+      );
+      const tw=128, th=46; let tx=X(hi)-tw/2; tx=Math.max(padL,Math.min(VBW-padR-tw,tx));
+      let ty=Y(data[hi])-th-14; if(ty<padT) ty=Y(data[hi])+14;
+      tip=ce('g',null,
+        ce('rect',{x:tx,y:ty,width:tw,height:th,rx:8,fill:'#0E1726'}),
+        ce('text',{x:tx+13,y:ty+18,style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:'11px',fill:'#9AA6B8'}}, months[hi]+' 20'+yrs[hi]),
+        ce('text',{x:tx+13,y:ty+35,style:{fontFamily:"'Space Grotesk',sans-serif",fontSize:'14px',fontWeight:600,fill:'#fff'}}, data[hi]+'k downloads')
+      );
+    }
+    const overlay=ce('rect',{x:padL,y:padT,width:plotW,height:plotH,fill:'transparent',
+      onMouseMove:(e)=>{ const b=e.currentTarget.getBoundingClientRect(); const f=(e.clientX-b.left)/b.width; let i=Math.round(f*(n-1)); i=Math.max(0,Math.min(n-1,i)); if(i!==this.state.hoverIdx) this.setState({hoverIdx:i}); },
+      onMouseLeave:()=>this.setState({hoverIdx:null})});
+    return ce('svg',{viewBox:'0 0 '+VBW+' '+VBH,style:{width:'100%',height:'auto',display:'block'},preserveAspectRatio:'xMidYMid meet'},
+      ce('defs',null, ce('linearGradient',{id:'tracentArea',x1:'0',y1:'0',x2:'0',y2:'1'},
+        ce('stop',{offset:'0%',stopColor:accent,stopOpacity:0.20}),
+        ce('stop',{offset:'100%',stopColor:accent,stopOpacity:0}))),
+      ce('g',null,grids),
+      ce('path',{d:area,fill:'url(#tracentArea)'}),
+      ce('path',{d:d,fill:'none',stroke:accent,strokeWidth:2.5,strokeLinejoin:'round',strokeLinecap:'round'}),
+      ce('g',null,xlab), hov, tip, overlay
+    );
+  }
+  renderVals(){
+    const tab=this.state.tab, accent=this.accent(), tr=this.state.treatment;
+    const isRail=tr!=='band', isBand=tr==='band';
+    const labels=['Overview','Trust & Safety','Traction','Capabilities & Cost','Transactions'];
+    const tabStyle=(i)=>({appearance:'none',border:'none',background:'transparent',cursor:'pointer',padding:'12px 14px',fontFamily:"'IBM Plex Sans',sans-serif",fontSize:'14px',fontWeight:i===tab?600:500,color:i===tab?'#fff':'#7E8DAC',position:'relative',whiteSpace:'nowrap'});
+    const tabs=labels.map((l,i)=>({label:l, active:i===tab, on:()=>this.setState({tab:i}), style:tabStyle(i)}));
+    const segActive={appearance:'none',border:'none',cursor:'pointer',borderRadius:'7px',padding:'5px 12px',fontFamily:"'IBM Plex Sans',sans-serif",fontSize:'12px',fontWeight:600,background:accent,color:'#fff'};
+    const segIdle={appearance:'none',border:'none',cursor:'pointer',borderRadius:'7px',padding:'5px 12px',fontFamily:"'IBM Plex Sans',sans-serif",fontSize:'12px',fontWeight:500,background:'transparent',color:'#7E8DAC'};
+    const tt=this.trustTarget(), pt=this.popTarget();
+    return {
+      accent,
+      tabs, isOverview:tab===0, isTrust:tab===1, isTraction:tab===2, isCapabilities:tab===3, isTransactions:tab===4,
+      isRail, isBand,
+      railOn:()=>this.setState({treatment:'rail'}), bandOn:()=>this.setState({treatment:'band'}),
+      railBtnStyle:isRail?segActive:segIdle, bandBtnStyle:isBand?segActive:segIdle,
+      layoutStyle:{display:'block'},
+      mainStyle:{minWidth:0},
+      trustColor:this.scoreColor(tt), trustVerdict:this.verdict(tt), trustTargetTxt:String(tt),
+      popColor:this.popColor(pt), gradeLetter:this.grade(pt),
+      bigTrust:this.ringEl(this.state.trustDisp,188,16,this.scoreColor(tt),'/ 100'),
+      popBig:this.popEl(this.state.popDisp,true),
+      chart:this.chartEl(),
+      ex0:!!this.state.expanded[0], ex1:!!this.state.expanded[1], ex2:!!this.state.expanded[2],
+      tg0:()=>this.toggle(0), tg1:()=>this.toggle(1), tg2:()=>this.toggle(2)
+    };
+  }
+}
+</script>
+</body>
+</html>
