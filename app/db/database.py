@@ -93,6 +93,17 @@ CREATE INDEX IF NOT EXISTS idx_agents_trust_tier ON agents(trust_tier);
 CREATE INDEX IF NOT EXISTS idx_agents_risk       ON agents(risk_score);
 CREATE INDEX IF NOT EXISTS idx_transfers_tracent ON transfer_events(tracent_id);
 CREATE INDEX IF NOT EXISTS idx_flags_tracent     ON reputation_flags(tracent_id);
+
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS domain TEXT;
+CREATE INDEX IF NOT EXISTS idx_agents_domain ON agents(domain);
+
+CREATE TABLE IF NOT EXISTS ard_domains (
+    domain       TEXT PRIMARY KEY,
+    added_at     TIMESTAMPTZ DEFAULT NOW(),
+    last_crawled TIMESTAMPTZ,
+    agent_count  INTEGER DEFAULT 0,
+    active       BOOLEAN DEFAULT TRUE
+);
 """
 
 

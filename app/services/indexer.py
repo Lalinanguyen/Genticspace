@@ -15,7 +15,6 @@ _TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df52
 _NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
 _TOKEN_URI_SELECTOR = "0xc87b56dd"
 _OWNER_OF_SELECTOR = "0x6352211e"
-_CHUNK_SIZE = 10
 
 
 def _alchemy_url() -> str:
@@ -50,6 +49,22 @@ async def _get_logs_chunk(from_block: int, to_block: int) -> list[dict]:
     except Exception as exc:
         logger.warning("eth_getLogs %d-%d failed: %s", from_block, to_block, exc)
         return []
+
+
+async def _find_contract_deploy_block() -> int:
+    latest = await _get_latest_block()
+    lo, hi = 0, latest
+    while lo < hi:
+        mid = (lo + hi) // 2
+        try:
+            result = await _rpc("eth_getCode", [settings.CONTRACT_ADDRESS, hex(mid)])
+            if result and result != "0x":
+                hi = mid
+            else:
+                lo = mid + 1
+        except Exception:
+            lo = mid + 1
+    return lo
 
 
 async def _get_token_uri(token_id: int) -> str | None:
@@ -134,7 +149,13 @@ async def ingest_agents(source: str = "erc8004") -> None:
 
     last_indexed = await _get_last_indexed_block(source)
     if last_indexed is None:
-        from_block = latest_block - settings.INITIAL_LOOKBACK_BLOCKS
+        if settings.CONTRACT_START_BLOCK > 0:
+            from_block = settings.CONTRACT_START_BLOCK
+        else:
+            logger.info("Finding contract deployment block via binary search...")
+            from_block = await _find_contract_deploy_block()
+            logger.info("Contract deployed at block %d", from_block)
+        await _set_last_indexed_block(source, from_block - 1)
     else:
         from_block = last_indexed + 1
 
@@ -142,13 +163,23 @@ async def ingest_agents(source: str = "erc8004") -> None:
         logger.info("No new blocks to index (from=%d, latest=%d)", from_block, latest_block)
         return
 
-    logger.info("Indexing blocks %d → %d", from_block, latest_block)
+    total_blocks = latest_block - from_block + 1
+    logger.info("Indexing blocks %d → %d (%d blocks)", from_block, latest_block, total_blocks)
 
+    chunk_size = settings.CHUNK_SIZE
     all_logs: list[dict] = []
-    for chunk_start in range(from_block, latest_block + 1, _CHUNK_SIZE):
-        chunk_end = min(chunk_start + _CHUNK_SIZE - 1, latest_block)
+    chunks_done = 0
+    checkpoint_every = 1000
+
+    for chunk_start in range(from_block, latest_block + 1, chunk_size):
+        chunk_end = min(chunk_start + chunk_size - 1, latest_block)
         logs = await _get_logs_chunk(chunk_start, chunk_end)
         all_logs.extend(logs)
+        chunks_done += 1
+        if chunks_done % checkpoint_every == 0:
+            await _set_last_indexed_block(source, chunk_end)
+            logger.info("Progress: block %d/%d, %d logs so far",
+                        chunk_end - from_block, total_blocks, len(all_logs))
 
     token_events: dict[int, list[dict]] = {}
     for log in all_logs:

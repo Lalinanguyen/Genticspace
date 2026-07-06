@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     CONTRACT_ADDRESS: str = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
     INDEX_INTERVAL_MINUTES: int = 10
     INITIAL_LOOKBACK_BLOCKS: int = 500
+    CONTRACT_START_BLOCK: int = 0
+    CHUNK_SIZE: int = 10
     ENDPOINT_CHECK_INTERVAL_MINUTES: int = 30
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}

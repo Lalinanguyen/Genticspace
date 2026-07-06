@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.db.auth import verify_api_key
 from app.db.database import get_conn
+from app.services.ard_crawler import crawl_ard
 from app.services.indexer import ingest_agents
 from app.services.verifier import run_verification_review
 
@@ -40,6 +41,46 @@ async def admin_stats():
 async def admin_trigger_index(background_tasks: BackgroundTasks):
     background_tasks.add_task(ingest_agents, "erc8004")
     return {"status": "indexing started", "source": "erc8004"}
+
+
+@router.post("/admin/crawl-ard", tags=["admin"])
+async def admin_trigger_crawl_ard(background_tasks: BackgroundTasks):
+    background_tasks.add_task(crawl_ard)
+    return {"status": "crawl started", "source": "ard"}
+
+
+class ArdDomainBody(BaseModel):
+    domain: str
+
+
+@router.post("/admin/ard-domains", tags=["admin"])
+async def admin_add_ard_domain(body: ArdDomainBody):
+    domain = body.domain.strip().lower()
+    if not domain:
+        raise HTTPException(400, "domain must not be empty")
+    async with get_conn() as conn:
+        await conn.execute(
+            """
+            INSERT INTO ard_domains (domain, active)
+            VALUES ($1, TRUE)
+            ON CONFLICT (domain) DO UPDATE SET active = TRUE
+            """,
+            domain,
+        )
+    return {"domain": domain, "status": "added"}
+
+
+@router.get("/admin/ard-domains", tags=["admin"])
+async def admin_list_ard_domains():
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT domain, added_at, last_crawled, agent_count, active
+            FROM ard_domains
+            ORDER BY domain
+            """
+        )
+    return {"domains": [dict(r) for r in rows]}
 
 
 class ReviewBody(BaseModel):
