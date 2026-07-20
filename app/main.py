@@ -38,25 +38,46 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Startup used to fire all of these as separate concurrent tasks. On this
+# instance size (shared-cpu-1x, 512MB, two machines), each scraper's own
+# internal concurrency (4-8 workers) stacked on top of ~15 others running at
+# once was enough to exhaust the DB pool and starve real user requests —
+# causing the marketplace page to intermittently 500/502 right after every
+# deploy or restart. Running them one at a time keeps peak concurrent load
+# to a single job's worth, so live traffic always has headroom. Everything
+# still runs, just not all in the same instant.
+_STARTUP_JOBS = [
+    ("erc8004 index", lambda: ingest_agents("erc8004")),
+    ("ard crawl", crawl_ard),
+    ("huggingface scrape", scrape_huggingface),
+    ("huggingface profile scrape", scrape_huggingface_profiles),
+    ("github scrape", scrape_github),
+    ("github profile scrape", scrape_github_profiles),
+    ("readme scrape", scrape_readmes),
+    ("npm scrape", scrape_npm),
+    ("futurepedia scrape", scrape_futurepedia),
+    ("erc8004 backfill", backfill_erc8004),
+    ("github backfill", backfill_github),
+    ("huggingface backfill", backfill_huggingface),
+    ("npm backfill", backfill_npm),
+    ("futurepedia backfill", backfill_futurepedia),
+    ("connects backfill", backfill_connects),
+]
+
+
+async def _run_startup_jobs_sequentially() -> None:
+    for name, job in _STARTUP_JOBS:
+        try:
+            await job()
+        except Exception:
+            logger.exception("Startup job %r failed", name)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Starting background index on startup")
-    asyncio.create_task(ingest_agents("erc8004"))
-    asyncio.create_task(crawl_ard())
-    asyncio.create_task(scrape_huggingface())
-    asyncio.create_task(scrape_huggingface_profiles())
-    asyncio.create_task(scrape_github())
-    asyncio.create_task(scrape_github_profiles())
-    asyncio.create_task(scrape_readmes())
-    asyncio.create_task(scrape_npm())
-    asyncio.create_task(scrape_futurepedia())
-    asyncio.create_task(backfill_erc8004())
-    asyncio.create_task(backfill_github())
-    asyncio.create_task(backfill_huggingface())
-    asyncio.create_task(backfill_npm())
-    asyncio.create_task(backfill_futurepedia())
-    asyncio.create_task(backfill_connects())
+    asyncio.create_task(_run_startup_jobs_sequentially())
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
