@@ -1,9 +1,13 @@
+import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
 
 import httpx
 
 from app.db.database import get_conn
 from app.services.github_analysis import analyze_github_username, github_headers
+
+logger = logging.getLogger(__name__)
 
 _CACHE_TTL = timedelta(hours=24)
 
@@ -60,3 +64,30 @@ async def refresh_github_signals(user_id: int, github_username: str | None, forc
         user_id, github_username, sorted(languages), sorted(detected_libs), repo_count, analysis.rate_limited
     )
     return await _fetch_cache_row(user_id)
+
+
+async def get_github_signals_nonblocking(user_id: int, github_username: str | None) -> dict | None:
+    """Request-path-safe version of refresh_github_signals: analyzing a
+    user's repos means up to ~20 sequential GitHub API calls, far too slow
+    to do inline on every recommendations request. Returns whatever's
+    already cached immediately (possibly None) and, if the cache is stale
+    or missing, kicks off a real refresh in the background so the next
+    request benefits from it — never blocks the caller on live GitHub
+    calls."""
+    if not github_username:
+        return None
+
+    existing = await _fetch_cache_row(user_id)
+    is_stale = not existing or not existing["fetched_at"] or (
+        datetime.now(timezone.utc) - existing["fetched_at"] >= _CACHE_TTL
+    )
+    if is_stale:
+        async def _background_refresh():
+            try:
+                await refresh_github_signals(user_id, github_username, force=True)
+            except Exception as exc:
+                logger.debug("Background GitHub signal refresh failed for user %s: %s", user_id, exc)
+
+        asyncio.create_task(_background_refresh())
+
+    return dict(existing) if existing else None

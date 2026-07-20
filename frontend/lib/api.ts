@@ -84,12 +84,12 @@ export function getDeploymentGuide(
 
 export function getRecommendations(
   task: string,
-  token: string,
+  token?: string,
   limit = 6
 ): Promise<{ recommendations: Recommendation[] }> {
   const params = new URLSearchParams({ task, limit: String(limit) });
   return request(`/public/recommendations?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 }
 

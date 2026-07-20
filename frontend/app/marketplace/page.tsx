@@ -39,8 +39,15 @@ export default async function MarketplacePage({
     page_size: PAGE_SIZE,
   };
 
+  const hasQuery = !!q && q.trim().length > 0;
+
+  // With a search query, results come from the smart-ranked recommendations
+  // (RecommendedSection) instead of this plain filtered grid, so skip the
+  // now-unused fetch rather than paying for a query whose result is discarded.
   const [data, topProviders] = await Promise.all([
-    listAgents(filters),
+    hasQuery
+      ? Promise.resolve({ total: 0, page: 1, page_size: PAGE_SIZE, agents: [] })
+      : listAgents(filters),
     getTopProviders(),
   ]);
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
@@ -72,27 +79,31 @@ export default async function MarketplacePage({
           <FilterSidebar />
 
           <div className="flex-1 min-w-[280px]">
-            <RecommendedSection />
+            <RecommendedSection pageSize={PAGE_SIZE} />
 
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-5.5">
-              <span className="font-semibold text-lg text-cyan">
-                {data.total.toLocaleString()} agent{data.total === 1 ? "" : "s"}
-              </span>
-            </div>
+            {!hasQuery && (
+              <>
+                <div className="flex items-center justify-between flex-wrap gap-3 mb-5.5">
+                  <span className="font-semibold text-lg text-cyan">
+                    {data.total.toLocaleString()} agent{data.total === 1 ? "" : "s"}
+                  </span>
+                </div>
 
-            {data.agents.length === 0 ? (
-              <div className="py-16 px-5 text-center text-foreground-muted font-medium text-sm">
-                No agents match your filters yet. Try resetting them.
-              </div>
-            ) : (
-              <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-                {data.agents.map((agent) => (
-                  <AgentCard key={agent.tracent_id} agent={agent} />
-                ))}
-              </div>
+                {data.agents.length === 0 ? (
+                  <div className="py-16 px-5 text-center text-foreground-muted font-medium text-sm">
+                    No agents match your filters yet. Try resetting them.
+                  </div>
+                ) : (
+                  <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                    {data.agents.map((agent) => (
+                      <AgentCard key={agent.tracent_id} agent={agent} />
+                    ))}
+                  </div>
+                )}
+
+                <Pagination page={data.page} totalPages={totalPages} />
+              </>
             )}
-
-            <Pagination page={data.page} totalPages={totalPages} />
           </div>
         </div>
       </main>

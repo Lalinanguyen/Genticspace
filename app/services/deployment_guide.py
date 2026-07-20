@@ -1,7 +1,9 @@
 import logging
+import re
 from datetime import datetime, timezone
 
 import anthropic
+import httpx
 
 from app.config import settings
 from app.db.database import get_conn
@@ -11,8 +13,19 @@ logger = logging.getLogger(__name__)
 _VALID_LEVELS = {"Beginner", "Intermediate", "Advanced"}
 _DEFAULT_LEVEL = "Intermediate"
 _MAX_README_CHARS_FOR_PROMPT = 12000
+_MAX_WEBSITE_CHARS_FOR_PROMPT = 6000
+_WEBSITE_FETCH_TIMEOUT = 8.0
 
-_SYSTEM_PROMPT = """You are a technical writer for Tracent, an AI agent marketplace. You are given the raw README of a GitHub repository for an AI agent, along with the user's stated AI experience level. Write clear installation and deployment instructions based ONLY on what is actually present in the README — never invent commands, prerequisites, or steps that aren't there. If the README doesn't contain enough information to actually deploy the agent, say so plainly rather than guessing or padding with generic advice.
+_SCRIPT_STYLE_RE = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"[ \t]+")
+_BLANK_LINES_RE = re.compile(r"\n\s*\n+")
+_HTML_ENTITIES = {
+    "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'",
+    "&nbsp;": " ", "&rsquo;": "'", "&lsquo;": "'", "&rdquo;": '"', "&ldquo;": '"', "&mdash;": ",",
+}
+
+_SYSTEM_PROMPT = """You are a technical writer for Tracent, an AI agent marketplace. You are given whatever real source material is available for an AI agent (a GitHub/Hugging Face README, and/or text scraped from its website), along with the user's stated AI experience level. Write clear installation and deployment instructions based ONLY on what is actually present in that material — never invent commands, prerequisites, pricing, or steps that aren't there. Different sources may cover different things (e.g. the README has install commands, the website has pricing/signup info) — synthesize across whatever is given rather than picking just one. If the material doesn't contain enough information to actually deploy or start using the agent, say so plainly rather than guessing or padding with generic advice.
 
 Tailor depth and vocabulary to the stated experience level:
 - Beginner: spell out every step, assume no prior familiarity with package managers, environment variables, virtual environments, or the command line. Briefly explain what each command does before showing it.
@@ -26,11 +39,40 @@ def _normalize_level(level: str | None) -> str:
     return level if level in _VALID_LEVELS else _DEFAULT_LEVEL
 
 
+def _html_to_text(html: str) -> str:
+    text = _SCRIPT_STYLE_RE.sub(" ", html)
+    text = _TAG_RE.sub(" ", text)
+    for entity, replacement in _HTML_ENTITIES.items():
+        text = text.replace(entity, replacement)
+    text = re.sub(r"&#x([0-9a-fA-F]+);", lambda m: chr(int(m.group(1), 16)), text)
+    text = re.sub(r"&#(\d+);", lambda m: chr(int(m.group(1))), text)
+    text = _WHITESPACE_RE.sub(" ", text)
+    lines = [line.strip() for line in text.split("\n")]
+    text = "\n".join(line for line in lines if line)
+    return _BLANK_LINES_RE.sub("\n", text).strip()
+
+
+async def _fetch_website_text(url: str | None) -> str | None:
+    if not url:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=_WEBSITE_FETCH_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "TracentBot/1.0 (+https://tracent.me)"})
+        if resp.status_code != 200 or "text/html" not in resp.headers.get("content-type", ""):
+            return None
+        text = _html_to_text(resp.text)
+        return text[:_MAX_WEBSITE_CHARS_FOR_PROMPT] if text else None
+    except Exception as exc:
+        logger.debug("Website fetch failed for %s: %s", url, exc)
+        return None
+
+
 async def _get_agent(tracent_id: str) -> dict | None:
     async with get_conn() as conn:
         row = await conn.fetchrow(
             """
-            SELECT tracent_id, name, web_endpoint, readme_text, readme_fetched_at
+            SELECT tracent_id, name, web_endpoint, github_url, huggingface_url,
+                   readme_text, readme_fetched_at
             FROM agents WHERE tracent_id = $1
             """,
             tracent_id,
@@ -62,18 +104,25 @@ async def _save_guide(tracent_id: str, experience_level: str, instructions: str,
         )
 
 
-async def _generate(agent: dict, experience_level: str) -> str:
+async def _generate(agent: dict, experience_level: str, website_text: str | None) -> str:
     if not settings.ANTHROPIC_API_KEY:
         raise RuntimeError("ANTHROPIC_API_KEY is not configured")
 
     client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-    user_content = (
+    sources = [
         f"Agent name: {agent.get('name') or agent['tracent_id']}\n"
-        f"Repository: {agent.get('web_endpoint') or 'unknown'}\n"
-        f"User experience level: {experience_level}\n\n"
-        f"README content:\n{(agent.get('readme_text') or '')[:_MAX_README_CHARS_FOR_PROMPT]}"
-    )
+        f"Website: {agent.get('web_endpoint') or 'unknown'}\n"
+        f"User experience level: {experience_level}"
+    ]
+    readme_text = agent.get("readme_text")
+    if readme_text:
+        source_label = "Hugging Face" if agent.get("huggingface_url") else "GitHub"
+        sources.append(f"{source_label} README:\n{readme_text[:_MAX_README_CHARS_FOR_PROMPT]}")
+    if website_text:
+        sources.append(f"Website content (scraped from {agent.get('web_endpoint')}):\n{website_text}")
+
+    user_content = "\n\n".join(sources)
 
     response = await client.messages.create(
         model="claude-opus-4-8",
@@ -85,11 +134,11 @@ async def _generate(agent: dict, experience_level: str) -> str:
 
     if response.stop_reason == "refusal":
         logger.warning("Deployment guide generation refused for %s", agent["tracent_id"])
-        return "We couldn't generate deployment instructions for this agent right now. Check the repository's README directly."
+        return "We couldn't generate deployment instructions for this agent right now. Check the agent's website or repository directly."
 
     text = next((b.text for b in response.content if b.type == "text"), "")
     text = text.replace("—", ", ")
-    return text.strip() or "No instructions could be generated from this agent's README."
+    return text.strip() or "No instructions could be generated from the available source material."
 
 
 async def get_or_generate_deployment_guide(
@@ -101,17 +150,6 @@ async def get_or_generate_deployment_guide(
     if agent is None:
         raise LookupError(f"Agent {tracent_id} not found")
 
-    if not agent.get("readme_text"):
-        return {
-            "instructions": (
-                "No README has been indexed for this agent yet. Check back after the next "
-                "scrape, or visit the repository directly."
-            ),
-            "generated_at": None,
-            "cached": False,
-            "has_readme": False,
-        }
-
     if not force:
         cached = await _get_cached_guide(tracent_id, level)
         if cached and cached["readme_fetched_at"] == agent["readme_fetched_at"]:
@@ -122,7 +160,25 @@ async def get_or_generate_deployment_guide(
                 "has_readme": True,
             }
 
-    instructions = await _generate(agent, level)
+    # Github/Hugging Face README (already indexed) plus a live fetch of the
+    # agent's own website, when it has one — different sources tend to cover
+    # different things (install commands vs. pricing/signup), so guides pull
+    # from whatever real material actually exists for this agent instead of
+    # requiring a README specifically.
+    website_text = await _fetch_website_text(agent.get("web_endpoint"))
+
+    if not agent.get("readme_text") and not website_text:
+        return {
+            "instructions": (
+                "No README or website content could be found for this agent yet. Check back "
+                "after the next scrape, or visit the agent's page directly."
+            ),
+            "generated_at": None,
+            "cached": False,
+            "has_readme": False,
+        }
+
+    instructions = await _generate(agent, level, website_text)
     await _save_guide(tracent_id, level, instructions, agent["readme_fetched_at"])
 
     return {

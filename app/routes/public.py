@@ -9,7 +9,7 @@ from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
 from app.services.agent_queries import query_agents
 from app.services.deployment_guide import get_or_generate_deployment_guide
-from app.services.github_signals import refresh_github_signals
+from app.services.github_signals import get_github_signals_nonblocking
 from app.services.recommender import get_recommendations
 
 logger = logging.getLogger(__name__)
@@ -284,13 +284,19 @@ async def top_providers(limit: int = Query(12, ge=1, le=50)):
 async def recommendations(
     task: str = Query("", description="Free-text description of what the user wants to do"),
     limit: int = Query(10, ge=1, le=50),
-    current_user: dict = Depends(get_current_user),
+    current_user: Optional[dict] = Depends(get_current_user_optional),
 ):
-    await refresh_github_signals(current_user["id"], current_user.get("github_username"))
+    if current_user:
+        # Non-blocking: analyzing a user's repos is up to ~20 live GitHub
+        # calls, so this only serves what's already cached and refreshes in
+        # the background rather than stalling the request on GitHub's API.
+        await get_github_signals_nonblocking(current_user["id"], current_user.get("github_username"))
+
+    user = current_user or {"id": None, "experience_level": None}
 
     async with get_conn() as conn:
         return {
             "recommendations": await get_recommendations(
-                conn, current_user, task, filters={}, limit=limit
+                conn, user, task, filters={}, limit=limit
             )
         }

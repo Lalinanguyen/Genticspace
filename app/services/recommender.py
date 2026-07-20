@@ -7,6 +7,12 @@ _STOPWORDS = {
     "the", "and", "for", "with", "that", "this", "from", "into", "your",
     "you", "are", "can", "will", "need", "want", "like", "using", "use",
     "a", "an", "to", "of", "in", "on", "it", "my", "our", "me",
+    # Near-universal in this marketplace's own vocabulary (almost every
+    # listing's name/description says "AI agent/tool/assistant"), so they
+    # add no discriminating signal and would dilute genuinely on-topic
+    # matches (e.g. "legal") with noise matches on every other listing.
+    "ai", "agent", "agents", "tool", "tools", "app", "apps", "assistant",
+    "assistants", "help", "helps", "based", "system", "platform",
 }
 
 _PROTOCOL_LIB_TO_FIELD = {
@@ -15,7 +21,13 @@ _PROTOCOL_LIB_TO_FIELD = {
     "x402": "x402_support",
 }
 
-_CANDIDATE_POOL_SIZE = 200
+# query_agents (and the no-task path below) order by first_seen DESC, so a
+# small pool only ever searches the newest listings. When a task query is
+# present, _fetch_task_candidates narrows in SQL first (ILIKE across the
+# searchable columns) rather than transferring the whole wide table, so this
+# pool size just bounds the worst case rather than being the typical fetch.
+_CANDIDATE_POOL_SIZE_WITH_TASK = 20000
+_CANDIDATE_POOL_SIZE_NO_TASK = 200
 
 
 def _tokenize(text: str) -> set[str]:
@@ -64,9 +76,15 @@ def score_agent(
                 reasons.append(f"From a well-established creator ({followers:,} followers)")
 
     if task_tokens:
-        haystack = " ".join(
-            filter(None, [agent.get("name"), agent.get("description")])
-        ).lower()
+        haystack_parts = [
+            agent.get("name"), agent.get("description"), agent.get("license"),
+            agent.get("access_model"), agent.get("pricing_model"),
+            *(agent.get("industry_tags") or []),
+            *(agent.get("deployment_types") or []),
+            *(agent.get("interaction_types") or []),
+            *(agent.get("sdk_compat") or []),
+        ]
+        haystack = " ".join(filter(None, haystack_parts)).lower()
         skill_text = " ".join(
             " ".join(filter(None, [s.get("skill_name"), s.get("description"), s.get("tags")]))
             for s in skills
@@ -74,7 +92,10 @@ def score_agent(
         combined_tokens = _tokenize(haystack + " " + skill_text)
         overlap = task_tokens & combined_tokens
         if overlap:
-            score += 2 * len(overlap)
+            # Weighted well above the popularity/verification bonuses below —
+            # for a task search, actually matching what was asked for should
+            # dominate ranking over how well-known or vetted the agent is.
+            score += 5 * len(overlap)
             reasons.append(f"Matches your task: {', '.join(sorted(overlap)[:3])}")
 
     if experience == "beginner":
@@ -131,6 +152,51 @@ async def _load_provider_profiles(conn, agents: list[dict]) -> dict[tuple[str, s
     return profiles
 
 
+_TASK_SEARCHABLE_COLUMNS = [
+    "name", "description", "license", "access_model", "pricing_model",
+    "industry_tags::text", "deployment_types::text",
+    "interaction_types::text", "sdk_compat::text",
+]
+
+
+async def _fetch_task_candidates(conn, task_tokens: set[str], pool_size: int) -> list[dict]:
+    """Search-narrow the candidate pool in SQL before transferring full rows,
+    rather than pulling the whole (large, wide) agents table into Python on
+    every request. Matches if ANY task token appears in ANY searchable
+    column, across the full non-private catalog (not just recent listings)."""
+    if not task_tokens:
+        rows = await conn.fetch(
+            "SELECT * FROM agents WHERE is_private IS NOT TRUE ORDER BY first_seen DESC LIMIT $1",
+            pool_size,
+        )
+        return [dict(r) for r in rows]
+
+    conditions = []
+    params: list = []
+    for token in task_tokens:
+        params.append(f"%{token}%")
+        idx = len(params)
+        conditions.extend(f"{col} ILIKE ${idx}" for col in _TASK_SEARCHABLE_COLUMNS)
+
+    sql = f"""
+        SELECT * FROM agents
+        WHERE is_private IS NOT TRUE AND ({" OR ".join(conditions)})
+        ORDER BY first_seen DESC
+        LIMIT ${len(params) + 1}
+    """
+    rows = await conn.fetch(sql, *params, pool_size)
+    if rows:
+        return [dict(r) for r in rows]
+
+    # No text/tag match anywhere — fall back to a small pool of recent
+    # listings so the response is a best-effort ranking, not empty.
+    fallback = await conn.fetch(
+        "SELECT * FROM agents WHERE is_private IS NOT TRUE ORDER BY first_seen DESC LIMIT $1",
+        _CANDIDATE_POOL_SIZE_NO_TASK,
+    )
+    return [dict(r) for r in fallback]
+
+
 async def get_recommendations(
     conn,
     user: dict,
@@ -138,8 +204,14 @@ async def get_recommendations(
     filters: dict,
     limit: int = 10,
 ) -> list[dict]:
-    candidates = await query_agents(conn, page=1, page_size=_CANDIDATE_POOL_SIZE, **filters)
-    agents = candidates["agents"]
+    task_tokens = _tokenize(task_text or "")
+    pool_size = _CANDIDATE_POOL_SIZE_WITH_TASK if task_tokens else _CANDIDATE_POOL_SIZE_NO_TASK
+
+    if task_tokens or not filters:
+        agents = await _fetch_task_candidates(conn, task_tokens, pool_size)
+    else:
+        candidates = await query_agents(conn, page=1, page_size=pool_size, **filters)
+        agents = candidates["agents"]
     if not agents:
         return []
 
@@ -157,8 +229,6 @@ async def get_recommendations(
     github_cache = dict(github_cache) if github_cache else None
 
     provider_profiles = await _load_provider_profiles(conn, agents)
-
-    task_tokens = _tokenize(task_text or "")
 
     scored = []
     for agent in agents:
