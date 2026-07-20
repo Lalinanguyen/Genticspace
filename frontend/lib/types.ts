@@ -91,6 +91,7 @@ export interface TopProvider {
   source: string;
   agent_count: number;
   followers: number;
+  image_url: string | null;
   industry_tags: string[] | null;
 }
 

@@ -67,12 +67,21 @@ export function Nav() {
             </button>
           </>
         ) : (
-          <Link
-            href="/create-account?mode=login"
-            className="font-medium text-sm text-foreground-muted hover:text-foreground"
-          >
-            Sign in
-          </Link>
+          <>
+            <Link
+              href="/create-account?mode=login"
+              className="font-medium text-sm text-foreground-muted hover:text-foreground"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/create-account"
+              className="px-4 py-2 rounded font-semibold text-sm text-white"
+              style={{ background: "linear-gradient(135deg,#072AC8,#2f4fe0)" }}
+            >
+              Sign up
+            </Link>
+          </>
         )}
       </div>
     </div>

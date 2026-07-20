@@ -295,6 +295,7 @@ async def top_providers(limit: int = Query(12, ge=1, le=50)):
               a.source,
               COUNT(*) AS agent_count,
               MAX(COALESCE(hp.num_followers, gp.followers, 0)) AS followers,
+              MAX(COALESCE(hp.avatar_url, gp.avatar_url)) AS image_url,
               (SELECT array_agg(t) FROM (
                   SELECT DISTINCT tag AS t
                   FROM agents a2, unnest(a2.industry_tags) AS tag

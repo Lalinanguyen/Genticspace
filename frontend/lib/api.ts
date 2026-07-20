@@ -82,6 +82,19 @@ export function getDeploymentGuide(
   });
 }
 
+export function askDeploymentGuide(
+  tracentId: string,
+  question: string,
+  history: { role: "user" | "assistant"; content: string }[],
+  token?: string
+): Promise<{ answer: string }> {
+  return request(`/public/agents/${tracentId}/deployment-guide/ask`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify({ question, history }),
+  });
+}
+
 export function getRecommendations(
   task: string,
   token?: string,

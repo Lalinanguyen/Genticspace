@@ -46,9 +46,18 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
               className="flex-none w-[220px] p-4 rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] box-border no-underline hover:border-border-strong transition-colors"
             >
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-9 h-9 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[13px] text-white">
-                  {initials(c.name)}
-                </div>
+                {c.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={c.image_url}
+                    alt=""
+                    className="w-9 h-9 rounded flex-none object-cover bg-surface border border-border"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[13px] text-white">
+                    {initials(c.name)}
+                  </div>
+                )}
                 <span className="font-display font-bold text-[13.5px] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                   {c.name}
                 </span>
