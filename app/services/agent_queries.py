@@ -80,8 +80,13 @@ async def query_agents(
 
     total = await conn.fetchval(f"SELECT COUNT(*) FROM ({base}) sub", *params)
     offset = (page - 1) * page_size
+    # Description-less agents sort to the back of browsing rather than being
+    # hidden outright: early pages always show fully-described listings, and
+    # agents rejoin the front as the backfill fills their descriptions in.
     rows = await conn.fetch(
-        f"{base} ORDER BY first_seen DESC LIMIT ${len(params)+1} OFFSET ${len(params)+2}",
+        f"""{base}
+        ORDER BY (description IS NULL OR trim(description) = '') ASC, first_seen DESC
+        LIMIT ${len(params)+1} OFFSET ${len(params)+2}""",
         *params, page_size, offset,
     )
 
