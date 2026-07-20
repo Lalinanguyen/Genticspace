@@ -22,6 +22,7 @@ from app.services.indexer import ingest_agents
 from app.services.npm_scraper import backfill_npm, scrape_npm
 from app.services.readme_scraper import scrape_readmes
 from app.services.verifier import run_verification_review
+from app.services.yc_scraper import scrape_ycombinator
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,12 @@ async def admin_trigger_backfill_descriptions(background_tasks: BackgroundTasks)
         "status": "backfill started",
         "sources": ["erc8004", "github", "huggingface", "npm", "futurepedia", "connects"],
     }
+
+
+@router.post("/admin/scrape-ycombinator", tags=["admin"])
+async def admin_trigger_scrape_ycombinator(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_ycombinator)
+    return {"status": "scrape started", "source": "ycombinator"}
 
 
 @router.post("/admin/backfill-npm", tags=["admin"])

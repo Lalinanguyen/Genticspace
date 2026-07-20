@@ -7,14 +7,11 @@ import { DeploymentGuideSection } from "@/components/agent/DeploymentGuideSectio
 import { FavoriteButton } from "@/components/agent/FavoriteButton";
 import { getAgent, ApiError } from "@/lib/api";
 
-function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "cyan" | "blue" }) {
-  const styles = {
-    neutral: "bg-[rgba(244,247,243,.06)] border-border text-foreground-muted",
-    cyan: "bg-cyan/14 border-cyan/35 text-cyan",
-    blue: "bg-blue-to/14 border-blue-to/35 text-blue-to",
-  }[tone];
+function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className={`px-2.5 py-1 rounded-sm border font-semibold text-[11px] ${styles}`}>{children}</span>
+    <span className="px-2.5 py-1 rounded-sm border font-semibold text-[11px] bg-cyan/14 border-cyan/35 text-cyan">
+      {children}
+    </span>
   );
 }
 
@@ -108,16 +105,16 @@ export default async function AgentProfilePage({
 
             <div className="flex gap-1.5 flex-wrap mb-6">
               {agent.trust_tier && <Badge>{agent.trust_tier}</Badge>}
-              {agent.a2a_endpoint && <Badge tone="blue">A2A</Badge>}
-              {agent.mcp_endpoint && <Badge tone="cyan">MCP</Badge>}
+              {agent.a2a_endpoint && <Badge>A2A</Badge>}
+              {agent.mcp_endpoint && <Badge>MCP</Badge>}
               {agent.x402_support && <Badge>x402</Badge>}
-              {agent.safe_to_transact && <Badge tone="cyan">Safe to transact</Badge>}
+              {agent.safe_to_transact && <Badge>Safe to transact</Badge>}
               {agent.license && <Badge>{agent.license}</Badge>}
               {agent.deployment_types?.map((dep) => <Badge key={dep}>{dep}</Badge>)}
               {agent.access_model && <Badge>{agent.access_model}</Badge>}
-              {agent.pricing_model && <Badge tone="cyan">{agent.pricing_model}</Badge>}
+              {agent.pricing_model && <Badge>{agent.pricing_model}</Badge>}
               {agent.industry_tags?.map((tag) => (
-                <Badge key={tag} tone="blue">{tag}</Badge>
+                <Badge key={tag}>{tag}</Badge>
               ))}
             </div>
 

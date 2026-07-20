@@ -154,7 +154,7 @@ export default function OrgProfilePage({
         <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0, 1fr) 320px" }}>
           <div>
             <span className="font-display font-bold text-sm text-foreground block mb-4">Agents</span>
-            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
               {profile.agents.map((a) => <AgentCard key={a.tracent_id} agent={a} />)}
             </div>
           </div>

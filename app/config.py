@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     FUTUREPEDIA_ENRICH_INTERVAL_HOURS: int = 24
     FUTUREPEDIA_ENRICH_BATCH_SIZE: int = 150
 
+    YC_SCRAPE_INTERVAL_HOURS: int = 24
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

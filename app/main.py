@@ -29,6 +29,7 @@ from app.services.huggingface_scraper import scrape_huggingface
 from app.services.indexer import ingest_agents
 from app.services.npm_scraper import backfill_npm, scrape_npm
 from app.services.readme_scraper import scrape_readmes
+from app.services.yc_scraper import scrape_ycombinator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -150,6 +151,12 @@ async def lifespan(app: FastAPI):
         "interval",
         hours=settings.FUTUREPEDIA_ENRICH_INTERVAL_HOURS,
         id="backfill_futurepedia",
+    )
+    scheduler.add_job(
+        scrape_ycombinator,
+        "interval",
+        hours=settings.YC_SCRAPE_INTERVAL_HOURS,
+        id="ycombinator_scraper",
     )
     scheduler.start()
     logger.info(
