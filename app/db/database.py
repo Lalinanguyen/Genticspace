@@ -314,7 +314,12 @@ async def init_db() -> None:
     pool = await asyncpg.create_pool(
         settings.DATABASE_URL,
         min_size=2,
-        max_size=10,
+        # The startup scrapers/backfills fire off many concurrent DB-touching
+        # tasks at once; a small pool here means real user requests can queue
+        # behind them indefinitely (pool.acquire() has no default timeout).
+        # 20/machine x 2 machines = 40, well under this RDS instance's
+        # max_connections=79, leaving headroom for local/admin connections.
+        max_size=20,
     )
     async with pool.acquire() as conn:
         await conn.execute(_SCHEMA)
@@ -327,7 +332,13 @@ async def close_db() -> None:
         await pool.close()
 
 
+# If the pool is fully checked out, fail fast with a clear timeout instead of
+# hanging a request indefinitely — a request should never silently stall for
+# minutes just because background scraping work is holding connections.
+_ACQUIRE_TIMEOUT_SECONDS = 10.0
+
+
 @asynccontextmanager
 async def get_conn():
-    async with pool.acquire() as conn:
+    async with pool.acquire(timeout=_ACQUIRE_TIMEOUT_SECONDS) as conn:
         yield conn
