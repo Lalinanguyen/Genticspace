@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.db.auth import verify_api_key
 from app.db.database import get_conn
+from app.services.agent_queries import query_agents
 
 logger = logging.getLogger(__name__)
 
@@ -54,56 +55,27 @@ async def list_agents(
     x402_only: bool = False,
     flagged_only: bool = False,
     safe_only: bool = False,
+    industry: Optional[str] = None,
+    license: Optional[str] = None,
+    deployment: Optional[str] = None,
 ):
-    conditions = []
-    params: list = []
-
-    def add(cond: str, val=None):
-        params.append(val)
-        conditions.append(cond.replace("?", f"${len(params)}"))
-
-    if source:
-        add("source = ?", source)
-    if verified is not None:
-        add("verified = ?", verified)
-    if trust_tier:
-        add("trust_tier = ?", trust_tier)
-    if a2a_only:
-        conditions.append("a2a_endpoint IS NOT NULL")
-    if mcp_only:
-        conditions.append("mcp_endpoint IS NOT NULL")
-    if x402_only:
-        conditions.append("x402_support = TRUE")
-    if safe_only:
-        conditions.append("safe_to_transact = TRUE")
-
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-
-    if flagged_only:
-        base = f"""
-            SELECT DISTINCT a.* FROM agents a
-            JOIN reputation_flags f ON f.tracent_id = a.tracent_id
-            {where}
-        """
-    else:
-        base = f"SELECT * FROM agents {where}"
-
     async with get_conn() as conn:
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM ({base}) sub", *params
+        return await query_agents(
+            conn,
+            source=source,
+            verified=verified,
+            trust_tier=trust_tier,
+            a2a_only=a2a_only,
+            mcp_only=mcp_only,
+            x402_only=x402_only,
+            flagged_only=flagged_only,
+            safe_only=safe_only,
+            industry=industry,
+            license=license,
+            deployment=deployment,
+            page=page,
+            page_size=page_size,
         )
-        offset = (page - 1) * page_size
-        rows = await conn.fetch(
-            f"{base} ORDER BY first_seen DESC LIMIT ${len(params)+1} OFFSET ${len(params)+2}",
-            *params, page_size, offset,
-        )
-
-    return {
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "agents": [_row_to_dict(r) for r in rows],
-    }
 
 
 @router.get("/source/{source}/{source_id}")

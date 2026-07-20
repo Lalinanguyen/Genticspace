@@ -7,7 +7,20 @@ from pydantic import BaseModel, EmailStr
 from app.db.auth import verify_api_key
 from app.db.database import get_conn
 from app.services.ard_crawler import crawl_ard
+from app.services.description_backfill import (
+    backfill_connects,
+    backfill_erc8004,
+    backfill_github,
+    backfill_huggingface,
+)
+from app.services.github_profile_scraper import scrape_github_profiles
+from app.services.github_scraper import scrape_github
+from app.services.huggingface_profile_scraper import scrape_huggingface_profiles
+from app.services.huggingface_scraper import scrape_huggingface
+from app.services.futurepedia_scraper import backfill_futurepedia, scrape_futurepedia
 from app.services.indexer import ingest_agents
+from app.services.npm_scraper import backfill_npm, scrape_npm
+from app.services.readme_scraper import scrape_readmes
 from app.services.verifier import run_verification_review
 
 logger = logging.getLogger(__name__)
@@ -47,6 +60,106 @@ async def admin_trigger_index(background_tasks: BackgroundTasks):
 async def admin_trigger_crawl_ard(background_tasks: BackgroundTasks):
     background_tasks.add_task(crawl_ard)
     return {"status": "crawl started", "source": "ard"}
+
+
+@router.post("/admin/scrape-huggingface", tags=["admin"])
+async def admin_trigger_scrape_huggingface(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_huggingface)
+    return {"status": "scrape started", "source": "huggingface"}
+
+
+@router.post("/admin/scrape-huggingface-profiles", tags=["admin"])
+async def admin_trigger_scrape_huggingface_profiles(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_huggingface_profiles)
+    return {"status": "scrape started", "source": "huggingface_profiles"}
+
+
+@router.post("/admin/scrape-github", tags=["admin"])
+async def admin_trigger_scrape_github(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_github)
+    return {"status": "scrape started", "source": "github"}
+
+
+@router.get("/admin/huggingface-profiles", tags=["admin"])
+async def admin_list_huggingface_profiles():
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT username, profile_type, display_name, avatar_url, bio,
+                   is_pro, is_verified, num_models, num_datasets, num_spaces, num_followers,
+                   detected_libs, agent_count, first_seen, last_updated
+            FROM huggingface_profiles
+            ORDER BY num_followers DESC NULLS LAST
+            """
+        )
+    return {"profiles": [dict(r) for r in rows]}
+
+
+@router.post("/admin/scrape-github-profiles", tags=["admin"])
+async def admin_trigger_scrape_github_profiles(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_github_profiles)
+    return {"status": "scrape started", "source": "github_profiles"}
+
+
+@router.post("/admin/scrape-readmes", tags=["admin"])
+async def admin_trigger_scrape_readmes(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_readmes)
+    return {"status": "scrape started", "source": "readmes"}
+
+
+@router.post("/admin/scrape-npm", tags=["admin"])
+async def admin_trigger_scrape_npm(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_npm)
+    return {"status": "scrape started", "source": "npm"}
+
+
+@router.post("/admin/scrape-futurepedia", tags=["admin"])
+async def admin_trigger_scrape_futurepedia(background_tasks: BackgroundTasks):
+    background_tasks.add_task(scrape_futurepedia)
+    return {"status": "scrape started", "source": "futurepedia"}
+
+
+@router.post("/admin/backfill-descriptions", tags=["admin"])
+async def admin_trigger_backfill_descriptions(background_tasks: BackgroundTasks):
+    background_tasks.add_task(backfill_erc8004)
+    background_tasks.add_task(backfill_github)
+    background_tasks.add_task(backfill_huggingface)
+    background_tasks.add_task(backfill_npm)
+    background_tasks.add_task(backfill_futurepedia)
+    background_tasks.add_task(backfill_connects)
+    return {
+        "status": "backfill started",
+        "sources": ["erc8004", "github", "huggingface", "npm", "futurepedia", "connects"],
+    }
+
+
+@router.post("/admin/backfill-npm", tags=["admin"])
+async def admin_trigger_backfill_npm(background_tasks: BackgroundTasks):
+    background_tasks.add_task(backfill_npm)
+    return {"status": "backfill started", "source": "npm"}
+
+
+@router.post("/admin/backfill-futurepedia", tags=["admin"])
+async def admin_trigger_backfill_futurepedia(background_tasks: BackgroundTasks):
+    background_tasks.add_task(backfill_futurepedia)
+    return {"status": "backfill started", "source": "futurepedia"}
+
+
+@router.get("/admin/github-profiles", tags=["admin"])
+async def admin_list_github_profiles():
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT username, profile_type, display_name, avatar_url, bio,
+                   company, location, blog_url, twitter_handle,
+                   public_repos, followers, following,
+                   detected_languages, detected_libs, repos_analyzed,
+                   first_seen, last_updated
+            FROM github_profiles
+            ORDER BY followers DESC NULLS LAST
+            """
+        )
+    return {"profiles": [dict(r) for r in rows]}
 
 
 class ArdDomainBody(BaseModel):

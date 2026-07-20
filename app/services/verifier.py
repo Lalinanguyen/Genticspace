@@ -67,7 +67,7 @@ async def run_auto_verification(tracent_id: str) -> None:
         await _upsert_flag(conn, tracent_id, transfer_count >= 1, "ownership_transfer", "high",
                            f"Agent has {transfer_count} ownership transfer(s)")
         await _upsert_flag(conn, tracent_id, transfer_count >= 2, "rapid_resale", "high",
-                           f"Agent has {transfer_count} transfers — possible rapid resale")
+                           f"Agent has {transfer_count} transfers, possible rapid resale")
         await _upsert_flag(conn, tracent_id, not endpoints_live, "endpoint_dead", "medium",
                            "No agent endpoints returned HTTP 200")
         await _upsert_flag(conn, tracent_id, not has_name or not has_description,

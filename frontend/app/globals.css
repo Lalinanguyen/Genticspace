@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #050c13;
+  --color-surface: rgba(244, 247, 243, 0.05);
+  --color-surface-2: rgba(244, 247, 243, 0.045);
+  --color-border: rgba(244, 247, 243, 0.12);
+  --color-border-strong: rgba(244, 247, 243, 0.16);
+  --color-foreground: #f4f7f3;
+  --color-foreground-muted: rgba(244, 247, 243, 0.6);
+  --color-foreground-faint: rgba(244, 247, 243, 0.45);
+
+  --color-cyan: #35c0b0;
+  --color-cyan-hover: #6bd9cb;
+  --color-cyan-selected: #22d3ee;
+  --color-cyan-dark: #1f8a7e;
+
+  --color-blue: #072ac8;
+  --color-blue-to: #4d7cff;
+
+  --color-error: #ef233c;
+
+  --radius-DEFAULT: 4px;
+  --radius-sm: 3px;
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-error);
+  color: #fff;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+@keyframes conveyorBelt {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.glass-card {
+  backdrop-filter: blur(20px) saturate(1.7);
+  -webkit-backdrop-filter: blur(20px) saturate(1.7);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glow-blob {
+  border-radius: 50%;
+  filter: blur(10px);
+  animation: glow-pulse 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.glow-blob-static {
+  border-radius: 50%;
+  filter: blur(10px);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

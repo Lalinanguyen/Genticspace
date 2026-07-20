@@ -1,0 +1,27 @@
+# fly.toml — Tracent Frontend
+# Deploy: fly deploy --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.tracent.me
+
+app = "tracent-app"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+  [build.args]
+    NEXT_PUBLIC_API_BASE_URL = "https://api.tracent.me"
+
+[http_service]
+  internal_port        = 3000
+  force_https          = true
+  auto_stop_machines    = false
+  min_machines_running  = 1
+
+  [http_service.concurrency]
+    type       = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

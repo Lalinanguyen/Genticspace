@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import httpx
@@ -7,6 +8,24 @@ from app.db.database import get_conn
 logger = logging.getLogger(__name__)
 
 _TIMEOUT = 5.0
+_MAX_429_RETRIES = 2
+
+
+async def _request_with_backoff(client: httpx.AsyncClient, method: str, url: str) -> httpx.Response | None:
+    delay = 1.0
+    for attempt in range(_MAX_429_RETRIES + 1):
+        try:
+            resp = await client.request(method, url)
+        except Exception as exc:
+            logger.debug("%s %s failed: %s", method, url, exc)
+            return None
+        if resp.status_code != 429 or attempt == _MAX_429_RETRIES:
+            return resp
+        wait = float(resp.headers.get("retry-after", delay))
+        logger.debug("Rate limited on %s %s, backing off %.1fs", method, url, wait)
+        await asyncio.sleep(wait)
+        delay *= 2
+    return None
 
 
 async def check_endpoints(tracent_id: str) -> bool:
@@ -28,12 +47,12 @@ async def check_endpoints(tracent_id: str) -> bool:
         async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
             for url in endpoints:
                 try:
-                    resp = await client.head(url)
-                    if resp.status_code == 200:
+                    resp = await _request_with_backoff(client, "HEAD", url)
+                    if resp is not None and resp.status_code == 200:
                         live = True
                         break
-                    resp2 = await client.get(url)
-                    if resp2.status_code == 200:
+                    resp2 = await _request_with_backoff(client, "GET", url)
+                    if resp2 is not None and resp2.status_code == 200:
                         live = True
                         break
                 except Exception as exc:
