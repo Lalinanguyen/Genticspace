@@ -303,8 +303,10 @@ async def _process_token(source: str, token_id: int, events: list[dict]) -> None
             ON CONFLICT (source, source_id) DO UPDATE SET
                 owner_address    = EXCLUDED.owner_address,
                 name             = EXCLUDED.name,
-                description      = EXCLUDED.description,
-                image_url        = EXCLUDED.image_url,
+                -- ERC-8004 tokens rarely carry off-chain metadata; don't let
+                -- a re-index wipe the backfilled description with NULL.
+                description      = COALESCE(NULLIF(trim(EXCLUDED.description), ''), agents.description),
+                image_url        = COALESCE(EXCLUDED.image_url, agents.image_url),
                 metadata_uri     = EXCLUDED.metadata_uri,
                 is_active        = EXCLUDED.is_active,
                 x402_support     = EXCLUDED.x402_support,

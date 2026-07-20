@@ -147,7 +147,10 @@ async def _upsert_repo(kind: str, repo_id: str, detail: dict) -> str:
             )
             ON CONFLICT (source, source_id) DO UPDATE SET
                 name         = EXCLUDED.name,
-                description  = EXCLUDED.description,
+                -- Never clobber an enriched description with NULL: most HF
+                -- repos have no cardData summary, and the backfill's
+                -- Claude-generated descriptions live in this same column.
+                description  = COALESCE(NULLIF(trim(EXCLUDED.description), ''), agents.description),
                 metadata_uri = EXCLUDED.metadata_uri,
                 is_active    = EXCLUDED.is_active,
                 x402_support = EXCLUDED.x402_support,

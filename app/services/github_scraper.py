@@ -146,7 +146,9 @@ async def _upsert_repo(item: dict) -> str:
             )
             ON CONFLICT (source, source_id) DO UPDATE SET
                 name         = EXCLUDED.name,
-                description  = EXCLUDED.description,
+                -- Repos without a GitHub description would otherwise clobber
+                -- a backfilled description with NULL on every re-scrape.
+                description  = COALESCE(NULLIF(trim(EXCLUDED.description), ''), agents.description),
                 metadata_uri = EXCLUDED.metadata_uri,
                 is_active    = EXCLUDED.is_active,
                 x402_support = EXCLUDED.x402_support,

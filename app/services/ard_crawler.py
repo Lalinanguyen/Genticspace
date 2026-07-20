@@ -132,7 +132,7 @@ async def _crawl_domain(client: httpx.AsyncClient, domain: str) -> int:
                 )
                 ON CONFLICT (source, source_id) DO UPDATE SET
                     name         = EXCLUDED.name,
-                    description  = EXCLUDED.description,
+                    description  = COALESCE(NULLIF(trim(EXCLUDED.description), ''), agents.description),
                     a2a_endpoint = EXCLUDED.a2a_endpoint,
                     mcp_endpoint = EXCLUDED.mcp_endpoint,
                     web_endpoint = EXCLUDED.web_endpoint,
