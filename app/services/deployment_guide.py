@@ -187,3 +187,73 @@ async def get_or_generate_deployment_guide(
         "cached": False,
         "has_readme": True,
     }
+
+
+_CHAT_SYSTEM_PROMPT = """You are a quick help assistant embedded on an AI agent's deployment guide page on Tracent, an AI agent marketplace. You're given the same real source material the guide was generated from (a GitHub/Hugging Face README and/or scraped website text) plus the deployment guide already shown to the user. Answer their follow-up question using ONLY that material — never invent commands, error causes, pricing, or capabilities that aren't actually stated. If the material doesn't answer the question, say so plainly and suggest checking the agent's own site or repo directly, rather than guessing.
+
+Keep answers short (2-5 sentences, or a short code block if a command is being asked for). No preamble like "Based on the README". Never use em dashes (—); use a comma, period, or colon instead."""
+
+_MAX_CHAT_HISTORY_TURNS = 6
+
+
+async def answer_deployment_question(
+    tracent_id: str,
+    question: str,
+    experience_level: str | None,
+    history: list[dict] | None = None,
+) -> str:
+    if not settings.ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY is not configured")
+
+    agent = await _get_agent(tracent_id)
+    if agent is None:
+        raise LookupError(f"Agent {tracent_id} not found")
+
+    level = _normalize_level(experience_level)
+    website_text = await _fetch_website_text(agent.get("web_endpoint"))
+    cached_guide = await _get_cached_guide(tracent_id, level)
+
+    context_parts = [
+        f"Agent name: {agent.get('name') or agent['tracent_id']}",
+        f"Website: {agent.get('web_endpoint') or 'unknown'}",
+    ]
+    readme_text = agent.get("readme_text")
+    if readme_text:
+        source_label = "Hugging Face" if agent.get("huggingface_url") else "GitHub"
+        context_parts.append(f"{source_label} README:\n{readme_text[:_MAX_README_CHARS_FOR_PROMPT]}")
+    if website_text:
+        context_parts.append(f"Website content (scraped from {agent.get('web_endpoint')}):\n{website_text}")
+    if cached_guide:
+        context_parts.append(f"Deployment guide already shown to the user:\n{cached_guide['instructions']}")
+
+    if len(context_parts) <= 2:
+        return (
+            "I don't have any real source material indexed for this agent yet (no README or "
+            "website content), so I can't answer that reliably. Check the agent's own page directly."
+        )
+
+    client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+    messages = []
+    for turn in (history or [])[-_MAX_CHAT_HISTORY_TURNS:]:
+        role = turn.get("role")
+        content = turn.get("content")
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": str(content)[:2000]})
+    messages.append({"role": "user", "content": question[:1000]})
+
+    system = f"{_CHAT_SYSTEM_PROMPT}\n\n---\n\n" + "\n\n".join(context_parts)
+
+    response = await client.messages.create(
+        model="claude-opus-4-8",
+        max_tokens=600,
+        system=system,
+        messages=messages,
+    )
+
+    if response.stop_reason == "refusal":
+        return "I can't help with that one. Try rephrasing, or check the agent's site/repo directly."
+
+    text = next((b.text for b in response.content if b.type == "text"), "")
+    text = text.replace("—", ", ")
+    return text.strip() or "I couldn't come up with an answer to that from what's indexed for this agent."

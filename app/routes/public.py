@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
 from app.services.agent_queries import query_agents
-from app.services.deployment_guide import get_or_generate_deployment_guide
+from app.services.deployment_guide import answer_deployment_question, get_or_generate_deployment_guide
 from app.services.github_signals import get_github_signals_nonblocking
 from app.services.recommender import get_recommendations
 
@@ -249,6 +249,40 @@ async def agent_deployment_guide(
         return await get_or_generate_deployment_guide(tracent_id, level, force=force)
     except LookupError as exc:
         raise HTTPException(404, str(exc))
+
+
+class DeploymentGuideChatTurn(BaseModel):
+    role: str
+    content: str
+
+
+class DeploymentGuideChatBody(BaseModel):
+    question: str
+    history: list[DeploymentGuideChatTurn] = []
+
+
+@router.post("/agents/{tracent_id}/deployment-guide/ask")
+async def agent_deployment_guide_ask(
+    tracent_id: str,
+    body: DeploymentGuideChatBody,
+    current_user: Optional[dict] = Depends(get_current_user_optional),
+):
+    if not body.question.strip():
+        raise HTTPException(400, "Question is required")
+
+    level = current_user.get("experience_level") if current_user else None
+    try:
+        answer = await answer_deployment_question(
+            tracent_id,
+            body.question.strip(),
+            level,
+            [t.model_dump() for t in body.history],
+        )
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    return {"answer": answer}
 
 
 @router.get("/top-providers")
