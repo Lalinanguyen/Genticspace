@@ -9,7 +9,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background box-border">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background-page box-border">
         <Hero />
         <HowItWorks />
         <CapabilityShowcase />

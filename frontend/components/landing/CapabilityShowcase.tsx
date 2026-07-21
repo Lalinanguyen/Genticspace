@@ -1,41 +1,123 @@
-const INDUSTRIES = [
-  "Healthcare",
-  "Customer Support",
-  "Finance & Fintech",
-  "Legal",
-  "Retail & E-commerce",
-  "Marketing",
-  "Software Engineering",
-  "Education",
-  "HR & Recruiting",
-  "Real Estate",
-  "Manufacturing",
-  "Travel & Hospitality",
-  "Insurance",
+import Link from "next/link";
+import { listAgents } from "@/lib/api";
+
+interface IndustryTile {
+  name: string;
+  desc?: string;
+  color: string;
+  bg: string;
+  icon: (size: number) => React.ReactNode;
+}
+
+const headsetIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <path d="M4 13v-1a8 8 0 0 1 16 0v1" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <rect x="3" y="13" width="4" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <rect x="17" y="13" width="4" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M19 19v1a2 2 0 0 1-2 2h-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const codeIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <path d="M9 8l-5 4 5 4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15 8l5 4-5 4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const healthIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M8 12h2l1.2-2.6 1.8 4.6 1.2-2h1.8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const financeIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <line x1="5" y1="19" x2="5" y2="11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <line x1="12" y1="19" x2="12" y2="6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <line x1="19" y1="19" x2="19" y2="14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+const legalIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <rect x="3.2" y="9.2" width="7.5" height="4.2" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" transform="rotate(-35 7 11.3)" />
+    <line x1="9.5" y1="14" x2="15.5" y2="20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <line x1="4" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const retailIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <path d="M6 8h12l-1 12H7L6 8Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const marketingIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <path d="M3 10v4h3l6 4V6L6 10H3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M15 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const educationIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <path d="M12 5 2 9.5 12 14l10-4.5L12 5Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const hrIcon = (size: number) => (
+  <svg width={size} height={size} viewBox="0 0 24 24">
+    <circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M3.5 19c.5-3.5 3-5 5.5-5s5 1.5 5.5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="17.3" cy="9" r="2.3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M15.7 19c.3-2.5 1.8-4 3.5-4.3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const HERO_TILES: IndustryTile[] = [
+  {
+    name: "Customer Support",
+    desc: "Automate ticket triage, live chat and after-hours coverage.",
+    color: "text-cyan",
+    bg: "bg-cyan/14",
+    icon: headsetIcon,
+  },
+  {
+    name: "Software Engineering",
+    desc: "Pair-program, review pull requests and ship code with an agent teammate.",
+    color: "text-blue-to",
+    bg: "bg-blue-to/14",
+    icon: codeIcon,
+  },
 ];
 
-const CONVEYOR_COMPANIES = [
-  { name: "Cognition", logo: "/assets/logo-cognition.png", bg: "#fff" },
-  { name: "Adept AI", logo: "/assets/logo-adept.png", bg: "#241f1c" },
-  { name: "Decagon", logo: "/assets/logo-decagon.png", bg: "#0a0a0a" },
-  { name: "CrewAI", logo: "/assets/logo-crewai.png", bg: "#fff" },
-  { name: "Multion", logo: "/assets/logo-multion.png", bg: "#fff" },
-  { name: "Imbue", logo: "/assets/logo-imbue.png", bg: "#f6efdd" },
-  { name: "Ema", logo: "/assets/logo-ema.png", bg: "#1c8a44" },
-  { name: "Induced AI", logo: "/assets/logo-induced.png", bg: "#000" },
+const SMALL_TILES: IndustryTile[] = [
+  { name: "Healthcare", color: "text-error", bg: "bg-error/14", icon: healthIcon },
+  { name: "Finance & Fintech", color: "text-cyan", bg: "bg-cyan/14", icon: financeIcon },
+  { name: "Legal", color: "text-blue-to", bg: "bg-blue-to/14", icon: legalIcon },
+  { name: "Retail & E-commerce", color: "text-error", bg: "bg-error/14", icon: retailIcon },
+  { name: "Marketing", color: "text-cyan", bg: "bg-cyan/14", icon: marketingIcon },
+  { name: "Education", color: "text-blue-to", bg: "bg-blue-to/14", icon: educationIcon },
+  { name: "HR & Recruiting", color: "text-error", bg: "bg-error/14", icon: hrIcon },
 ];
 
-const MINI_AGENTS = [
-  { name: "Claude Cowork", desc: "Shared AI workspace for teams", logo: "/assets/claude-cowork-icon.png" },
-  { name: "Cursor", desc: "AI pair programmer for code", logo: "/assets/cursor-icon.png" },
-  { name: "Sierra", desc: "Customer support, automated", logo: "/assets/sierra-icon.png" },
-  { name: "Harvey", desc: "Contract review for legal teams", logo: "/assets/harvey-icon.png" },
-  { name: "GDevelop", desc: "No-code game development", logo: "/assets/gdevelop-icon.png" },
-  { name: "Athelas AI", desc: "Medical billing & clinical notes", logo: "/assets/athelas-icon.png" },
-];
+async function getIndustryCount(industry: string): Promise<number | null> {
+  try {
+    const res = await listAgents({ industry, page: 1, page_size: 1 });
+    return res.total;
+  } catch {
+    return null;
+  }
+}
 
-export function CapabilityShowcase() {
-  const conveyor = [...CONVEYOR_COMPANIES, ...CONVEYOR_COMPANIES];
+export async function CapabilityShowcase() {
+  const allTiles = [...HERO_TILES, ...SMALL_TILES];
+  const counts = await Promise.all(allTiles.map((tile) => getIndustryCount(tile.name)));
+  const countByName = new Map(allTiles.map((tile, i) => [tile.name, counts[i]]));
 
   return (
     <div className="relative w-full bg-background border-y border-border overflow-hidden box-border">
@@ -43,89 +125,68 @@ export function CapabilityShowcase() {
         className="absolute -top-[100px] right-[10%] w-[360px] h-[360px] glow-blob"
         style={{ background: "radial-gradient(circle, rgba(7,42,200,.4), transparent 70%)" }}
       />
-      <div className="relative z-[2] max-w-[1220px] mx-auto px-[5%] py-16 pb-[72px] box-border">
-        <div className="text-center max-w-[640px] mx-auto mb-7">
+      <div className="relative z-[2] max-w-[1220px] mx-auto px-[5%] py-16 pb-[72px] box-border flex flex-wrap gap-10 items-start">
+        <div className="flex-1 min-w-[260px] max-w-[360px]">
           <h2 className="font-display font-bold text-3xl leading-tight text-foreground mb-4">
             Built for every industry adopting AI
           </h2>
-          <p className="text-foreground-muted text-[15px] leading-relaxed">
+          <p className="text-foreground-muted text-[15px] leading-relaxed mb-6">
             Browse agents grouped by the work they do, no engineering background required.
           </p>
+          <Link
+            href="/marketplace"
+            className="inline-flex items-center gap-1.5 font-semibold text-sm text-cyan no-underline"
+          >
+            Explore by industry →
+          </Link>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 max-w-[760px] mx-auto mb-10">
-          {INDUSTRIES.map((cap) => (
-            <span
-              key={cap}
-              className="px-3.5 py-[7px] rounded bg-[rgba(53,192,176,.14)] border border-[rgba(53,192,176,.35)] font-semibold text-xs text-cyan"
-            >
-              {cap}
-            </span>
-          ))}
-        </div>
-
-        <div className="w-full overflow-x-auto no-scrollbar box-border">
-          <div className="relative w-[1100px] max-w-none mx-auto rounded bg-background border border-border shadow-[0_30px_70px_rgba(0,0,0,.45)] overflow-hidden box-border p-7 pointer-events-none select-none">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3.5 mb-5">
-              <div className="flex items-center gap-2">
-                <div className="w-[18px] h-[18px] rounded bg-gradient-to-br from-blue to-cyan flex-none" />
-                <span className="font-display font-bold text-[13px] text-[rgba(244,247,243,.85)]">Tracent</span>
-              </div>
-              <div className="flex items-center gap-4.5 justify-self-center">
-                <span className="font-semibold text-[11px] text-foreground border-b-2 border-cyan pb-0.5">Home</span>
-                <span className="font-medium text-[11px] text-[rgba(244,247,243,.45)]">Marketplace</span>
-                <span className="font-medium text-[11px] text-[rgba(244,247,243,.45)]">Contribute</span>
-              </div>
-              <span className="font-medium text-[11px] text-[rgba(244,247,243,.4)] justify-self-end">Sign in</span>
-            </div>
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded bg-[rgba(244,247,243,.06)] border border-border mb-5">
-              <div className="w-[13px] h-[13px] border-[1.5px] border-[rgba(244,247,243,.4)] rounded-full flex-none" />
-              <span className="text-xs text-[rgba(244,247,243,.45)]">Try &quot;triage support tickets&quot;...</span>
-            </div>
-
-            <div
-              className="overflow-hidden mb-5"
-              style={{
-                maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-                WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-              }}
-            >
-              <div
-                className="flex gap-2.5"
-                style={{ width: "max-content", animation: "conveyorBelt 22s linear infinite" }}
-              >
-                {conveyor.map((c, i) => (
-                  <div
-                    key={`${c.name}-${i}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[rgba(244,247,243,.05)] border border-[rgba(244,247,243,.1)] flex-none"
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full flex-none overflow-hidden"
-                      style={{ background: c.bg }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.logo} alt="" className="w-full h-full object-cover" />
+        <div className="flex-[2] min-w-[480px]">
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            {HERO_TILES.map((tile) => {
+              const count = countByName.get(tile.name);
+              return (
+                <Link
+                  key={tile.name}
+                  href={`/marketplace?industry=${encodeURIComponent(tile.name)}`}
+                  className="p-6 rounded bg-[rgba(244,247,243,.04)] border border-border no-underline hover:border-border-strong transition-colors"
+                >
+                  <div className={`w-11 h-11 rounded flex items-center justify-center mb-4 ${tile.bg} ${tile.color}`}>
+                    {tile.icon(24)}
+                  </div>
+                  <div className="font-display font-bold text-[17px] text-foreground mb-1.5">{tile.name}</div>
+                  <div className="text-[13px] leading-relaxed text-foreground-muted mb-3">{tile.desc}</div>
+                  {count !== null && count !== undefined && (
+                    <div className="text-xs font-semibold text-foreground-faint">
+                      {count.toLocaleString()} agent{count === 1 ? "" : "s"} listed
                     </div>
-                    <span className="font-semibold text-[10px] text-[rgba(244,247,243,.65)] whitespace-nowrap">
-                      {c.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
 
-            <div className="grid grid-cols-3 gap-3.5">
-              {MINI_AGENTS.map((agent) => (
-                <div key={agent.name} className="p-4 rounded bg-[rgba(244,247,243,.045)] border border-border">
-                  <div className="w-8 h-8 rounded mb-2.5 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={agent.logo} alt="" className="w-full h-full object-cover" />
+          <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
+            {SMALL_TILES.map((tile) => {
+              const count = countByName.get(tile.name);
+              return (
+                <Link
+                  key={tile.name}
+                  href={`/marketplace?industry=${encodeURIComponent(tile.name)}`}
+                  className="p-4 rounded bg-[rgba(244,247,243,.04)] border border-border no-underline hover:border-border-strong transition-colors"
+                >
+                  <div className={`w-8 h-8 rounded flex items-center justify-center mb-3 ${tile.bg} ${tile.color}`}>
+                    {tile.icon(17)}
                   </div>
-                  <div className="font-display font-bold text-xs text-foreground mb-1">{agent.name}</div>
-                  <div className="text-[10px] leading-tight text-foreground-faint">{agent.desc}</div>
-                </div>
-              ))}
-            </div>
+                  <div className="font-display font-semibold text-[13px] text-foreground mb-1">{tile.name}</div>
+                  {count !== null && count !== undefined && (
+                    <div className="text-[11px] font-medium text-foreground-faint">
+                      {count.toLocaleString()} agent{count === 1 ? "" : "s"}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

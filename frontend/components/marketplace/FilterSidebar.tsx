@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const PROTOCOL_OPTIONS = [
@@ -9,9 +10,9 @@ const PROTOCOL_OPTIONS = [
 ] as const;
 
 const TRUST_TIERS = [
-  { value: "", label: "Any" },
+  { value: "", label: "Any tier" },
   { value: "onchain", label: "On-chain" },
-  { value: "tracent", label: "Tracent-verified" },
+  { value: "tracent", label: "Genticspace-verified" },
 ];
 
 const INDUSTRIES = [
@@ -25,10 +26,44 @@ const INDUSTRIES = [
 const LICENSES = ["Open Source", "Commercial", "Freemium", "Enterprise"];
 const DEPLOYMENTS = ["Cloud", "On-prem", "API"];
 
+const VISIBLE_INDUSTRY_COUNT = 7;
+
+const chipBase =
+  "px-3.5 py-1.5 rounded-full border font-semibold text-[12.5px] whitespace-nowrap transition-colors";
+const chipActive = `${chipBase} border-cyan bg-cyan/14 text-cyan`;
+const chipInactive = `${chipBase} border-border bg-surface text-foreground-muted hover:border-border-strong hover:text-foreground`;
+
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={active ? chipActive : chipInactive}>
+      {children}
+    </button>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="font-bold text-[11px] text-foreground-faint uppercase tracking-wide">{label}</span>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
 export function FilterSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [showMore, setShowMore] = useState(false);
+  const [showAllIndustries, setShowAllIndustries] = useState(false);
 
   function updateParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -55,6 +90,7 @@ export function FilterSidebar() {
   }
 
   function reset() {
+    setShowMore(false);
     router.push(pathname);
   }
 
@@ -64,143 +100,111 @@ export function FilterSidebar() {
   const activeIndustries = (searchParams.get("industry") || "").split(",").filter(Boolean);
   const activeLicenses = (searchParams.get("license") || "").split(",").filter(Boolean);
   const activeDeployments = (searchParams.get("deployment") || "").split(",").filter(Boolean);
+  const activeProtocols = PROTOCOL_OPTIONS.filter((o) => searchParams.get(o.key) === "true");
+
+  const moreActiveCount = activeProtocols.length + activeLicenses.length + activeDeployments.length;
+  const hasAnyFilter =
+    verifiedOnly || safeOnly || !!trustTier || activeIndustries.length > 0 || moreActiveCount > 0;
+
+  const visibleIndustries = showAllIndustries ? INDUSTRIES : INDUSTRIES.slice(0, VISIBLE_INDUSTRY_COUNT);
+  const hiddenIndustryCount = INDUSTRIES.length - VISIBLE_INDUSTRY_COUNT;
 
   return (
-    <div className="flex-none w-[240px] min-w-[220px] flex flex-col gap-7">
-      <div className="flex items-center justify-between">
-        <span className="font-display font-bold text-sm text-foreground">Filters</span>
-        <button onClick={reset} className="font-semibold text-[12.5px] text-cyan">
-          Reset
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between px-4 py-3.5 rounded bg-surface border border-border">
-        <span className="font-semibold text-[13px] text-foreground">Verified only</span>
-        <button
-          onClick={() => toggleBool("verified")}
-          className="w-[38px] h-[22px] rounded-sm flex-none relative"
-          style={{ background: verifiedOnly ? "#35C0B0" : "rgba(244,247,243,.15)" }}
-        >
-          <span
-            className="absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-all"
-            style={{ left: verifiedOnly ? "18px" : "2px" }}
-          />
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between px-4 py-3.5 rounded bg-surface border border-border">
-        <span className="font-semibold text-[13px] text-foreground">Safe to transact</span>
-        <button
-          onClick={() => toggleBool("safe_only")}
-          className="w-[38px] h-[22px] rounded-sm flex-none relative"
-          style={{ background: safeOnly ? "#35C0B0" : "rgba(244,247,243,.15)" }}
-        >
-          <span
-            className="absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white transition-all"
-            style={{ left: safeOnly ? "18px" : "2px" }}
-          />
-        </button>
-      </div>
-
-      <div>
-        <div className="font-bold text-[12.5px] text-foreground-faint uppercase tracking-wide mb-3">
-          Trust tier
-        </div>
+    <div className="w-full flex flex-col gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Chip active={verifiedOnly} onClick={() => toggleBool("verified")}>
+          {verifiedOnly ? "✓ Verified" : "Verified"}
+        </Chip>
+        <Chip active={safeOnly} onClick={() => toggleBool("safe_only")}>
+          Safe to transact
+        </Chip>
         <select
           value={trustTier}
           onChange={(e) => updateParam("trust_tier", e.target.value)}
-          className="w-full px-3.5 py-2.5 rounded bg-surface border border-border-strong text-foreground text-[13px] font-medium"
+          className={`${trustTier ? chipActive : chipInactive} cursor-pointer`}
         >
           {TRUST_TIERS.map((t) => (
-            <option key={t.value} value={t.value} className="bg-[#0A1620]">
+            <option key={t.value} value={t.value} className="bg-[#0A1620] text-foreground">
               {t.label}
             </option>
           ))}
         </select>
+
+        <span className="w-px h-5 bg-border mx-0.5 flex-none" />
+
+        {visibleIndustries.map((industry) => (
+          <Chip
+            key={industry}
+            active={activeIndustries.includes(industry)}
+            onClick={() => toggleInList("industry", industry)}
+          >
+            {industry}
+          </Chip>
+        ))}
+        {!showAllIndustries && hiddenIndustryCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowAllIndustries(true)}
+            className="px-3.5 py-1.5 rounded-full border border-dashed border-border-strong font-semibold text-[12.5px] text-cyan whitespace-nowrap"
+          >
+            +{hiddenIndustryCount} more
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className={moreActiveCount > 0 ? chipActive : `${chipInactive} border-dashed`}
+        >
+          More filters{moreActiveCount > 0 ? ` (${moreActiveCount})` : ""} {showMore ? "▲" : "▾"}
+        </button>
+
+        {hasAnyFilter && (
+          <button
+            type="button"
+            onClick={reset}
+            className="ml-auto font-semibold text-[12.5px] text-foreground-faint hover:text-cyan"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
-      <CheckboxGroup
-        label="Industry"
-        options={INDUSTRIES}
-        active={activeIndustries}
-        onToggle={(v) => toggleInList("industry", v)}
-      />
+      {showMore && (
+        <div className="flex flex-wrap gap-x-8 gap-y-4 p-4 rounded bg-surface border border-border">
+          <FilterGroup label="Protocol">
+            {PROTOCOL_OPTIONS.map((opt) => (
+              <Chip key={opt.key} active={searchParams.get(opt.key) === "true"} onClick={() => toggleBool(opt.key)}>
+                {opt.label}
+              </Chip>
+            ))}
+          </FilterGroup>
 
-      <div>
-        <div className="font-bold text-[12.5px] text-foreground-faint uppercase tracking-wide mb-3">
-          Protocol support
+          <FilterGroup label="Licensing">
+            {LICENSES.map((license) => (
+              <Chip
+                key={license}
+                active={activeLicenses.includes(license)}
+                onClick={() => toggleInList("license", license)}
+              >
+                {license}
+              </Chip>
+            ))}
+          </FilterGroup>
+
+          <FilterGroup label="Deployment">
+            {DEPLOYMENTS.map((deployment) => (
+              <Chip
+                key={deployment}
+                active={activeDeployments.includes(deployment)}
+                onClick={() => toggleInList("deployment", deployment)}
+              >
+                {deployment}
+              </Chip>
+            ))}
+          </FilterGroup>
         </div>
-        <div className="flex flex-col gap-2.5">
-          {PROTOCOL_OPTIONS.map((opt) => {
-            const checked = searchParams.get(opt.key) === "true";
-            return (
-              <label key={opt.key} className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggleBool(opt.key)}
-                  className="w-4 h-4 accent-cyan"
-                />
-                <span className={checked ? "text-foreground text-[13px] font-medium" : "text-foreground-muted text-[13px] font-medium"}>
-                  {opt.label}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      <CheckboxGroup
-        label="Licensing"
-        options={LICENSES}
-        active={activeLicenses}
-        onToggle={(v) => toggleInList("license", v)}
-      />
-
-      <CheckboxGroup
-        label="Deployment"
-        options={DEPLOYMENTS}
-        active={activeDeployments}
-        onToggle={(v) => toggleInList("deployment", v)}
-      />
-    </div>
-  );
-}
-
-function CheckboxGroup({
-  label,
-  options,
-  active,
-  onToggle,
-}: {
-  label: string;
-  options: string[];
-  active: string[];
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <div>
-      <div className="font-bold text-[12.5px] text-foreground-faint uppercase tracking-wide mb-3">
-        {label}
-      </div>
-      <div className="flex flex-col gap-2.5">
-        {options.map((opt) => {
-          const checked = active.includes(opt);
-          return (
-            <label key={opt} className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(opt)}
-                className="w-4 h-4 accent-cyan flex-none"
-              />
-              <span className={checked ? "text-foreground text-[13px] font-medium" : "text-foreground-muted text-[13px] font-medium"}>
-                {opt}
-              </span>
-            </label>
-          );
-        })}
-      </div>
+      )}
     </div>
   );
 }

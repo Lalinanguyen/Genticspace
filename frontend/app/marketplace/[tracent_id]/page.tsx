@@ -15,6 +15,11 @@ function Badge({ children }: { children: React.ReactNode }) {
   );
 }
 
+const TRUST_TIER_LABELS: Record<string, string> = {
+  onchain: "On-chain",
+  tracent: "Genticspace-verified",
+};
+
 function ConnectLink({ label, href }: { label: string; href: string }) {
   const isEmail = href.includes("@") && !href.startsWith("http");
   return (
@@ -63,7 +68,7 @@ export default async function AgentProfilePage({
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background box-border">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background-page box-border">
         <div className="relative px-[5%] pt-12 pb-8 overflow-hidden box-border">
           <div
             className="absolute -top-40 right-[10%] w-[420px] h-[420px] glow-blob-static"
@@ -77,17 +82,17 @@ export default async function AgentProfilePage({
             <div className="flex items-start gap-4 flex-wrap mb-5">
               <AgentAvatar imageUrl={agent.image_url} size={72} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="font-display font-bold text-[32px] leading-tight text-foreground tracking-tight">
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                  <h1 className="font-display font-bold text-[32px] leading-tight text-foreground tracking-tight break-words min-w-0">
                     {agent.name || agent.tracent_id}
                   </h1>
                   {agent.verified && (
-                    <span title="Verified" className="text-cyan text-xl">
+                    <span title="Verified" className="text-cyan text-xl flex-none">
                       ✓
                     </span>
                   )}
                 </div>
-                <div className="text-[14px] text-foreground-faint font-mono mt-1">
+                <div className="text-[14px] text-foreground-faint font-mono mt-1 break-all">
                   {agent.provider_org ? (
                     <Link
                       href={`/company/${agent.source}/${encodeURIComponent(agent.provider_org)}`}
@@ -104,7 +109,7 @@ export default async function AgentProfilePage({
             </div>
 
             <div className="flex gap-1.5 flex-wrap mb-6">
-              {agent.trust_tier && <Badge>{agent.trust_tier}</Badge>}
+              {agent.trust_tier && <Badge>{TRUST_TIER_LABELS[agent.trust_tier] ?? agent.trust_tier}</Badge>}
               {agent.a2a_endpoint && <Badge>A2A</Badge>}
               {agent.mcp_endpoint && <Badge>MCP</Badge>}
               {agent.x402_support && <Badge>x402</Badge>}
@@ -118,7 +123,7 @@ export default async function AgentProfilePage({
               ))}
             </div>
 
-            <p className="text-[15px] leading-relaxed text-foreground-muted max-w-[720px] mb-8">
+            <p className="text-[15px] leading-relaxed text-foreground-muted max-w-[720px] mb-8 break-words">
               {agent.description || "No description indexed for this agent yet."}
             </p>
 

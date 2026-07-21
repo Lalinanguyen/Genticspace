@@ -2,6 +2,7 @@
 
 @theme {
   --color-background: #050c13;
+  --color-background-page: #00171f;
   --color-surface: rgba(244, 247, 243, 0.05);
   --color-surface-2: rgba(244, 247, 243, 0.045);
   --color-border: rgba(244, 247, 243, 0.12);
@@ -28,7 +29,7 @@
 }
 
 body {
-  background: var(--color-background);
+  background: var(--color-background-page);
   color: var(--color-foreground);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;

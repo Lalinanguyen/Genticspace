@@ -55,7 +55,7 @@ export default async function MarketplacePage({
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background box-border">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background-page box-border">
         <div className="relative px-[5%] pt-12 pb-8 overflow-hidden box-border">
           <div
             className="absolute -top-40 right-[10%] w-[420px] h-[420px] glow-blob-static"
@@ -75,10 +75,10 @@ export default async function MarketplacePage({
 
         <TopCompanies providers={topProviders.providers} />
 
-        <div className="flex gap-9 items-start px-[5%] pb-20 box-border flex-wrap">
+        <div className="px-[5%] pb-20 box-border">
           <FilterSidebar />
 
-          <div className="flex-1 min-w-[280px]">
+          <div className="mt-7">
             <RecommendedSection pageSize={PAGE_SIZE} />
 
             {!hasQuery && (

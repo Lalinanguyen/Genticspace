@@ -15,12 +15,13 @@ export function Nav() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="sticky top-0 z-20 w-full box-border grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-[5%] py-[22px] bg-[rgba(0,23,31,.55)] backdrop-blur-[22px] border-b border-border">
+    <div className="sticky top-0 z-20 w-full box-border grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-[5%] py-[22px] bg-background-page/55 backdrop-blur-[22px] border-b border-border">
       <div className="flex items-center gap-2.5">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-[30px] h-[30px] rounded bg-gradient-to-br from-blue to-cyan shadow-[0_0_22px_rgba(7,42,200,.55)]" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Genticspace" className="w-[30px] h-[30px] rounded" />
           <span className="font-display font-bold text-lg text-foreground tracking-tight">
-            Tracent
+            Genticspace
           </span>
         </Link>
       </div>
@@ -77,7 +78,7 @@ export function Nav() {
             <Link
               href="/create-account"
               className="px-4 py-2 rounded font-semibold text-sm text-white"
-              style={{ background: "linear-gradient(135deg,#072AC8,#2f4fe0)" }}
+              style={{ background: "linear-gradient(135deg, var(--color-blue), var(--color-blue-to))" }}
             >
               Sign up
             </Link>

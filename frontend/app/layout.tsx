@@ -16,7 +16,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Tracent: AI agent marketplace",
+  title: "Genticspace: AI agent marketplace",
   description: "Discover, compare, and deploy AI agents by trust tier, protocol and use case.",
 };
 
@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      <body className="min-h-screen bg-background text-foreground font-body antialiased">
+      <body className="min-h-screen bg-background-page text-foreground font-body antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
