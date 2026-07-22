@@ -7,10 +7,11 @@ from pydantic import BaseModel
 
 from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
-from app.services.agent_queries import query_agents
+from app.services.agent_queries import list_skill_categories, query_agents
 from app.services.deployment_guide import answer_deployment_question, get_or_generate_deployment_guide
 from app.services.github_signals import get_github_signals_nonblocking
 from app.services.recommender import get_recommendations
+from app.services.trust_summary import compute_trust_summary
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,14 @@ async def list_public_agents(
         )
 
 
+@router.get("/agents/categories")
+async def public_list_categories():
+    # Must stay declared before GET /agents/{tracent_id} below — otherwise
+    # FastAPI would match "categories" against the {tracent_id} path param.
+    async with get_conn() as conn:
+        return {"categories": await list_skill_categories(conn)}
+
+
 @router.get("/agents/{tracent_id}")
 async def get_public_agent(
     tracent_id: str, current_user: Optional[dict] = Depends(get_current_user_optional)
@@ -94,6 +103,9 @@ async def get_public_agent(
         skills = await conn.fetch(
             "SELECT * FROM agent_skills WHERE tracent_id = $1", tracent_id
         )
+        flags = await conn.fetch(
+            "SELECT severity FROM reputation_flags WHERE tracent_id = $1", tracent_id
+        )
 
         is_favorited = False
         if current_user:
@@ -105,8 +117,15 @@ async def get_public_agent(
             )
 
     result = dict(agent)
+    result.pop("submitter_email", None)
+    result.pop("moderation_note", None)
     result["skills"] = [dict(s) for s in skills]
     result["is_favorited"] = is_favorited
+    result["trust_summary"] = compute_trust_summary(
+        trust_tier=result.get("trust_tier"),
+        verified=bool(result.get("verified", False)),
+        has_high_severity_flag=any(f["severity"] == "high" for f in flags),
+    )
     return result
 
 

@@ -306,6 +306,32 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     message     TEXT NOT NULL,
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Per-client API keys (see app/db/auth.py). Only a sha256 hash of the raw
+-- key is ever stored; the raw key is returned once, at mint time, by
+-- POST /admin/api-keys and never persisted or logged.
+CREATE TABLE IF NOT EXISTS api_keys (
+    id           SERIAL PRIMARY KEY,
+    key_hash     TEXT NOT NULL UNIQUE,
+    owner_email  TEXT NOT NULL,
+    label        TEXT,
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    revoked_at   TIMESTAMPTZ
+);
+
+-- Moderation for the new *anonymous* submission path (POST /agents/submit,
+-- source = 'self-submitted') — distinct from the existing authenticated
+-- Contribute flow (source = 'tracent', submitted_by set), which stays
+-- instant-live and untouched. DEFAULT 'approved' is deliberate: every
+-- pre-existing row across every source (erc8004, ard, github, huggingface,
+-- npm, futurepedia, ycombinator, tracent) and every future row from any of
+-- those existing pipelines is unaffected and stays publicly visible exactly
+-- as before. Only the new anonymous submit flow explicitly writes 'pending'.
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderation_status TEXT DEFAULT 'approved';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS submitter_email   TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderation_note   TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderated_at      TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_agents_moderation_status ON agents(moderation_status);
 """
 
 

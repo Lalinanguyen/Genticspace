@@ -4,15 +4,20 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.db.database import close_db, init_db
+from app.rate_limit import limiter
 from app.routes.admin import router as admin_router
-from app.routes.agents import router as agents_router
+from app.routes.agents import router as agents_router, submit_router as agents_submit_router
 from app.routes.auth import router as auth_router
 from app.routes.profiles import router as profiles_router
 from app.routes.public import router as public_router
 from app.routes.trust import router as trust_router
+from app.sources import list_evm_sources
 from app.services.ard_crawler import crawl_ard
 from app.services.description_backfill import (
     backfill_connects,
@@ -55,13 +60,18 @@ async def lifespan(app: FastAPI):
     logger.info("Skipping immediate startup scrape/backfill burst; scheduler will pick these up on interval")
 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        ingest_agents,
-        "interval",
-        minutes=settings.INDEX_INTERVAL_MINUTES,
-        args=["erc8004"],
-        id="index_erc8004",
-    )
+    # Multi-chain EVM indexing: erc8004 is always configured (see
+    # app/config.py's default CONTRACT_ADDRESS); base/arbitrum only appear
+    # here once their *_CONTRACT_ADDRESS env var is set, so this is a no-op
+    # change for any deployment that hasn't opted in.
+    for cfg in list_evm_sources():
+        scheduler.add_job(
+            ingest_agents,
+            "interval",
+            minutes=settings.INDEX_INTERVAL_MINUTES,
+            args=[cfg.name],
+            id=f"index_{cfg.name}",
+        )
     scheduler.add_job(
         crawl_ard,
         "interval",
@@ -188,7 +198,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting (slowapi): 60 req/min/IP default across every route below,
+# with a stricter override on public writes. deslop had no rate limiting at
+# all before this — a real gap for a public production API. See
+# app/rate_limit.py for the real-client-IP-behind-Fly's-proxy handling.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 app.include_router(agents_router)
+app.include_router(agents_submit_router)
 app.include_router(trust_router)
 app.include_router(admin_router)
 app.include_router(auth_router)

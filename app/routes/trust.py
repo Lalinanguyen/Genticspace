@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.db.auth import verify_api_key
 from app.db.database import get_conn
+from app.services.trust_summary import compute_trust_summary
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ async def _build_trust_response(tracent_id: str) -> dict:
             tracent_id,
         )
 
+    has_high_flag = any(f["severity"] == "high" for f in flags)
+
     return {
         "tracent_id": agent["tracent_id"],
         "source": agent["source"],
@@ -43,6 +46,11 @@ async def _build_trust_response(tracent_id: str) -> dict:
         "risk_score": agent["risk_score"],
         "safe_to_transact": agent["safe_to_transact"],
         "endpoints_live": agent["endpoints_live"],
+        "trust_summary": compute_trust_summary(
+            trust_tier=agent["trust_tier"],
+            verified=bool(agent["verified"]),
+            has_high_severity_flag=has_high_flag,
+        ),
         "ownership_transfers": ownership_transfers,
         "flags": [dict(f) for f in flags],
         "checked_at": datetime.now(timezone.utc).isoformat(),
