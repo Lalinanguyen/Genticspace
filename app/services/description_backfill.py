@@ -159,7 +159,7 @@ async def _get_github_backfill_batch(batch_size: int) -> list[dict]:
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT tracent_id, source_id, description FROM agents
+            SELECT genticspace_id, source_id, description FROM agents
             WHERE source = 'github' AND github_enriched_at IS NULL
             ORDER BY last_indexed ASC
             LIMIT $1
@@ -230,9 +230,9 @@ async def backfill_github(batch_size: int | None = None) -> None:
                         image_url = COALESCE(image_url, $5),
                         deployment_types = ARRAY['On-prem'],
                         github_enriched_at = NOW()
-                    WHERE tracent_id = $1
+                    WHERE genticspace_id = $1
                     """,
-                    agent["tracent_id"], description, license_name, industry_tags or None, image_url,
+                    agent["genticspace_id"], description, license_name, industry_tags or None, image_url,
                 )
             updated += 1
 
@@ -252,7 +252,7 @@ async def _get_huggingface_backfill_batch(batch_size: int) -> list[dict]:
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT tracent_id, source_id, name, provider_org FROM agents
+            SELECT genticspace_id, source_id, name, provider_org FROM agents
             WHERE source = 'huggingface' AND hf_enriched_at IS NULL
             ORDER BY last_indexed ASC
             LIMIT $1
@@ -348,9 +348,9 @@ async def backfill_huggingface(batch_size: int | None = None) -> None:
                         readme_text = COALESCE($5, readme_text),
                         readme_fetched_at = CASE WHEN $5 IS NOT NULL THEN NOW() ELSE readme_fetched_at END,
                         hf_enriched_at = NOW()
-                    WHERE tracent_id = $1
+                    WHERE genticspace_id = $1
                     """,
-                    agent["tracent_id"], description, license_name, industry_tags or None, readme_text,
+                    agent["genticspace_id"], description, license_name, industry_tags or None, readme_text,
                 )
             updated += 1
 

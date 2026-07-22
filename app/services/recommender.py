@@ -101,7 +101,7 @@ def score_agent(
     if experience == "beginner":
         if agent.get("verified"):
             score += 4
-            reasons.append("Tracent-verified, good fit for your experience level")
+            reasons.append("Genticspace-verified, good fit for your experience level")
         if agent.get("trust_tier") == "onchain":
             score += 2
         if (agent.get("risk_score") or 0) >= 0.5:
@@ -109,7 +109,7 @@ def score_agent(
     elif experience == "intermediate":
         if agent.get("verified"):
             score += 2
-            reasons.append("Tracent-verified")
+            reasons.append("Genticspace-verified")
     # advanced: no skill-level boost, ranked purely on protocol/task match
 
     if agent.get("safe_to_transact"):
@@ -215,13 +215,13 @@ async def get_recommendations(
     if not agents:
         return []
 
-    tracent_ids = [a["tracent_id"] for a in agents]
+    genticspace_ids = [a["genticspace_id"] for a in agents]
     skill_rows = await conn.fetch(
-        "SELECT * FROM agent_skills WHERE tracent_id = ANY($1::text[])", tracent_ids
+        "SELECT * FROM agent_skills WHERE genticspace_id = ANY($1::text[])", genticspace_ids
     )
-    skills_by_tracent: dict[str, list[dict]] = {}
+    skills_by_genticspace: dict[str, list[dict]] = {}
     for row in skill_rows:
-        skills_by_tracent.setdefault(row["tracent_id"], []).append(dict(row))
+        skills_by_genticspace.setdefault(row["genticspace_id"], []).append(dict(row))
 
     github_cache = await conn.fetchrow(
         "SELECT * FROM github_repo_cache WHERE user_id = $1", user["id"]
@@ -234,7 +234,7 @@ async def get_recommendations(
     for agent in agents:
         profile = provider_profiles.get((agent.get("source"), agent.get("provider_org")))
         score, reasons = score_agent(
-            agent, skills_by_tracent.get(agent["tracent_id"], []), user, github_cache, task_tokens, profile
+            agent, skills_by_genticspace.get(agent["genticspace_id"], []), user, github_cache, task_tokens, profile
         )
         scored.append({**agent, "score": score, "reasons": reasons})
 

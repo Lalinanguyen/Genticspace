@@ -78,7 +78,7 @@ async def get_user_profile(user_id: int, current_user: Optional[dict] = Depends(
         favorites = await conn.fetch(
             f"""
             SELECT a.* FROM agent_favorites f
-            JOIN agents a ON a.tracent_id = f.tracent_id
+            JOIN agents a ON a.genticspace_id = f.genticspace_id
             WHERE f.user_id = $1 {visibility_clause}
             ORDER BY f.created_at DESC
             """,
@@ -86,8 +86,8 @@ async def get_user_profile(user_id: int, current_user: Optional[dict] = Depends(
         )
         reviews = await conn.fetch(
             """
-            SELECT r.id, r.rating, r.text, r.created_at, a.tracent_id, a.name AS agent_name
-            FROM reviews r JOIN agents a ON a.tracent_id = r.tracent_id
+            SELECT r.id, r.rating, r.text, r.created_at, a.genticspace_id, a.name AS agent_name
+            FROM reviews r JOIN agents a ON a.genticspace_id = r.genticspace_id
             WHERE r.user_id = $1
             ORDER BY r.created_at DESC
             """,
@@ -138,22 +138,22 @@ async def get_org_profile(
             source, org,
         )
 
-        tracent_ids = [a["tracent_id"] for a in agents]
+        genticspace_ids = [a["genticspace_id"] for a in agents]
         reviews = await conn.fetch(
             """
-            SELECT r.id, r.rating, r.text, r.created_at, a.tracent_id, a.name AS agent_name,
+            SELECT r.id, r.rating, r.text, r.created_at, a.genticspace_id, a.name AS agent_name,
                    u.name AS author_name
             FROM reviews r
-            JOIN agents a ON a.tracent_id = r.tracent_id
+            JOIN agents a ON a.genticspace_id = r.genticspace_id
             JOIN users u ON u.id = r.user_id
-            WHERE r.tracent_id = ANY($1::text[])
+            WHERE r.genticspace_id = ANY($1::text[])
             ORDER BY r.created_at DESC
             LIMIT 50
             """,
-            tracent_ids,
+            genticspace_ids,
         )
         avg_rating = await conn.fetchval(
-            "SELECT AVG(rating) FROM reviews WHERE tracent_id = ANY($1::text[])", tracent_ids
+            "SELECT AVG(rating) FROM reviews WHERE genticspace_id = ANY($1::text[])", genticspace_ids
         )
 
         is_following = False
@@ -187,28 +187,28 @@ async def get_org_profile(
 # ---------------------------------------------------------------------------
 # Favorites
 # ---------------------------------------------------------------------------
-@router.post("/agents/{tracent_id}/favorite")
-async def favorite_agent(tracent_id: str, current_user: dict = Depends(get_current_user)):
+@router.post("/agents/{genticspace_id}/favorite")
+async def favorite_agent(genticspace_id: str, current_user: dict = Depends(get_current_user)):
     async with get_conn() as conn:
-        exists = await conn.fetchval("SELECT 1 FROM agents WHERE tracent_id = $1", tracent_id)
+        exists = await conn.fetchval("SELECT 1 FROM agents WHERE genticspace_id = $1", genticspace_id)
         if not exists:
-            raise HTTPException(404, f"Agent {tracent_id} not found")
+            raise HTTPException(404, f"Agent {genticspace_id} not found")
         await conn.execute(
             """
-            INSERT INTO agent_favorites (user_id, tracent_id) VALUES ($1, $2)
+            INSERT INTO agent_favorites (user_id, genticspace_id) VALUES ($1, $2)
             ON CONFLICT DO NOTHING
             """,
-            current_user["id"], tracent_id,
+            current_user["id"], genticspace_id,
         )
     return {"status": "favorited"}
 
 
-@router.delete("/agents/{tracent_id}/favorite")
-async def unfavorite_agent(tracent_id: str, current_user: dict = Depends(get_current_user)):
+@router.delete("/agents/{genticspace_id}/favorite")
+async def unfavorite_agent(genticspace_id: str, current_user: dict = Depends(get_current_user)):
     async with get_conn() as conn:
         await conn.execute(
-            "DELETE FROM agent_favorites WHERE user_id = $1 AND tracent_id = $2",
-            current_user["id"], tracent_id,
+            "DELETE FROM agent_favorites WHERE user_id = $1 AND genticspace_id = $2",
+            current_user["id"], genticspace_id,
         )
     return {"status": "unfavorited"}
 
@@ -286,46 +286,46 @@ class ReviewBody(BaseModel):
     text: Optional[str] = None
 
 
-@router.get("/agents/{tracent_id}/reviews")
-async def list_agent_reviews(tracent_id: str):
+@router.get("/agents/{genticspace_id}/reviews")
+async def list_agent_reviews(genticspace_id: str):
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
             SELECT r.id, r.rating, r.text, r.created_at, u.id AS user_id, u.name AS author_name
             FROM reviews r JOIN users u ON u.id = r.user_id
-            WHERE r.tracent_id = $1
+            WHERE r.genticspace_id = $1
             ORDER BY r.created_at DESC
             """,
-            tracent_id,
+            genticspace_id,
         )
-        avg_rating = await conn.fetchval("SELECT AVG(rating) FROM reviews WHERE tracent_id = $1", tracent_id)
+        avg_rating = await conn.fetchval("SELECT AVG(rating) FROM reviews WHERE genticspace_id = $1", genticspace_id)
     return {
         "reviews": [dict(r) for r in rows],
         "avg_rating": float(avg_rating) if avg_rating is not None else None,
     }
 
 
-@router.post("/agents/{tracent_id}/reviews")
+@router.post("/agents/{genticspace_id}/reviews")
 async def upsert_agent_review(
-    tracent_id: str, body: ReviewBody, current_user: dict = Depends(get_current_user)
+    genticspace_id: str, body: ReviewBody, current_user: dict = Depends(get_current_user)
 ):
     if not 1 <= body.rating <= 5:
         raise HTTPException(400, "Rating must be between 1 and 5")
 
     async with get_conn() as conn:
-        exists = await conn.fetchval("SELECT 1 FROM agents WHERE tracent_id = $1", tracent_id)
+        exists = await conn.fetchval("SELECT 1 FROM agents WHERE genticspace_id = $1", genticspace_id)
         if not exists:
-            raise HTTPException(404, f"Agent {tracent_id} not found")
+            raise HTTPException(404, f"Agent {genticspace_id} not found")
 
         row = await conn.fetchrow(
             """
-            INSERT INTO reviews (tracent_id, user_id, rating, text)
+            INSERT INTO reviews (genticspace_id, user_id, rating, text)
             VALUES ($1, $2, $3, $4)
-            ON CONFLICT (tracent_id, user_id) DO UPDATE SET
+            ON CONFLICT (genticspace_id, user_id) DO UPDATE SET
                 rating = EXCLUDED.rating, text = EXCLUDED.text
             RETURNING id, rating, text, created_at
             """,
-            tracent_id, current_user["id"], body.rating, body.text,
+            genticspace_id, current_user["id"], body.rating, body.text,
         )
     return dict(row)
 

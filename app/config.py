@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
-    SMTP_FROM: str = "noreply@tracent.xyz"
+    SMTP_FROM: str = "noreply@genticspace.com"
     CONTACT_INBOX: str | None = None
 
     GITHUB_TOKEN: str | None = None

@@ -8,7 +8,7 @@ from app.services.trust_summary import compute_trust_summary
 _HIGH_FLAG_EXISTS = """(
         EXISTS (
             SELECT 1 FROM reputation_flags hf
-            WHERE hf.tracent_id = a.tracent_id AND hf.severity = 'high'
+            WHERE hf.genticspace_id = a.genticspace_id AND hf.severity = 'high'
         )
     ) AS has_high_flag"""
 
@@ -103,7 +103,7 @@ async def query_agents(
     conditions.append("a.moderation_status = 'approved'")
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    skills_join = "LEFT JOIN agent_skills s ON s.tracent_id = a.tracent_id" if needs_skills_join else ""
+    skills_join = "LEFT JOIN agent_skills s ON s.genticspace_id = a.genticspace_id" if needs_skills_join else ""
 
     # Named so it can appear in the ORDER BY below: Postgres requires
     # SELECT DISTINCT's ORDER BY expressions to appear literally in the
@@ -120,7 +120,7 @@ async def query_agents(
         base = f"""
             SELECT DISTINCT a.*, {_HIGH_FLAG_EXISTS}, {no_desc} FROM agents a
             {skills_join}
-            JOIN reputation_flags f ON f.tracent_id = a.tracent_id
+            JOIN reputation_flags f ON f.genticspace_id = a.genticspace_id
             {where}
         """
     elif needs_skills_join:
@@ -163,9 +163,9 @@ async def list_skill_categories(conn) -> list[dict]:
     """
     rows = await conn.fetch(
         """
-        SELECT tag AS category, COUNT(DISTINCT tracent_id) AS agent_count
+        SELECT tag AS category, COUNT(DISTINCT genticspace_id) AS agent_count
         FROM (
-            SELECT s.tracent_id,
+            SELECT s.genticspace_id,
                    jsonb_array_elements_text(
                        CASE
                            WHEN s.tags IS NOT NULL AND s.tags <> '' THEN s.tags::jsonb
@@ -173,7 +173,7 @@ async def list_skill_categories(conn) -> list[dict]:
                        END
                    ) AS tag
             FROM agent_skills s
-            JOIN agents a ON a.tracent_id = s.tracent_id
+            JOIN agents a ON a.genticspace_id = s.genticspace_id
             WHERE a.is_private IS NOT TRUE AND a.moderation_status = 'approved'
         ) expanded
         GROUP BY tag

@@ -9,7 +9,7 @@ pool: asyncpg.Pool | None = None
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agents (
-    tracent_id       TEXT PRIMARY KEY,
+    genticspace_id       TEXT PRIMARY KEY,
     source           TEXT NOT NULL,
     source_id        TEXT NOT NULL,
     owner_address    TEXT,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS agents (
 
 CREATE TABLE IF NOT EXISTS agent_skills (
     id           SERIAL PRIMARY KEY,
-    tracent_id   TEXT NOT NULL REFERENCES agents(tracent_id),
+    genticspace_id   TEXT NOT NULL REFERENCES agents(genticspace_id),
     skill_id     TEXT,
     skill_name   TEXT,
     description  TEXT,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS agent_skills (
 
 CREATE TABLE IF NOT EXISTS transfer_events (
     id            SERIAL PRIMARY KEY,
-    tracent_id    TEXT NOT NULL REFERENCES agents(tracent_id),
+    genticspace_id    TEXT NOT NULL REFERENCES agents(genticspace_id),
     source        TEXT NOT NULL,
     from_address  TEXT NOT NULL,
     to_address    TEXT NOT NULL,
@@ -58,12 +58,12 @@ CREATE TABLE IF NOT EXISTS transfer_events (
     is_mint       BOOLEAN NOT NULL,
     transfer_type TEXT,
     indexed_at    TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(tx_hash, tracent_id)
+    UNIQUE(tx_hash, genticspace_id)
 );
 
 CREATE TABLE IF NOT EXISTS reputation_flags (
     id          SERIAL PRIMARY KEY,
-    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id),
+    genticspace_id  TEXT NOT NULL REFERENCES agents(genticspace_id),
     flag_type   TEXT NOT NULL,
     severity    TEXT NOT NULL,
     detail      TEXT,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS reputation_flags (
 
 CREATE TABLE IF NOT EXISTS verification_requests (
     id              SERIAL PRIMARY KEY,
-    tracent_id      TEXT NOT NULL REFERENCES agents(tracent_id),
+    genticspace_id      TEXT NOT NULL REFERENCES agents(genticspace_id),
     requester_email TEXT NOT NULL,
     status          TEXT DEFAULT 'pending',
     reviewer_note   TEXT,
@@ -86,13 +86,49 @@ CREATE TABLE IF NOT EXISTS index_state (
     updated_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Tracent -> Genticspace rename: on a pre-existing production database, the
+-- tables above already exist with the old `tracent_id` column name (the
+-- CREATE TABLE IF NOT EXISTS statements above are no-ops for them). Renaming
+-- is metadata-only in Postgres (instant, no data rewrite; indexes survive
+-- automatically since Postgres tracks them by attnum, not name) — every
+-- statement below this point in the schema, and every query in the
+-- application code, already refers to `genticspace_id`, so this must run
+-- before any of them. Guarded on IF EXISTS so it safely no-ops on every
+-- startup after the first successful run, and is a no-op entirely on a
+-- fresh database (which was already created with `genticspace_id` directly
+-- by the CREATE TABLE statements above).
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='tracent_id') THEN
+    ALTER TABLE agents RENAME COLUMN tracent_id TO genticspace_id;
+    ALTER TABLE agent_skills RENAME COLUMN tracent_id TO genticspace_id;
+    ALTER TABLE transfer_events RENAME COLUMN tracent_id TO genticspace_id;
+    ALTER TABLE reputation_flags RENAME COLUMN tracent_id TO genticspace_id;
+    ALTER TABLE verification_requests RENAME COLUMN tracent_id TO genticspace_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_deployment_guides' AND column_name='tracent_id') THEN
+    ALTER TABLE agent_deployment_guides RENAME COLUMN tracent_id TO genticspace_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_favorites' AND column_name='tracent_id') THEN
+    ALTER TABLE agent_favorites RENAME COLUMN tracent_id TO genticspace_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reviews' AND column_name='tracent_id') THEN
+    ALTER TABLE reviews RENAME COLUMN tracent_id TO genticspace_id;
+  END IF;
+END $$;
+-- Brand-derived data values, likewise only meaningful on a pre-existing
+-- database — a no-op UPDATE on a fresh one (no rows exist yet).
+UPDATE agents SET trust_tier = 'genticspace' WHERE trust_tier = 'tracent';
+UPDATE agents SET trust_tier = 'genticspace-hosted' WHERE trust_tier = 'tracent-hosted';
+UPDATE agents SET source = 'genticspace' WHERE source = 'tracent';
+UPDATE agents SET source = 'genticspace-hosted' WHERE source = 'tracent-hosted';
+
 CREATE INDEX IF NOT EXISTS idx_agents_source     ON agents(source);
 CREATE INDEX IF NOT EXISTS idx_agents_owner      ON agents(owner_address);
 CREATE INDEX IF NOT EXISTS idx_agents_verified   ON agents(verified);
 CREATE INDEX IF NOT EXISTS idx_agents_trust_tier ON agents(trust_tier);
 CREATE INDEX IF NOT EXISTS idx_agents_risk       ON agents(risk_score);
-CREATE INDEX IF NOT EXISTS idx_transfers_tracent ON transfer_events(tracent_id);
-CREATE INDEX IF NOT EXISTS idx_flags_tracent     ON reputation_flags(tracent_id);
+CREATE INDEX IF NOT EXISTS idx_transfers_genticspace ON transfer_events(genticspace_id);
+CREATE INDEX IF NOT EXISTS idx_flags_genticspace     ON reputation_flags(genticspace_id);
 
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS domain TEXT;
 CREATE INDEX IF NOT EXISTS idx_agents_domain ON agents(domain);
@@ -195,15 +231,15 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS readme_fetched_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS agent_deployment_guides (
     id                SERIAL PRIMARY KEY,
-    tracent_id        TEXT NOT NULL REFERENCES agents(tracent_id),
+    genticspace_id        TEXT NOT NULL REFERENCES agents(genticspace_id),
     experience_level  TEXT NOT NULL,
     instructions      TEXT NOT NULL,
     readme_fetched_at TIMESTAMPTZ,
     generated_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(tracent_id, experience_level)
+    UNIQUE(genticspace_id, experience_level)
 );
 
--- Self-submitted listings (source = 'tracent'), created via the Contribute page.
+-- Self-submitted listings (source = 'genticspace'), created via the Contribute page.
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS submitted_by INTEGER REFERENCES users(id);
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS license TEXT;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS deployment_types TEXT[];
@@ -261,9 +297,9 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user
 
 CREATE TABLE IF NOT EXISTS agent_favorites (
     user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id) ON DELETE CASCADE,
+    genticspace_id  TEXT NOT NULL REFERENCES agents(genticspace_id) ON DELETE CASCADE,
     created_at  TIMESTAMPTZ DEFAULT NOW(),
-    PRIMARY KEY (user_id, tracent_id)
+    PRIMARY KEY (user_id, genticspace_id)
 );
 
 -- Following a person (followed_user_id) or a company/provider org
@@ -289,14 +325,14 @@ CREATE INDEX IF NOT EXISTS idx_follows_followed_org ON follows(org_source, follo
 
 CREATE TABLE IF NOT EXISTS reviews (
     id          SERIAL PRIMARY KEY,
-    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id) ON DELETE CASCADE,
+    genticspace_id  TEXT NOT NULL REFERENCES agents(genticspace_id) ON DELETE CASCADE,
     user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating      SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     text        TEXT,
     created_at  TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(tracent_id, user_id)
+    UNIQUE(genticspace_id, user_id)
 );
-CREATE INDEX IF NOT EXISTS idx_reviews_tracent_id ON reviews(tracent_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_genticspace_id ON reviews(genticspace_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 
 CREATE TABLE IF NOT EXISTS contact_messages (
@@ -321,10 +357,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 -- Moderation for the new *anonymous* submission path (POST /agents/submit,
 -- source = 'self-submitted') — distinct from the existing authenticated
--- Contribute flow (source = 'tracent', submitted_by set), which stays
+-- Contribute flow (source = 'genticspace', submitted_by set), which stays
 -- instant-live and untouched. DEFAULT 'approved' is deliberate: every
 -- pre-existing row across every source (erc8004, ard, github, huggingface,
--- npm, futurepedia, ycombinator, tracent) and every future row from any of
+-- npm, futurepedia, ycombinator, genticspace) and every future row from any of
 -- those existing pipelines is unaffected and stays publicly visible exactly
 -- as before. Only the new anonymous submit flow explicitly writes 'pending'.
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderation_status TEXT DEFAULT 'approved';

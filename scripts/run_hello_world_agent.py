@@ -1,5 +1,5 @@
 """
-Run the local-simulation "hello-world" Tracent-hosted agent.
+Run the local-simulation "hello-world" Genticspace-hosted agent.
 
 This is the local-simulation half of the hosting proof-of-concept described
 in docs/hosting-architecture.md. It runs the exact same app.py that
@@ -30,7 +30,7 @@ _AGENT_APP_PATH = (
 def _load_app():
     # agents/hello-world isn't a valid dotted Python package name (hyphen),
     # so load app.py directly by file path rather than `import agents.hello-world.app`.
-    spec = importlib.util.spec_from_file_location("tracent_hello_world_agent", _AGENT_APP_PATH)
+    spec = importlib.util.spec_from_file_location("genticspace_hello_world_agent", _AGENT_APP_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.app

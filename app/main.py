@@ -180,11 +180,11 @@ async def lifespan(app: FastAPI):
 
     scheduler.shutdown(wait=False)
     await close_db()
-    logger.info("Tracent shut down cleanly")
+    logger.info("Genticspace shut down cleanly")
 
 
 app = FastAPI(
-    title="Tracent Registry",
+    title="Genticspace Registry",
     description="Trust and verification registry for AI agents.",
     version="1.0.0",
     lifespan=lifespan,

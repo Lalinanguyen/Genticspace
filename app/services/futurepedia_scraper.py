@@ -18,7 +18,7 @@ _TIMEOUT = 15.0
 _MAX_RETRIES = 3
 # Identifies us honestly to the site we're reading, per robots.txt (which
 # permits User-agent: * on /tool/*) rather than spoofing a browser UA.
-_USER_AGENT = "TracentBot/1.0 (+https://tracent.me; AI agent registry)"
+_USER_AGENT = "GenticspaceBot/1.0 (+https://genticspace.com; AI agent registry)"
 
 _LOC_RE = re.compile(r"<loc>(.*?)</loc>\s*<lastmod>(.*?)</lastmod>", re.DOTALL)
 _H1_RE = re.compile(r"<h1[^>]*>([^<]*)</h1>")
@@ -117,7 +117,7 @@ async def _fetch_tool(client: httpx.AsyncClient, url: str) -> dict | None:
     }
 
 
-def _tracent_id() -> str:
+def _genticspace_id() -> str:
     return "fp_" + secrets.token_urlsafe(8)
 
 
@@ -140,15 +140,15 @@ async def _upsert_tool(source_id: str, futurepedia_url: str, data: dict) -> str:
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT tracent_id FROM agents WHERE source = 'futurepedia' AND source_id = $1",
+            "SELECT genticspace_id FROM agents WHERE source = 'futurepedia' AND source_id = $1",
             source_id,
         )
-        tracent_id = existing["tracent_id"] if existing else _tracent_id()
+        genticspace_id = existing["genticspace_id"] if existing else _genticspace_id()
 
         await conn.execute(
             """
             INSERT INTO agents (
-                tracent_id, source, source_id,
+                genticspace_id, source, source_id,
                 name, description, web_endpoint, provider_url, image_url,
                 industry_tags, pricing_model, deployment_types,
                 is_active, last_indexed, futurepedia_enriched_at
@@ -169,12 +169,12 @@ async def _upsert_tool(source_id: str, futurepedia_url: str, data: dict) -> str:
                 last_indexed  = NOW(),
                 futurepedia_enriched_at = NOW()
             """,
-            tracent_id, source_id,
+            genticspace_id, source_id,
             data["name"], data["description"], data["web_endpoint"], futurepedia_url, data.get("image_url"),
             industry_tags, data.get("pricing_model"),
         )
 
-    return tracent_id
+    return genticspace_id
 
 
 async def scrape_futurepedia() -> None:
@@ -222,15 +222,15 @@ async def scrape_futurepedia() -> None:
             if not data:
                 return
             try:
-                tracent_id = await _upsert_tool(slug, url, data)
+                genticspace_id = await _upsert_tool(slug, url, data)
             except Exception as exc:
                 logger.warning("Failed to upsert Futurepedia tool %s: %s", slug, exc)
                 return
             from app.services.verifier import run_auto_verification
             try:
-                await run_auto_verification(tracent_id)
+                await run_auto_verification(genticspace_id)
             except Exception as exc:
-                logger.debug("Verification failed for %s: %s", tracent_id, exc)
+                logger.debug("Verification failed for %s: %s", genticspace_id, exc)
             upserted += 1
 
         await asyncio.gather(*(process(slug, url) for slug, url in candidates))
@@ -251,7 +251,7 @@ async def _get_futurepedia_backfill_batch(batch_size: int) -> list[dict]:
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT tracent_id, provider_url FROM agents
+            SELECT genticspace_id, provider_url FROM agents
             WHERE source = 'futurepedia' AND futurepedia_enriched_at IS NULL
             ORDER BY last_indexed ASC
             LIMIT $1
@@ -275,8 +275,8 @@ async def backfill_futurepedia(batch_size: int | None = None) -> None:
             if not url:
                 async with get_conn() as conn:
                     await conn.execute(
-                        "UPDATE agents SET futurepedia_enriched_at = NOW() WHERE tracent_id = $1",
-                        agent["tracent_id"],
+                        "UPDATE agents SET futurepedia_enriched_at = NOW() WHERE genticspace_id = $1",
+                        agent["genticspace_id"],
                     )
                 continue
 
@@ -288,8 +288,8 @@ async def backfill_futurepedia(batch_size: int | None = None) -> None:
                 # tool page gone/moved — nothing more to learn, stop retrying it
                 async with get_conn() as conn:
                     await conn.execute(
-                        "UPDATE agents SET futurepedia_enriched_at = NOW() WHERE tracent_id = $1",
-                        agent["tracent_id"],
+                        "UPDATE agents SET futurepedia_enriched_at = NOW() WHERE genticspace_id = $1",
+                        agent["genticspace_id"],
                     )
                 continue
 
@@ -307,9 +307,9 @@ async def backfill_futurepedia(batch_size: int | None = None) -> None:
                                              THEN $3 ELSE industry_tags END,
                         image_url = COALESCE(image_url, $4),
                         futurepedia_enriched_at = NOW()
-                    WHERE tracent_id = $1
+                    WHERE genticspace_id = $1
                     """,
-                    agent["tracent_id"], pricing_model, industry_tags, image_url,
+                    agent["genticspace_id"], pricing_model, industry_tags, image_url,
                 )
             updated += 1
 

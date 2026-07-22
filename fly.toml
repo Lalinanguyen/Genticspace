@@ -1,9 +1,13 @@
-# fly.toml — Tracent Registry
+# fly.toml — Genticspace Registry
 # Deploy: fly deploy
 # Secrets (run once):
 #   fly secrets set ALCHEMY_API_KEY=<key>
 #   fly secrets set DATABASE_URL=<postgres-connection-string>
 #   fly secrets set API_KEY=$(openssl rand -hex 32)
+#
+# NOTE: app name below is unchanged (still "tracent-registry") — the Fly app
+# rename is a separate, later infra-cutover step (no in-place rename exists;
+# see docs/hosting-architecture.md-style runbook), not part of this change.
 
 app = "tracent-registry"
 primary_region = "iad"
@@ -16,7 +20,8 @@ primary_region = "iad"
   INITIAL_LOOKBACK_BLOCKS           = "500"
   ENDPOINT_CHECK_INTERVAL_MINUTES   = "30"
   CONTRACT_ADDRESS                  = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
-  CORS_ORIGINS                      = "https://tracent.me,https://www.tracent.me,http://localhost:3000"
+  # Both domains accepted during the Tracent -> Genticspace transition.
+  CORS_ORIGINS                      = "https://tracent.me,https://www.tracent.me,https://genticspace.com,https://www.genticspace.com,http://localhost:3000"
 
 [http_service]
   internal_port        = 8000

@@ -28,11 +28,11 @@ async def _request_with_backoff(client: httpx.AsyncClient, method: str, url: str
     return None
 
 
-async def check_endpoints(tracent_id: str) -> bool:
+async def check_endpoints(genticspace_id: str) -> bool:
     async with get_conn() as conn:
         row = await conn.fetchrow(
-            "SELECT a2a_endpoint, mcp_endpoint, web_endpoint FROM agents WHERE tracent_id = $1",
-            tracent_id,
+            "SELECT a2a_endpoint, mcp_endpoint, web_endpoint FROM agents WHERE genticspace_id = $1",
+            genticspace_id,
         )
     if not row:
         return False
@@ -60,8 +60,8 @@ async def check_endpoints(tracent_id: str) -> bool:
 
     async with get_conn() as conn:
         await conn.execute(
-            "UPDATE agents SET endpoints_live = $1 WHERE tracent_id = $2",
-            live, tracent_id,
+            "UPDATE agents SET endpoints_live = $1 WHERE genticspace_id = $2",
+            live, genticspace_id,
         )
     return live
 
@@ -70,11 +70,11 @@ async def check_all_endpoints() -> None:
     logger.info("Running endpoint health checks for all active agents")
     async with get_conn() as conn:
         rows = await conn.fetch(
-            "SELECT tracent_id FROM agents WHERE is_active = TRUE"
+            "SELECT genticspace_id FROM agents WHERE is_active = TRUE"
         )
     for row in rows:
         try:
-            await check_endpoints(row["tracent_id"])
+            await check_endpoints(row["genticspace_id"])
         except Exception as exc:
-            logger.error("Endpoint check error for %s: %s", row["tracent_id"], exc)
+            logger.error("Endpoint check error for %s: %s", row["genticspace_id"], exc)
     logger.info("Endpoint checks complete for %d agents", len(rows))

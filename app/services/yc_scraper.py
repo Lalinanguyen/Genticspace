@@ -26,7 +26,7 @@ _AI_TAG_MARKERS = {
 _KEEP_STATUSES = {"Active", "Public"}
 
 
-def _yc_tracent_id() -> str:
+def _yc_genticspace_id() -> str:
     return "yc_" + secrets.token_urlsafe(8)
 
 
@@ -69,15 +69,15 @@ async def _upsert_company(company: dict) -> str | None:
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT tracent_id FROM agents WHERE source = 'ycombinator' AND source_id = $1",
+            "SELECT genticspace_id FROM agents WHERE source = 'ycombinator' AND source_id = $1",
             source_id,
         )
-        tracent_id = existing["tracent_id"] if existing else _yc_tracent_id()
+        genticspace_id = existing["genticspace_id"] if existing else _yc_genticspace_id()
 
         await conn.execute(
             """
             INSERT INTO agents (
-                tracent_id, source, source_id,
+                genticspace_id, source, source_id,
                 name, description, web_endpoint, provider_org, provider_url, image_url,
                 industry_tags,
                 is_active, last_indexed
@@ -97,12 +97,12 @@ async def _upsert_company(company: dict) -> str | None:
                 industry_tags = CASE WHEN agents.industry_tags IS NULL THEN EXCLUDED.industry_tags ELSE agents.industry_tags END,
                 last_indexed  = NOW()
             """,
-            tracent_id, source_id,
+            genticspace_id, source_id,
             name, description, website, name, yc_url, image_url,
             industry_tags,
         )
 
-    return tracent_id
+    return genticspace_id
 
 
 async def scrape_ycombinator() -> None:
@@ -144,11 +144,11 @@ async def scrape_ycombinator() -> None:
     upserted = 0
     for company in candidates:
         try:
-            tracent_id = await _upsert_company(company)
+            genticspace_id = await _upsert_company(company)
         except Exception as exc:
             logger.warning("Failed to upsert YC company %s: %s", company.get("slug"), exc)
             continue
-        if not tracent_id:
+        if not genticspace_id:
             continue
         upserted += 1
         # Confirms the company is still actually up and running (not just
@@ -156,9 +156,9 @@ async def scrape_ycombinator() -> None:
         # and fills in trust_tier / verified / safe_to_transact accordingly —
         # the same auto-verification pass every other scraper runs.
         try:
-            await run_auto_verification(tracent_id)
+            await run_auto_verification(genticspace_id)
         except Exception as exc:
-            logger.debug("Verification failed for %s: %s", tracent_id, exc)
+            logger.debug("Verification failed for %s: %s", genticspace_id, exc)
 
     elapsed = time.monotonic() - start
     logger.info(

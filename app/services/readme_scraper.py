@@ -19,7 +19,7 @@ async def _get_stale_github_agents() -> list[dict]:
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT tracent_id, source_id FROM agents
+            SELECT genticspace_id, source_id FROM agents
             WHERE source = 'github'
               AND (readme_fetched_at IS NULL OR readme_fetched_at < NOW() - INTERVAL '1 day' * $1)
             ORDER BY readme_fetched_at ASC NULLS FIRST
@@ -80,8 +80,8 @@ async def scrape_readmes() -> None:
                 continue
             async with get_conn() as conn:
                 await conn.execute(
-                    "UPDATE agents SET readme_text = $1, readme_fetched_at = NOW() WHERE tracent_id = $2",
-                    readme, agent["tracent_id"],
+                    "UPDATE agents SET readme_text = $1, readme_fetched_at = NOW() WHERE genticspace_id = $2",
+                    readme, agent["genticspace_id"],
                 )
             fetched += 1
 

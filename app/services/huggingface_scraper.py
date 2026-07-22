@@ -35,7 +35,7 @@ _A2A_MARKERS = {"a2a", "agent2agent", "agent-protocol"}
 _X402_MARKERS = {"x402"}
 
 
-def _hf_tracent_id() -> str:
+def _hf_genticspace_id() -> str:
     return "hf_" + secrets.token_urlsafe(8)
 
 
@@ -123,15 +123,15 @@ async def _upsert_repo(kind: str, repo_id: str, detail: dict) -> str:
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT tracent_id FROM agents WHERE source = 'huggingface' AND source_id = $1",
+            "SELECT genticspace_id FROM agents WHERE source = 'huggingface' AND source_id = $1",
             source_id,
         )
-        tracent_id = existing["tracent_id"] if existing else _hf_tracent_id()
+        genticspace_id = existing["genticspace_id"] if existing else _hf_genticspace_id()
 
         await conn.execute(
             """
             INSERT INTO agents (
-                tracent_id, source, source_id,
+                genticspace_id, source, source_id,
                 name, description, metadata_uri,
                 is_active, x402_support,
                 a2a_endpoint, mcp_endpoint, web_endpoint,
@@ -161,7 +161,7 @@ async def _upsert_repo(kind: str, repo_id: str, detail: dict) -> str:
                 provider_url = EXCLUDED.provider_url,
                 last_indexed = NOW()
             """,
-            tracent_id, source_id,
+            genticspace_id, source_id,
             name, description, metadata_uri,
             is_active, has_x402,
             web_endpoint if is_a2a else None,
@@ -170,7 +170,7 @@ async def _upsert_repo(kind: str, repo_id: str, detail: dict) -> str:
             author, f"https://huggingface.co/{author}",
         )
 
-    return tracent_id
+    return genticspace_id
 
 
 async def _process_candidate(client: httpx.AsyncClient, sem: asyncio.Semaphore, kind: str, repo_id: str) -> bool:
@@ -179,16 +179,16 @@ async def _process_candidate(client: httpx.AsyncClient, sem: asyncio.Semaphore, 
         if detail is None:
             return False
         try:
-            tracent_id = await _upsert_repo(kind, repo_id, detail)
+            genticspace_id = await _upsert_repo(kind, repo_id, detail)
         except Exception as exc:
             logger.warning("Failed to upsert HF %s %s: %s", kind, repo_id, exc)
             return False
 
     from app.services.verifier import run_auto_verification
     try:
-        await run_auto_verification(tracent_id)
+        await run_auto_verification(genticspace_id)
     except Exception as exc:
-        logger.debug("Verification failed for %s: %s", tracent_id, exc)
+        logger.debug("Verification failed for %s: %s", genticspace_id, exc)
     return True
 
 
