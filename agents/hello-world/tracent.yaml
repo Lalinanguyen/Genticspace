@@ -1,0 +1,17 @@
+# Tracent hosted-agent manifest — see docs/hosting-architecture.md
+# ("Tracent Hosted Agent Contract") for the full field spec.
+name: hello-world
+description: >
+  Hard-coded echo agent. Returns whatever text you send its `echo` tool,
+  unchanged. Exists as the proof-of-concept for Tracent's agent-hosting
+  design spike, not as a real product agent.
+provider_org: Tracent
+runtime: docker            # this agent ships its own Dockerfile
+port: 8080                 # container must listen on $PORT (defaults to this)
+health_path: /health
+mcp_path: /mcp
+skills:
+  - id: echo
+    name: Echo
+    description: Echoes back whatever text you send it.
+    tags: [demo, utility]
