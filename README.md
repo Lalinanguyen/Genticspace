@@ -1,6 +1,6 @@
-# Tracent
+# Genticspace
 
-Tracent is the canonical trust and verification registry for AI agents — Crunchbase + Clearbit for the agent economy. Developers and autonomous AI agents query Tracent before integrating or transacting with an unknown agent. Every agent gets a universal **Tracent ID** (`trc_...`) that works across all data sources. Agents can be auto-verified on-chain or human-reviewed (Tracent-verified) for the highest trust tier.
+Genticspace is the canonical trust and verification registry for AI agents — Crunchbase + Clearbit for the agent economy. Developers and autonomous AI agents query Genticspace before integrating or transacting with an unknown agent. Every agent gets a universal **Genticspace ID** (`trc_...`) that works across all data sources. Agents can be auto-verified on-chain or human-reviewed (Genticspace-verified) for the highest trust tier.
 
 ---
 
@@ -21,7 +21,7 @@ openssl rand -hex 32
 uvicorn app.main:app --reload
 ```
 
-On startup, Tracent creates the database schema, runs an initial blockchain index, and starts the background scheduler.
+On startup, Genticspace creates the database schema, runs an initial blockchain index, and starts the background scheduler.
 
 ---
 
@@ -43,7 +43,7 @@ curl http://localhost:8000/health
 curl -H "X-API-Key: $API_KEY" \
   "http://localhost:8000/agents?page=1&page_size=20&verified=true&trust_tier=onchain"
 
-# Get full agent profile by Tracent ID
+# Get full agent profile by Genticspace ID
 curl -H "X-API-Key: $API_KEY" \
   http://localhost:8000/agents/trc_4kX9mNpQ2r
 
@@ -63,7 +63,7 @@ curl -H "X-API-Key: $API_KEY" \
 | `page_size` | int | Results per page (max 100) |
 | `source` | string | Filter by source (e.g. `erc8004`) |
 | `verified` | bool | Filter by verification status |
-| `trust_tier` | string | `onchain` or `tracent` |
+| `trust_tier` | string | `onchain` or `genticspace` |
 | `a2a_only` | bool | Only agents with A2A endpoints |
 | `mcp_only` | bool | Only agents with MCP endpoints |
 | `x402_only` | bool | Only agents with x402 support |
@@ -73,7 +73,7 @@ curl -H "X-API-Key: $API_KEY" \
 ### Trust Lookup (primary agent-to-agent route)
 
 ```bash
-# Trust signal by Tracent ID
+# Trust signal by Genticspace ID
 curl -H "X-API-Key: $API_KEY" \
   http://localhost:8000/trust/trc_4kX9mNpQ2r
 
@@ -85,7 +85,7 @@ curl -H "X-API-Key: $API_KEY" \
 Response:
 ```json
 {
-  "tracent_id": "trc_4kX9mNpQ2r",
+  "genticspace_id": "trc_4kX9mNpQ2r",
   "source": "erc8004",
   "source_id": "4821",
   "name": "MyAgent",
@@ -103,10 +103,10 @@ Response:
 ### Verification Requests
 
 ```bash
-# Submit a Tracent-verified request
+# Submit a Genticspace-verified request
 curl -X POST -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"tracent_id": "trc_4kX9mNpQ2r", "requester_email": "dev@example.com"}' \
+  -d '{"genticspace_id": "trc_4kX9mNpQ2r", "requester_email": "dev@example.com"}' \
   http://localhost:8000/verify/request
 
 # Check verification status
@@ -141,8 +141,8 @@ curl -X POST -H "X-API-Key: $API_KEY" \
 |------|-------|-----|
 | Unverified | `null` | Agent is indexed but not checked |
 | On-chain verified | `"onchain"` | Auto-assigned: exists on ERC-8004, endpoints live, zero ownership transfers, valid agent card |
-| Tracent-verified | `"tracent"` | Human-reviewed by Tracent team (paid) |
-| Tracent-hosted | `"tracent-hosted"` | Tracent wrote and runs this agent itself — see [`docs/hosting-architecture.md`](docs/hosting-architecture.md) |
+| Genticspace-verified | `"genticspace"` | Human-reviewed by Genticspace team (paid) |
+| Genticspace-hosted | `"genticspace-hosted"` | Genticspace wrote and runs this agent itself — see [`docs/hosting-architecture.md`](docs/hosting-architecture.md) |
 
 **Risk score** (0.0 = clean, 1.0 = high risk):
 - +0.4 if any ownership transfer detected
@@ -156,9 +156,11 @@ curl -X POST -H "X-API-Key: $API_KEY" \
 
 ## Fly.io Deploy
 
+> **Note:** the live production app is still named `tracent-registry` on Fly — renaming it is a separate infra-cutover step (Fly has no in-place app rename), not part of this codebase change. `genticspace.com`/`api.genticspace.com` are already issued and working alongside `tracent.me` on that same app. This command is for creating a brand-new instance from scratch.
+
 ```bash
 # Create the app (first time)
-fly apps create tracent-registry
+fly apps create genticspace-registry
 
 # Set secrets
 fly secrets set ALCHEMY_API_KEY=<your-alchemy-key>
@@ -175,24 +177,24 @@ fly deploy
 
 1. Create a PostgreSQL 15+ instance in RDS (same region as your Fly machine — `us-east-1` for `iad`).
 2. Set the security group to allow inbound TCP 5432 from Fly.io's egress IPs (or use a VPC peering / Fly private networking tunnel).
-3. Create a database named `tracent`:
+3. Create a database named `genticspace`:
    ```sql
-   CREATE DATABASE tracent;
+   CREATE DATABASE genticspace;
    ```
 4. Set `DATABASE_URL` to the full connection string:
    ```
-   postgresql://<user>:<password>@<rds-endpoint>:5432/tracent
+   postgresql://<user>:<password>@<rds-endpoint>:5432/genticspace
    ```
-5. Tracent creates the schema automatically on first startup.
+5. Genticspace creates the schema automatically on first startup.
 
 ---
 
 ## Identity Model
 
-Every agent has a `tracent_id` (`trc_` + 10 random chars) that works across all data sources:
+Every agent has a `genticspace_id` (`trc_` + 10 random chars) that works across all data sources:
 
 ```
-tracent_id: "trc_4kX9mNpQ2r"
+genticspace_id: "trc_4kX9mNpQ2r"
   source:   "erc8004"        ← origin registry
   source_id: "4821"          ← token ID within that registry
 ```

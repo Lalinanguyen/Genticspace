@@ -25,14 +25,14 @@ The database is recreated fresh each test session and dropped at the end.
 
    ```
    ALCHEMY_API_KEY=dummy-key-for-local-simulation
-   DATABASE_URL=postgresql://postgres@127.0.0.1:5432/tracent_deslop
+   DATABASE_URL=postgresql://postgres@127.0.0.1:5432/genticspace_deslop
    API_KEY=<any string — this becomes settings.API_KEY>
    JWT_SECRET=<any string>
    ```
 
    `DATABASE_URL`'s path is only used to derive the *test* database name —
    `conftest.py` overrides it in-process to `<path>_test` (e.g.
-   `tracent_deslop_test`) before anything imports `app.config`, so the real
+   `genticspace_deslop_test`) before anything imports `app.config`, so the real
    dev database named in `.env` is never touched by the test run.
 
    `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, and `HUGGINGFACE_TOKEN` do not need
