@@ -16,6 +16,14 @@ export interface Agent {
   provider_url: string | null;
   verified: boolean;
   trust_tier: string | null;
+  /**
+   * Presentation-ready trust label computed server-side by
+   * app/services/trust_summary.py — one of "tracent_verified",
+   * "tracent_hosted", "verified", "flagged", "unverified". Always use
+   * lib/trust.ts's `getTrustInfo` to render this; never show `trust_tier` or
+   * `risk_score` directly to end users.
+   */
+  trust_summary?: string | null;
   risk_score: number;
   safe_to_transact: boolean;
   first_seen: string;

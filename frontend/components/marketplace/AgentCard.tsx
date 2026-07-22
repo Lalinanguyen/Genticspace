@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Agent, Recommendation } from "@/lib/types";
 import { AgentAvatar } from "@/components/ui/AgentAvatar";
+import { TrustBadge } from "@/components/agent/TrustBadge";
 
 function shortId(id: string): string {
   return id.length > 14 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
@@ -48,8 +49,8 @@ export function AgentCard({ agent }: { agent: Agent | Recommendation }) {
       )}
 
       <div className="flex gap-1.5 flex-wrap">
+        <TrustBadge agent={agent} />
         {[
-          agent.trust_tier,
           agent.a2a_endpoint ? "A2A" : null,
           agent.mcp_endpoint ? "MCP" : null,
           agent.x402_support ? "x402" : null,

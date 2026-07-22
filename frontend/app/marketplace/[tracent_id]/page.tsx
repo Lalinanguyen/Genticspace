@@ -5,6 +5,7 @@ import { Footer } from "@/components/ui/Footer";
 import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { DeploymentGuideSection } from "@/components/agent/DeploymentGuideSection";
 import { FavoriteButton } from "@/components/agent/FavoriteButton";
+import { TrustBadge } from "@/components/agent/TrustBadge";
 import { getAgent, ApiError } from "@/lib/api";
 
 function Badge({ children }: { children: React.ReactNode }) {
@@ -104,7 +105,7 @@ export default async function AgentProfilePage({
             </div>
 
             <div className="flex gap-1.5 flex-wrap mb-6">
-              {agent.trust_tier && <Badge>{agent.trust_tier}</Badge>}
+              <TrustBadge agent={agent} />
               {agent.a2a_endpoint && <Badge>A2A</Badge>}
               {agent.mcp_endpoint && <Badge>MCP</Badge>}
               {agent.x402_support && <Badge>x402</Badge>}
