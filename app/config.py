@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 10
     ENDPOINT_CHECK_INTERVAL_MINUTES: int = 30
 
+    # Opt-in additional EVM chains: unset (empty) = disabled.
+    BASE_CONTRACT_ADDRESS: str = ""
+    BASE_START_BLOCK: int = 0
+    ARBITRUM_CONTRACT_ADDRESS: str = ""
+    ARBITRUM_START_BLOCK: int = 0
+
     JWT_SECRET: str
     JWT_EXPIRES_MINUTES: int = 10080
     CORS_ORIGINS: str = "http://localhost:3000"
