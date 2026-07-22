@@ -142,6 +142,7 @@ curl -X POST -H "X-API-Key: $API_KEY" \
 | Unverified | `null` | Agent is indexed but not checked |
 | On-chain verified | `"onchain"` | Auto-assigned: exists on ERC-8004, endpoints live, zero ownership transfers, valid agent card |
 | Tracent-verified | `"tracent"` | Human-reviewed by Tracent team (paid) |
+| Tracent-hosted | `"tracent-hosted"` | Tracent wrote and runs this agent itself — see [`docs/hosting-architecture.md`](docs/hosting-architecture.md) |
 
 **Risk score** (0.0 = clean, 1.0 = high risk):
 - +0.4 if any ownership transfer detected
