@@ -21,7 +21,7 @@ def unique_id(prefix: str = "trc_test") -> str:
 async def insert_agent(
     conn,
     *,
-    tracent_id: str,
+    genticspace_id: str,
     source: str = "test",
     source_id: Optional[str] = None,
     name: Optional[str] = None,
@@ -42,13 +42,13 @@ async def insert_agent(
     await conn.execute(
         """
         INSERT INTO agents (
-            tracent_id, source, source_id, name, description,
+            genticspace_id, source, source_id, name, description,
             verified, trust_tier, risk_score, safe_to_transact,
             moderation_status, submitter_email, moderation_note, is_private,
             a2a_endpoint, mcp_endpoint, x402_support, submitted_by
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
         """,
-        tracent_id, source, source_id or tracent_id, name, description,
+        genticspace_id, source, source_id or genticspace_id, name, description,
         verified, trust_tier, risk_score, safe_to_transact,
         moderation_status, submitter_email, moderation_note, is_private,
         a2a_endpoint, mcp_endpoint, x402_support, submitted_by,
@@ -58,32 +58,32 @@ async def insert_agent(
 async def insert_skill(
     conn,
     *,
-    tracent_id: str,
+    genticspace_id: str,
     skill_name: Optional[str] = None,
     description: Optional[str] = None,
     tags: Optional[list] = None,
 ) -> None:
     await conn.execute(
         """
-        INSERT INTO agent_skills (tracent_id, skill_name, description, tags)
+        INSERT INTO agent_skills (genticspace_id, skill_name, description, tags)
         VALUES ($1, $2, $3, $4)
         """,
-        tracent_id, skill_name, description, json.dumps(tags or []),
+        genticspace_id, skill_name, description, json.dumps(tags or []),
     )
 
 
 async def insert_flag(
     conn,
     *,
-    tracent_id: str,
+    genticspace_id: str,
     flag_type: str = "ownership_transfer",
     severity: str = "high",
     detail: Optional[str] = None,
 ) -> None:
     await conn.execute(
         """
-        INSERT INTO reputation_flags (tracent_id, flag_type, severity, detail)
+        INSERT INTO reputation_flags (genticspace_id, flag_type, severity, detail)
         VALUES ($1, $2, $3, $4)
         """,
-        tracent_id, flag_type, severity, detail,
+        genticspace_id, flag_type, severity, detail,
     )

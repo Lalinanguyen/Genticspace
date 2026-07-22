@@ -33,7 +33,7 @@ if not _BASE_DATABASE_URL:
     )
 
 _parts = urlsplit(_BASE_DATABASE_URL)
-_base_db_name = _parts.path.lstrip("/") or "tracent"
+_base_db_name = _parts.path.lstrip("/") or "genticspace"
 TEST_DB_NAME = f"{_base_db_name}_test"
 MAINTENANCE_DATABASE_URL = urlunsplit((_parts.scheme, _parts.netloc, "/postgres", "", ""))
 TEST_DATABASE_URL = urlunsplit((_parts.scheme, _parts.netloc, f"/{TEST_DB_NAME}", "", ""))

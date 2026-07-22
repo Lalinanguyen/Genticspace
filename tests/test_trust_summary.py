@@ -7,8 +7,8 @@ own docstring, every case where two labels' conditions are simultaneously
 true (to prove the *higher* one wins, not just that each label is reachable
 in isolation):
 
-    1. tracent_verified  (trust_tier == "tracent")
-    2. tracent_hosted    (trust_tier == "tracent-hosted")
+    1. genticspace_verified  (trust_tier == "genticspace")
+    2. genticspace_hosted    (trust_tier == "genticspace-hosted")
     3. flagged           (has_high_severity_flag)
     4. verified          (verified and trust_tier == "onchain")
     5. unverified        (everything else)
@@ -20,46 +20,46 @@ from app.services.trust_summary import TRUST_SUMMARY_LABELS, compute_trust_summa
 
 def test_label_set_is_exactly_five_and_matches_docstring():
     assert TRUST_SUMMARY_LABELS == (
-        "tracent_verified", "tracent_hosted", "verified", "flagged", "unverified",
+        "genticspace_verified", "genticspace_hosted", "verified", "flagged", "unverified",
     )
 
 
-# --- Branch 1: tracent_verified, unconditional winner ----------------------
+# --- Branch 1: genticspace_verified, unconditional winner ----------------------
 
 @pytest.mark.parametrize(
     "verified, has_high_severity_flag",
     [(False, False), (True, False), (False, True), (True, True)],
 )
-def test_tracent_verified_wins_regardless_of_other_fields(verified, has_high_severity_flag):
+def test_genticspace_verified_wins_regardless_of_other_fields(verified, has_high_severity_flag):
     assert compute_trust_summary(
-        trust_tier="tracent",
+        trust_tier="genticspace",
         verified=verified,
         has_high_severity_flag=has_high_severity_flag,
-    ) == "tracent_verified"
+    ) == "genticspace_verified"
 
 
-# --- Branch 2: tracent_hosted, beats flagged but loses to tracent_verified --
+# --- Branch 2: genticspace_hosted, beats flagged but loses to genticspace_verified --
 
 @pytest.mark.parametrize(
     "verified, has_high_severity_flag",
     [(False, False), (True, False), (False, True), (True, True)],
 )
-def test_tracent_hosted_beats_flagged_and_verified(verified, has_high_severity_flag):
+def test_genticspace_hosted_beats_flagged_and_verified(verified, has_high_severity_flag):
     assert compute_trust_summary(
-        trust_tier="tracent-hosted",
+        trust_tier="genticspace-hosted",
         verified=verified,
         has_high_severity_flag=has_high_severity_flag,
-    ) == "tracent_hosted"
+    ) == "genticspace_hosted"
 
 
-def test_tracent_verified_beats_tracent_hosted_when_somehow_both_would_apply():
+def test_genticspace_verified_beats_genticspace_hosted_when_somehow_both_would_apply():
     # trust_tier is a single field so these two can never literally co-occur,
-    # but the precedence check ("tracent" is checked strictly before
-    # "tracent-hosted") is still worth pinning: if trust_tier == "tracent",
-    # the function must never fall through to the tracent-hosted branch.
+    # but the precedence check ("genticspace" is checked strictly before
+    # "genticspace-hosted") is still worth pinning: if trust_tier == "genticspace",
+    # the function must never fall through to the genticspace-hosted branch.
     assert compute_trust_summary(
-        trust_tier="tracent", verified=False, has_high_severity_flag=False,
-    ) == "tracent_verified"
+        trust_tier="genticspace", verified=False, has_high_severity_flag=False,
+    ) == "genticspace_verified"
 
 
 # --- Branch 3: flagged, beats verified/unverified but loses to tiers 1 & 2 -
@@ -90,12 +90,12 @@ def test_flagged_with_verified_false_and_onchain_tier():
     ) == "flagged"
 
 
-def test_tracent_hosted_beats_flagged_precedence_explicitly():
+def test_genticspace_hosted_beats_flagged_precedence_explicitly():
     assert compute_trust_summary(
-        trust_tier="tracent-hosted",
+        trust_tier="genticspace-hosted",
         verified=False,
         has_high_severity_flag=True,
-    ) == "tracent_hosted"
+    ) == "genticspace_hosted"
 
 
 # --- Branch 4: verified — requires BOTH verified=True AND trust_tier=onchain
@@ -143,8 +143,8 @@ def test_unverified_fallback(trust_tier):
 @pytest.mark.parametrize(
     "trust_tier, verified, has_high_severity_flag",
     [
-        ("tracent", False, False),
-        ("tracent-hosted", False, False),
+        ("genticspace", False, False),
+        ("genticspace-hosted", False, False),
         (None, False, True),
         ("onchain", True, False),
         (None, False, False),
