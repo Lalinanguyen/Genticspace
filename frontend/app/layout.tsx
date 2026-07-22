@@ -16,7 +16,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Tracent: AI agent marketplace",
+  title: "Genticspace: AI agent marketplace",
   description: "Discover, compare, and deploy AI agents by trust tier, protocol and use case.",
 };
 

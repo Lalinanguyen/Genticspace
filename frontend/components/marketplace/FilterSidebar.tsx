@@ -11,7 +11,7 @@ const PROTOCOL_OPTIONS = [
 const TRUST_TIERS = [
   { value: "", label: "Any" },
   { value: "onchain", label: "On-chain" },
-  { value: "tracent", label: "Tracent-verified" },
+  { value: "genticspace", label: "Genticspace-verified" },
 ];
 
 const INDUSTRIES = [

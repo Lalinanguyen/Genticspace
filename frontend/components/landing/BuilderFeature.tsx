@@ -21,14 +21,14 @@ export function BuilderFeature() {
             Build your company profile
           </h2>
           <p className="text-foreground-muted text-[15px] leading-relaxed mb-6">
-            Showcase every agent you ship in one place, earn a verified badge, and build the
-            following that keeps people coming back to what you build next.
+            Showcase every agent you ship, earn a verified badge, and build a following that
+            comes back for what you ship next.
           </p>
           <div className="flex flex-col gap-3 mb-7">
             {BULLETS.map((b) => (
               <div key={b} className="flex items-center gap-2.5">
                 <div className="w-2 h-2 rotate-45 bg-foreground flex-none" />
-                <span className="font-medium text-sm text-[rgba(244,247,243,.8)]">{b}</span>
+                <span className="font-medium text-sm text-foreground/80">{b}</span>
               </div>
             ))}
           </div>
@@ -46,7 +46,7 @@ export function BuilderFeature() {
               {CONNECTS.map((c) => (
                 <span
                   key={c}
-                  className="inline-flex items-center gap-2 px-3.5 py-[7px] rounded-full bg-[rgba(244,247,243,.06)] border border-border-strong font-semibold text-xs text-[rgba(244,247,243,.75)]"
+                  className="inline-flex items-center gap-2 px-3.5 py-[7px] rounded-full bg-foreground/6 border border-border-strong font-semibold text-xs text-foreground/75"
                 >
                   {c}
                 </span>
@@ -57,14 +57,9 @@ export function BuilderFeature() {
 
         <div className="relative flex-1 min-w-[320px]">
           <div
-            className="absolute top-[22px] left-[22px] right-0 bottom-[-22px] rounded bg-[rgba(244,247,243,.03)] border border-[rgba(244,247,243,.08)]"
-            style={{ transform: "rotate(2deg)" }}
-          />
-          <div
-            className="relative p-7 pr-8 border border-border-strong glass-card box-border"
+            className="relative p-7 pr-8 border border-border-strong glass-card box-border bg-background/90"
             style={{
               borderRadius: "4px 0 0 4px",
-              background: "rgba(13,32,40,.9)",
               borderRight: "none",
               boxShadow: "-30px 30px 70px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)",
             }}
@@ -75,10 +70,10 @@ export function BuilderFeature() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-display font-bold text-[17px] text-foreground">Tracent</span>
+                  <span className="font-display font-bold text-[17px] text-foreground">Genticspace</span>
                   <span className="text-cyan text-sm">✓</span>
                 </div>
-                <div className="font-medium text-[12.5px] font-mono text-foreground-faint">tracent</div>
+                <div className="font-medium text-[12.5px] font-mono text-foreground-faint">genticspace</div>
               </div>
               <Link href="/marketplace" className="ml-auto flex-none font-semibold text-[12.5px] text-cyan no-underline whitespace-nowrap">
                 View profile →
@@ -102,7 +97,7 @@ export function BuilderFeature() {
               <div className="flex-1 py-2.5 rounded font-semibold text-[12.5px] text-center text-background bg-foreground">
                 Follow
               </div>
-              <div className="flex-1 py-2.5 rounded font-semibold text-[12.5px] text-center text-foreground bg-[rgba(244,247,243,.06)] border border-[rgba(244,247,243,.14)]">
+              <div className="flex-1 py-2.5 rounded font-semibold text-[12.5px] text-center text-foreground bg-foreground/6 border border-foreground/14">
                 Message
               </div>
             </div>
@@ -119,7 +114,7 @@ export function BuilderFeature() {
               </span>
             </div>
             <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-3 p-3 rounded bg-[rgba(244,247,243,.04)]">
+              <div className="flex items-center gap-3 p-3 rounded bg-foreground/4">
                 <div className="w-[34px] h-[34px] rounded bg-gradient-to-br from-cyan to-cyan-dark flex-none" />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[13.5px] text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
@@ -128,7 +123,7 @@ export function BuilderFeature() {
                   <div className="text-[11.5px] text-foreground-faint">Customer Support · Commercial</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded bg-[rgba(244,247,243,.04)]">
+              <div className="flex items-center gap-3 p-3 rounded bg-foreground/4">
                 <div className="w-[34px] h-[34px] rounded bg-gradient-to-br from-blue-to to-blue flex-none" />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[13.5px] text-foreground whitespace-nowrap overflow-hidden text-ellipsis">

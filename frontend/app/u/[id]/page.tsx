@@ -186,7 +186,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 <p className="text-foreground-faint text-sm">No agents listed yet.</p>
               ) : (
                 <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-                  {profile.contributions!.map((a) => <AgentCard key={a.tracent_id} agent={a} />)}
+                  {profile.contributions!.map((a) => <AgentCard key={a.genticspace_id} agent={a} />)}
                 </div>
               )
             )}
@@ -196,7 +196,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 <p className="text-foreground-faint text-sm">No agents favorited yet.</p>
               ) : (
                 <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-                  {profile.favorites!.map((a) => <AgentCard key={a.tracent_id} agent={a} />)}
+                  {profile.favorites!.map((a) => <AgentCard key={a.genticspace_id} agent={a} />)}
                 </div>
               )
             )}
@@ -209,8 +209,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   {profile.reviews!.map((r) => (
                     <div key={r.id} className="p-4 rounded bg-surface-2 border border-border">
                       <div className="flex items-center justify-between gap-3 mb-1.5">
-                        <Link href={`/marketplace/${r.tracent_id}`} className="font-semibold text-[13.5px] text-foreground no-underline">
-                          {r.agent_name || r.tracent_id}
+                        <Link href={`/marketplace/${r.genticspace_id}`} className="font-semibold text-[13.5px] text-foreground no-underline">
+                          {r.agent_name || r.genticspace_id}
                         </Link>
                         <Stars rating={r.rating} />
                       </div>

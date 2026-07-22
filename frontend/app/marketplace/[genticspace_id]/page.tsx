@@ -36,13 +36,13 @@ function ConnectLink({ label, href }: { label: string; href: string }) {
 export default async function AgentProfilePage({
   params,
 }: {
-  params: Promise<{ tracent_id: string }>;
+  params: Promise<{ genticspace_id: string }>;
 }) {
-  const { tracent_id } = await params;
+  const { genticspace_id } = await params;
 
   let agent;
   try {
-    agent = await getAgent(tracent_id);
+    agent = await getAgent(genticspace_id);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
       notFound();
@@ -80,7 +80,7 @@ export default async function AgentProfilePage({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="font-display font-bold text-[32px] leading-tight text-foreground tracking-tight">
-                    {agent.name || agent.tracent_id}
+                    {agent.name || agent.genticspace_id}
                   </h1>
                   {agent.verified && (
                     <span title="Verified" className="text-cyan text-xl">
@@ -97,11 +97,11 @@ export default async function AgentProfilePage({
                       {agent.provider_org}
                     </Link>
                   ) : (
-                    agent.tracent_id
+                    agent.genticspace_id
                   )}
                 </div>
               </div>
-              <FavoriteButton tracentId={agent.tracent_id} />
+              <FavoriteButton genticspaceId={agent.genticspace_id} />
             </div>
 
             <div className="flex gap-1.5 flex-wrap mb-6">
@@ -139,7 +139,7 @@ export default async function AgentProfilePage({
               )}
 
               <div className="flex flex-col gap-6 min-w-0">
-                <DeploymentGuideSection tracentId={agent.tracent_id} />
+                <DeploymentGuideSection genticspaceId={agent.genticspace_id} />
 
                 {agent.skills && agent.skills.length > 0 && (
                   <div className="p-[26px] rounded bg-surface-2 border border-border box-border">

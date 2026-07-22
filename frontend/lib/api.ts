@@ -61,8 +61,8 @@ export function listAgents(filters: MarketplaceFilters): Promise<AgentsListRespo
   return request(`/public/agents?${filtersToSearchParams(filters)}`);
 }
 
-export function getAgent(tracentId: string, token?: string): Promise<Agent> {
-  return request(`/public/agents/${tracentId}`, {
+export function getAgent(genticspaceId: string, token?: string): Promise<Agent> {
+  return request(`/public/agents/${genticspaceId}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 }
@@ -72,23 +72,23 @@ export function getTopProviders(limit = 12): Promise<{ providers: TopProvider[] 
 }
 
 export function getDeploymentGuide(
-  tracentId: string,
+  genticspaceId: string,
   experienceLevel?: string,
   token?: string
 ): Promise<DeploymentGuide> {
   const params = experienceLevel ? `?experience_level=${encodeURIComponent(experienceLevel)}` : "";
-  return request(`/public/agents/${tracentId}/deployment-guide${params}`, {
+  return request(`/public/agents/${genticspaceId}/deployment-guide${params}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 }
 
 export function askDeploymentGuide(
-  tracentId: string,
+  genticspaceId: string,
   question: string,
   history: { role: "user" | "assistant"; content: string }[],
   token?: string
 ): Promise<{ answer: string }> {
-  return request(`/public/agents/${tracentId}/deployment-guide/ask`, {
+  return request(`/public/agents/${genticspaceId}/deployment-guide/ask`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify({ question, history }),
@@ -166,11 +166,11 @@ export function createAgentListing(
 }
 
 export function updateAgentListing(
-  tracentId: string,
+  genticspaceId: string,
   payload: AgentListingInput,
   token: string
 ): Promise<Agent> {
-  return request(`/public/agents/${tracentId}`, {
+  return request(`/public/agents/${genticspaceId}`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -211,15 +211,15 @@ export function getOrgProfile(source: string, org: string, token?: string): Prom
   });
 }
 
-export function favoriteAgent(tracentId: string, token: string): Promise<{ status: string }> {
-  return request(`/public/agents/${tracentId}/favorite`, {
+export function favoriteAgent(genticspaceId: string, token: string): Promise<{ status: string }> {
+  return request(`/public/agents/${genticspaceId}/favorite`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export function unfavoriteAgent(tracentId: string, token: string): Promise<{ status: string }> {
-  return request(`/public/agents/${tracentId}/favorite`, {
+export function unfavoriteAgent(genticspaceId: string, token: string): Promise<{ status: string }> {
+  return request(`/public/agents/${genticspaceId}/favorite`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -254,17 +254,17 @@ export function unfollowOrg(source: string, org: string, token: string): Promise
   });
 }
 
-export function listAgentReviews(tracentId: string): Promise<{ reviews: Review[]; avg_rating: number | null }> {
-  return request(`/public/agents/${tracentId}/reviews`);
+export function listAgentReviews(genticspaceId: string): Promise<{ reviews: Review[]; avg_rating: number | null }> {
+  return request(`/public/agents/${genticspaceId}/reviews`);
 }
 
 export function submitAgentReview(
-  tracentId: string,
+  genticspaceId: string,
   rating: number,
   text: string | undefined,
   token: string
 ): Promise<Review> {
-  return request(`/public/agents/${tracentId}/reviews`, {
+  return request(`/public/agents/${genticspaceId}/reviews`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ rating, text }),

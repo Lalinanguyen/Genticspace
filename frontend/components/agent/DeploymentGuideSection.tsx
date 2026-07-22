@@ -9,7 +9,7 @@ interface ChatMessage {
   content: string;
 }
 
-function HelpBot({ tracentId, token }: { tracentId: string; token: string | null }) {
+function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: string | null }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -30,7 +30,7 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
     setMessages(nextMessages);
     setSending(true);
     try {
-      const res = await askDeploymentGuide(tracentId, question, messages, token ?? undefined);
+      const res = await askDeploymentGuide(genticspaceId, question, messages, token ?? undefined);
       setMessages([...nextMessages, { role: "assistant", content: res.answer }]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't get an answer right now.");
@@ -129,7 +129,7 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
   );
 }
 
-export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
+export function DeploymentGuideSection({ genticspaceId }: { genticspaceId: string }) {
   const { user, token, loading: authLoading } = useAuth();
   const [instructions, setInstructions] = useState<string | null>(null);
   const [hasReadme, setHasReadme] = useState(true);
@@ -146,7 +146,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount, guarded above
     setLoading(true);
     setError(null);
-    getDeploymentGuide(tracentId, level, token ?? undefined)
+    getDeploymentGuide(genticspaceId, level, token ?? undefined)
       .then((guide) => {
         setInstructions(guide.instructions);
         setHasReadme(guide.has_readme);
@@ -157,7 +157,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, tracentId, token]);
+  }, [authLoading, genticspaceId, token]);
 
   return (
     <div className="p-[26px] rounded bg-surface-2 border border-border box-border">
@@ -178,7 +178,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
             {instructions}
           </div>
 
-          {hasReadme && <HelpBot tracentId={tracentId} token={token} />}
+          {hasReadme && <HelpBot genticspaceId={genticspaceId} token={token} />}
         </>
       )}
     </div>

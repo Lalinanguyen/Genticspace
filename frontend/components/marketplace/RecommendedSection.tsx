@@ -74,7 +74,7 @@ export function RecommendedSection({ pageSize }: { pageSize: number }) {
       ) : (
         <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
           {recommendations.map((rec) => (
-            <AgentCard key={rec.tracent_id} agent={rec} />
+            <AgentCard key={rec.genticspace_id} agent={rec} />
           ))}
         </div>
       )}

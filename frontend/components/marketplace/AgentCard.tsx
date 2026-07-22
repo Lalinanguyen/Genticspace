@@ -12,7 +12,7 @@ export function AgentCard({ agent }: { agent: Agent | Recommendation }) {
 
   return (
     <Link
-      href={`/marketplace/${agent.tracent_id}`}
+      href={`/marketplace/${agent.genticspace_id}`}
       className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex flex-col gap-3.5 box-border no-underline hover:border-border-strong transition-colors"
     >
       <div className="flex items-start gap-3.5">
@@ -20,7 +20,7 @@ export function AgentCard({ agent }: { agent: Agent | Recommendation }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-display font-bold text-base text-foreground">
-              {agent.name || shortId(agent.tracent_id)}
+              {agent.name || shortId(agent.genticspace_id)}
             </span>
             {agent.verified && (
               <span title="Verified" className="text-cyan text-sm">
@@ -29,7 +29,7 @@ export function AgentCard({ agent }: { agent: Agent | Recommendation }) {
             )}
           </div>
           <div className="text-[12.5px] text-foreground-faint font-mono">
-            {agent.provider_org || shortId(agent.owner_address || agent.tracent_id)}
+            {agent.provider_org || shortId(agent.owner_address || agent.genticspace_id)}
           </div>
         </div>
       </div>

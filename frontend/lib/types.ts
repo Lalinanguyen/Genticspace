@@ -1,5 +1,5 @@
 export interface Agent {
-  tracent_id: string;
+  genticspace_id: string;
   source: string;
   source_id: string;
   owner_address: string | null;
@@ -18,8 +18,8 @@ export interface Agent {
   trust_tier: string | null;
   /**
    * Presentation-ready trust label computed server-side by
-   * app/services/trust_summary.py — one of "tracent_verified",
-   * "tracent_hosted", "verified", "flagged", "unverified". Always use
+   * app/services/trust_summary.py — one of "genticspace_verified",
+   * "genticspace_hosted", "verified", "flagged", "unverified". Always use
    * lib/trust.ts's `getTrustInfo` to render this; never show `trust_tier` or
    * `risk_score` directly to end users.
    */
@@ -153,7 +153,7 @@ export interface Review {
   rating: number;
   text: string | null;
   created_at: string;
-  tracent_id?: string;
+  genticspace_id?: string;
   agent_name?: string;
   user_id?: number;
   author_name?: string;

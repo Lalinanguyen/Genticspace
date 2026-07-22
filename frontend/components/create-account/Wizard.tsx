@@ -207,7 +207,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "role" && (
         <div className={cardClass}>
           <h1 className="font-display font-bold text-[28px] leading-tight text-foreground mb-2">Create your account</h1>
-          <p className="text-foreground-muted text-[14.5px] leading-relaxed mb-7">First, tell us what brings you to Tracent.</p>
+          <p className="text-foreground-muted text-[14.5px] leading-relaxed mb-7">First, tell us what brings you to Genticspace.</p>
 
           <div className="flex flex-col gap-3 mb-2">
             {(["individual", "business"] as const).map((type) => {
@@ -257,7 +257,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "login" && (
         <div className={cardClass}>
           <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">Welcome back</h1>
-          <p className="text-foreground-muted text-sm leading-relaxed mb-6">Sign in to your Tracent account.</p>
+          <p className="text-foreground-muted text-sm leading-relaxed mb-6">Sign in to your Genticspace account.</p>
 
           <div className="flex flex-col gap-3.5 mb-5">
             <div>
@@ -294,7 +294,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
             {busy ? "Signing in…" : "Sign in"}
           </ContinueButton>
           <div className="mt-4 text-center text-sm text-foreground-muted">
-            New to Tracent?{" "}
+            New to Genticspace?{" "}
             <span onClick={() => { setError(null); setStep("role"); }} className="text-cyan font-semibold cursor-pointer">
               Create an account
             </span>
@@ -309,7 +309,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
             {isBusiness ? "Set up your business account" : "Create your account"}
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
-            {isBusiness ? "This becomes your public company profile on Tracent." : "Just a few details and you're in."}
+            {isBusiness ? "This becomes your public company profile on Genticspace." : "Just a few details and you're in."}
           </p>
 
           <div className="flex flex-col gap-3.5 mb-4.5">
@@ -497,7 +497,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "purpose" && (
         <div className={cardClass}>
           <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">
-            What will you use Tracent for?
+            What will you use Genticspace for?
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-5">
             Pick the areas you care about. This shapes what we show you first. Choose as many as apply.

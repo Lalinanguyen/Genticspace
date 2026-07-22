@@ -327,7 +327,7 @@ export function ListingForm() {
           <span className="font-semibold text-foreground">{created.name}</span> is now{" "}
           {created.is_private ? "saved as private." : "live in the marketplace."}
         </p>
-        <p className="text-foreground-faint text-[13px] font-mono mb-7">{created.tracent_id}</p>
+        <p className="text-foreground-faint text-[13px] font-mono mb-7">{created.genticspace_id}</p>
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setCreated(null)}
@@ -700,7 +700,7 @@ export function ListingForm() {
             <span className="font-display font-bold text-sm text-foreground">Your listings</span>
             <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
               {myAgents.map((agent) => (
-                <AgentCard key={agent.tracent_id} agent={agent} />
+                <AgentCard key={agent.genticspace_id} agent={agent} />
               ))}
             </div>
           </div>

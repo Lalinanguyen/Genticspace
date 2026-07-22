@@ -96,7 +96,7 @@ export default async function MarketplacePage({
                 ) : (
                   <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
                     {data.agents.map((agent) => (
-                      <AgentCard key={agent.tracent_id} agent={agent} />
+                      <AgentCard key={agent.genticspace_id} agent={agent} />
                     ))}
                   </div>
                 )}

@@ -4,17 +4,17 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { favoriteAgent, unfavoriteAgent, getAgent, ApiError } from "@/lib/api";
 
-export function FavoriteButton({ tracentId }: { tracentId: string }) {
+export function FavoriteButton({ genticspaceId }: { genticspaceId: string }) {
   const { token } = useAuth();
   const [favorited, setFavorited] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!token) return;
-    getAgent(tracentId, token)
+    getAgent(genticspaceId, token)
       .then((a) => setFavorited(!!a.is_favorited))
       .catch(() => undefined);
-  }, [tracentId, token]);
+  }, [genticspaceId, token]);
 
   if (!token) return null;
 
@@ -22,10 +22,10 @@ export function FavoriteButton({ tracentId }: { tracentId: string }) {
     setBusy(true);
     try {
       if (favorited) {
-        await unfavoriteAgent(tracentId, token!);
+        await unfavoriteAgent(genticspaceId, token!);
         setFavorited(false);
       } else {
-        await favoriteAgent(tracentId, token!);
+        await favoriteAgent(genticspaceId, token!);
         setFavorited(true);
       }
     } catch (err) {

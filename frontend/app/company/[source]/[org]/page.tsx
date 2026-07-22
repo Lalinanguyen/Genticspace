@@ -155,7 +155,7 @@ export default function OrgProfilePage({
           <div>
             <span className="font-display font-bold text-sm text-foreground block mb-4">Agents</span>
             <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-              {profile.agents.map((a) => <AgentCard key={a.tracent_id} agent={a} />)}
+              {profile.agents.map((a) => <AgentCard key={a.genticspace_id} agent={a} />)}
             </div>
           </div>
 
@@ -169,8 +169,8 @@ export default function OrgProfilePage({
                       <span className="font-semibold text-[12.5px] text-foreground">{r.author_name || "Anonymous"}</span>
                       <Stars rating={r.rating} />
                     </div>
-                    <Link href={`/marketplace/${r.tracent_id}`} className="text-[11.5px] text-cyan no-underline font-mono">
-                      {r.agent_name || r.tracent_id}
+                    <Link href={`/marketplace/${r.genticspace_id}`} className="text-[11.5px] text-cyan no-underline font-mono">
+                      {r.agent_name || r.genticspace_id}
                     </Link>
                     {r.text && <p className="text-[12.5px] text-foreground-muted leading-relaxed mt-1.5">{r.text}</p>}
                   </div>

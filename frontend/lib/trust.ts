@@ -1,6 +1,6 @@
 import type { Agent } from "./types";
 
-export type TrustTone = "verified" | "tracent_verified" | "tracent_hosted" | "caution" | "unknown";
+export type TrustTone = "verified" | "genticspace_verified" | "genticspace_hosted" | "caution" | "unknown";
 
 export interface TrustInfo {
   /** Short badge text, e.g. "Verified". */
@@ -15,34 +15,34 @@ export interface TrustInfo {
 /**
  * `trust_summary` is the single authoritative, presentation-ready trust
  * label — computed server-side by app/services/trust_summary.py from an
- * exhaustive 5-value set (`tracent_verified` / `tracent_hosted` / `verified`
+ * exhaustive 5-value set (`genticspace_verified` / `genticspace_hosted` / `verified`
  * / `flagged` / `unverified`). Per that module's docstring: "This is a
  * presentation-layer contract: frontend code renders these labels directly
  * to non-technical end users with no further interpretation." So this map is
  * a translation layer only (enum -> plain English + badge tone), not a
  * competing judgement call — it must not disagree with the backend's
- * precedence (tracent tier beats tracent-hosted beats a high-severity flag
+ * precedence (genticspace tier beats genticspace-hosted beats a high-severity flag
  * beats on-chain-verified beats unverified; see compute_trust_summary).
  *
  * Never render `trust_tier` or `risk_score` directly to end users — always
  * go through `getTrustInfo`.
  */
 const TRUST_SUMMARY_LABELS: Record<string, TrustInfo> = {
-  tracent_verified: {
-    label: "Tracent Verified",
-    tone: "tracent_verified",
-    summary: "Manually reviewed and approved by the Tracent team.",
+  genticspace_verified: {
+    label: "Genticspace Verified",
+    tone: "genticspace_verified",
+    summary: "Manually reviewed and approved by the Genticspace team.",
     details: [
-      "A person on the Tracent team manually reviewed and approved this agent — the highest level of confidence available.",
+      "A person on the Genticspace team manually reviewed and approved this agent — the highest level of confidence available.",
     ],
   },
-  tracent_hosted: {
-    label: "Tracent Hosted",
-    tone: "tracent_hosted",
-    summary: "Tracent wrote and runs this agent itself.",
+  genticspace_hosted: {
+    label: "Genticspace Hosted",
+    tone: "genticspace_hosted",
+    summary: "Genticspace wrote and runs this agent itself.",
     details: [
-      "Tracent wrote and operates this agent itself, rather than just discovering or reviewing someone else's.",
-      "That's a different guarantee than Tracent Verified — this isn't a human review of a third-party agent, it's a first-party one.",
+      "Genticspace wrote and operates this agent itself, rather than just discovering or reviewing someone else's.",
+      "That's a different guarantee than Genticspace Verified — this isn't a human review of a third-party agent, it's a first-party one.",
     ],
   },
   verified: {
@@ -68,7 +68,7 @@ const TRUST_SUMMARY_LABELS: Record<string, TrustInfo> = {
     tone: "unknown",
     summary: "Not yet verified — use your own judgement.",
     details: [
-      "This agent hasn't gone through Tracent's verification yet.",
+      "This agent hasn't gone through Genticspace's verification yet.",
       "That doesn't necessarily mean something is wrong — just that nothing has been checked.",
     ],
   },
@@ -84,8 +84,8 @@ const TRUST_SUMMARY_LABELS: Record<string, TrustInfo> = {
  * "unverified" — it can never independently produce "flagged".
  */
 export function deriveTrustInfo(agent: Pick<Agent, "verified" | "trust_tier">): TrustInfo {
-  if (agent.trust_tier === "tracent") return TRUST_SUMMARY_LABELS.tracent_verified;
-  if (agent.trust_tier === "tracent-hosted") return TRUST_SUMMARY_LABELS.tracent_hosted;
+  if (agent.trust_tier === "genticspace") return TRUST_SUMMARY_LABELS.genticspace_verified;
+  if (agent.trust_tier === "genticspace-hosted") return TRUST_SUMMARY_LABELS.genticspace_hosted;
   if (agent.verified && agent.trust_tier === "onchain") return TRUST_SUMMARY_LABELS.verified;
   return TRUST_SUMMARY_LABELS.unverified;
 }
@@ -115,8 +115,8 @@ export function getTrustInfo(agent: Pick<Agent, "verified" | "trust_tier" | "tru
  * a new visual style.
  */
 export const TONE_STYLES: Record<TrustTone, string> = {
-  tracent_verified: "bg-emerald-400/14 border-emerald-400/40 text-emerald-300",
-  tracent_hosted: "bg-violet-400/14 border-violet-400/40 text-violet-300",
+  genticspace_verified: "bg-emerald-400/14 border-emerald-400/40 text-emerald-300",
+  genticspace_hosted: "bg-violet-400/14 border-violet-400/40 text-violet-300",
   verified: "bg-cyan/14 border-cyan/35 text-cyan",
   caution: "bg-amber-400/14 border-amber-400/40 text-amber-300",
   unknown: "bg-[rgba(244,247,243,.06)] border-border text-foreground-faint",

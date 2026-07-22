@@ -20,7 +20,7 @@ export function Nav() {
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-[30px] h-[30px] rounded bg-gradient-to-br from-blue to-cyan shadow-[0_0_22px_rgba(7,42,200,.55)]" />
           <span className="font-display font-bold text-lg text-foreground tracking-tight">
-            Tracent
+            Genticspace
           </span>
         </Link>
       </div>
@@ -76,8 +76,7 @@ export function Nav() {
             </Link>
             <Link
               href="/create-account"
-              className="px-4 py-2 rounded font-semibold text-sm text-white"
-              style={{ background: "linear-gradient(135deg,#072AC8,#2f4fe0)" }}
+              className="px-4 py-2 rounded bg-gradient-to-br from-blue to-blue-to font-semibold text-sm text-white"
             >
               Sign up
             </Link>
