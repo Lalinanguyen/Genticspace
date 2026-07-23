@@ -5,12 +5,24 @@ import { Footer } from "@/components/ui/Footer";
 import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { DeploymentGuideSection } from "@/components/agent/DeploymentGuideSection";
 import { FavoriteButton } from "@/components/agent/FavoriteButton";
+import { SandboxSection } from "@/components/agent/SandboxSection";
 import { TrustBadge } from "@/components/agent/TrustBadge";
 import { getAgent, ApiError } from "@/lib/api";
+import { agentId } from "@/lib/agent";
 
+/** "Listing details" / capability tone — solid cyan tint, matches the design's chip style for license/deployment/pricing pills. */
 function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span className="px-2.5 py-1 rounded-sm border font-semibold text-[11px] bg-cyan/14 border-cyan/35 text-cyan">
+      {children}
+    </span>
+  );
+}
+
+/** "Categories" tone — a shade lighter than Badge, matches the design's skills/category pills. */
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-3 py-1.5 rounded-sm border font-semibold text-xs bg-cyan/10 border-cyan/30 text-cyan">
       {children}
     </span>
   );
@@ -23,7 +35,7 @@ function ConnectLink({ label, href }: { label: string; href: string }) {
       href={isEmail ? `mailto:${href}` : href}
       target={isEmail ? undefined : "_blank"}
       rel={isEmail ? undefined : "noopener noreferrer"}
-      className="flex items-center justify-between gap-3 px-4 py-3 rounded bg-[rgba(244,247,243,.04)] border border-border no-underline hover:border-border-strong transition-colors"
+      className="glass-chip flex items-center justify-between gap-3 px-4 py-3 rounded no-underline hover:border-white transition-colors"
     >
       <span className="font-semibold text-[13px] text-foreground">{label}</span>
       <span className="text-[12.5px] text-cyan font-mono overflow-hidden text-ellipsis whitespace-nowrap max-w-[260px]">
@@ -61,6 +73,39 @@ export default async function AgentProfilePage({
   if (agent.terms_url) connects.push({ label: "Terms of service", href: agent.terms_url });
   if (agent.contact_email) connects.push({ label: "Contact", href: agent.contact_email });
 
+  // "Listing details" sidebar chips — license/deployment/access/pricing, the
+  // same fields the old badge row showed, just grouped to match the design's
+  // dedicated sidebar box.
+  const listingDetails: string[] = [];
+  if (agent.license) listingDetails.push(agent.license);
+  agent.deployment_types?.forEach((d) => listingDetails.push(d));
+  if (agent.access_model) listingDetails.push(agent.access_model);
+  if (agent.pricing_model) listingDetails.push(agent.pricing_model);
+
+  // "Endpoints & protocols" sidebar box — only lists protocols this agent
+  // actually declares, with the real endpoints_live flag from the backend
+  // (never fabricated per-endpoint status, since the API only reports one
+  // liveness flag for the agent as a whole).
+  const endpoints: { name: string }[] = [];
+  if (agent.a2a_endpoint) endpoints.push({ name: "A2A endpoint" });
+  if (agent.mcp_endpoint) endpoints.push({ name: "MCP endpoint" });
+  const endpointStatus =
+    agent.endpoints_live === true
+      ? { label: "Live", className: "text-cyan" }
+      : agent.endpoints_live === false
+        ? { label: "Down", className: "text-error" }
+        : { label: "Unconfirmed", className: "text-foreground-faint" };
+
+  const categoryTags = [
+    ...(agent.interaction_types ?? []),
+    ...(agent.industry_tags ?? []),
+    ...(agent.sdk_compat ?? []),
+  ];
+
+  const hasSidebar = listingDetails.length > 0 || connects.length > 0 || endpoints.length > 0;
+
+  const sourceLabel = agent.source_id ? `${agent.source} / ${agent.source_id}` : agent.source;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
@@ -78,75 +123,145 @@ export default async function AgentProfilePage({
             <div className="flex items-start gap-4 flex-wrap mb-5">
               <AgentAvatar imageUrl={agent.image_url} size={72} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="font-display font-bold text-[32px] leading-tight text-foreground tracking-tight">
-                    {agent.name || agent.genticspace_id}
+                <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
+                  <h1 className="font-display font-normal text-[32px] leading-tight text-foreground tracking-tight">
+                    {agent.name || agentId(agent)}
                   </h1>
-                  {agent.verified && (
-                    <span title="Verified" className="text-cyan text-xl">
-                      ✓
-                    </span>
-                  )}
+                  <TrustBadge agent={agent} />
                 </div>
-                <div className="text-[14px] text-foreground-faint font-mono mt-1">
-                  {agent.provider_org ? (
-                    <Link
-                      href={`/company/${agent.source}/${encodeURIComponent(agent.provider_org)}`}
-                      className="text-cyan hover:underline"
-                    >
-                      {agent.provider_org}
-                    </Link>
-                  ) : (
-                    agent.genticspace_id
+                <div className="flex items-center gap-2.5 flex-wrap text-[13.5px] text-foreground-faint">
+                  <span className="font-mono text-[12.5px] text-foreground-faint px-2 py-[3px] rounded-sm bg-surface-2 border border-border">
+                    {agentId(agent)}
+                  </span>
+                  <span>·</span>
+                  <span>{sourceLabel}</span>
+                  {agent.provider_org && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        by{" "}
+                        <Link
+                          href={`/company/${agent.source}/${encodeURIComponent(agent.provider_org)}`}
+                          className="text-cyan hover:underline"
+                        >
+                          {agent.provider_org}
+                        </Link>
+                      </span>
+                    </>
+                  )}
+                  {agent.support_channel && (
+                    <>
+                      <span>·</span>
+                      <a
+                        href={agent.support_channel.includes("@") ? `mailto:${agent.support_channel}` : agent.support_channel}
+                        target={agent.support_channel.includes("@") ? undefined : "_blank"}
+                        rel="noopener noreferrer"
+                        className="text-cyan hover:underline"
+                      >
+                        Support
+                      </a>
+                    </>
+                  )}
+                  {agent.terms_url && (
+                    <>
+                      <span>·</span>
+                      <a href={agent.terms_url} target="_blank" rel="noopener noreferrer" className="text-cyan hover:underline">
+                        Terms
+                      </a>
+                    </>
                   )}
                 </div>
               </div>
-              <FavoriteButton genticspaceId={agent.genticspace_id} />
+              <FavoriteButton genticspaceId={agentId(agent)} />
             </div>
 
-            <div className="flex gap-1.5 flex-wrap mb-6">
-              <TrustBadge agent={agent} />
-              {agent.a2a_endpoint && <Badge>A2A</Badge>}
-              {agent.mcp_endpoint && <Badge>MCP</Badge>}
-              {agent.x402_support && <Badge>x402</Badge>}
-              {agent.safe_to_transact && <Badge>Safe to transact</Badge>}
-              {agent.license && <Badge>{agent.license}</Badge>}
-              {agent.deployment_types?.map((dep) => <Badge key={dep}>{dep}</Badge>)}
-              {agent.access_model && <Badge>{agent.access_model}</Badge>}
-              {agent.pricing_model && <Badge>{agent.pricing_model}</Badge>}
-              {agent.industry_tags?.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
-              ))}
-            </div>
+            {(agent.a2a_endpoint || agent.mcp_endpoint || agent.x402_support || agent.safe_to_transact) && (
+              <div className="flex gap-1.5 flex-wrap mb-6">
+                {agent.a2a_endpoint && <Badge>A2A</Badge>}
+                {agent.mcp_endpoint && <Badge>MCP</Badge>}
+                {agent.x402_support && <Badge>x402</Badge>}
+                {agent.safe_to_transact && <Badge>Safe to transact</Badge>}
+              </div>
+            )}
 
-            <p className="text-[15px] leading-relaxed text-foreground-muted max-w-[720px] mb-8">
-              {agent.description || "No description indexed for this agent yet."}
-            </p>
+            <div className="mb-8 max-w-[720px]">
+              <span className="font-bold text-[12.5px] text-foreground-faint uppercase tracking-wide block mb-2.5">
+                About
+              </span>
+              <p className="text-[15px] leading-relaxed text-foreground-muted">
+                {agent.description || "No description indexed for this agent yet."}
+              </p>
+            </div>
 
             <div
               className="grid gap-8"
-              style={{ gridTemplateColumns: connects.length > 0 ? "280px minmax(0, 1fr)" : "minmax(0, 1fr)" }}
+              style={{ gridTemplateColumns: hasSidebar ? "280px minmax(0, 1fr)" : "minmax(0, 1fr)" }}
             >
-              {connects.length > 0 && (
-                <div className="flex flex-col gap-2.5">
-                  <span className="font-bold text-[12.5px] text-foreground-faint uppercase tracking-wide mb-1">
-                    Connects
-                  </span>
-                  {connects.map((c) => (
-                    <ConnectLink key={c.label} label={c.label} href={c.href} />
-                  ))}
+              {hasSidebar && (
+                <div className="flex flex-col gap-6">
+                  {listingDetails.length > 0 && (
+                    <div>
+                      <span className="font-bold text-[12px] text-foreground-faint uppercase tracking-wide block mb-2.5">
+                        Listing details
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {listingDetails.map((d) => (
+                          <Badge key={d}>{d}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {connects.length > 0 && (
+                    <div>
+                      <span className="font-bold text-[12px] text-foreground-faint uppercase tracking-wide block mb-2.5">
+                        Connected accounts
+                      </span>
+                      <div className="flex flex-col gap-2.5">
+                        {connects.map((c) => (
+                          <ConnectLink key={c.label} label={c.label} href={c.href} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {endpoints.length > 0 && (
+                    <div>
+                      <span className="font-bold text-[12px] text-foreground-faint uppercase tracking-wide block mb-2.5">
+                        Endpoints &amp; protocols
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        {endpoints.map((ep) => (
+                          <div
+                            key={ep.name}
+                            className="glass-chip flex items-center justify-between px-3 py-2.5 rounded"
+                          >
+                            <span className="font-semibold text-[12.5px] text-foreground-muted">{ep.name}</span>
+                            <span className={`flex items-center gap-1.5 font-semibold text-[11px] ${endpointStatus.className}`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {endpointStatus.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               <div className="flex flex-col gap-6 min-w-0">
-                <DeploymentGuideSection genticspaceId={agent.genticspace_id} />
+                {agent.sandboxable && agent.sandbox_url && (
+                  <SandboxSection genticspaceId={agentId(agent)} />
+                )}
+
+                <DeploymentGuideSection genticspaceId={agentId(agent)} />
 
                 {agent.skills && agent.skills.length > 0 && (
-                  <div className="p-[26px] rounded bg-surface-2 border border-border box-border">
-                    <span className="font-display font-bold text-sm text-foreground block mb-4">Skills</span>
+                  <div className="glass-panel p-[26px] rounded box-border">
+                    <span className="font-display font-normal text-sm text-foreground block mb-4">Skills</span>
                     <div className="flex flex-col gap-3">
                       {agent.skills.map((skill, i) => (
-                        <div key={skill.skill_id || i} className="p-3.5 rounded bg-[rgba(244,247,243,.04)] border border-border">
+                        <div key={skill.skill_id || i} className="glass-chip p-3.5 rounded">
                           <div className="font-semibold text-[13.5px] text-foreground mb-1">
                             {skill.skill_name || "Untitled skill"}
                           </div>
@@ -154,6 +269,19 @@ export default async function AgentProfilePage({
                             <div className="text-[12.5px] text-foreground-muted">{skill.description}</div>
                           )}
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {categoryTags.length > 0 && (
+                  <div>
+                    <span className="font-bold text-[12px] text-foreground-faint uppercase tracking-wide block mb-2.5">
+                      Categories
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {categoryTags.map((tag) => (
+                        <Tag key={tag}>{tag}</Tag>
                       ))}
                     </div>
                   </div>

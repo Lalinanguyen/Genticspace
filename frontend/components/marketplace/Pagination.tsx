@@ -34,8 +34,9 @@ export function Pagination({ page, totalPages }: { page: number; totalPages: num
             {i > 0 && pages[i - 1] !== n - 1 && <span className="text-foreground-faint">…</span>}
             <button
               onClick={() => goTo(n)}
-              className="font-semibold text-sm cursor-pointer"
-              style={{ color: n === page ? "#35C0B0" : "rgba(244,247,243,.5)" }}
+              className={`font-semibold text-sm cursor-pointer ${
+                n === page ? "text-cyan-dark" : "text-foreground-faint"
+              }`}
             >
               {n}
             </button>

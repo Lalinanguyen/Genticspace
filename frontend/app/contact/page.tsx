@@ -9,8 +9,9 @@ import { sendContactMessage, ApiError } from "@/lib/api";
 const TOPICS = ["General question", "Listing an agent", "Partnership", "Report an issue"];
 
 const inputClass =
-  "w-full box-border px-3.5 py-3 rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
+  "w-full box-border px-3.5 py-3 rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
 const labelClass = "block mb-1.5 font-semibold text-[12.5px] text-foreground-muted";
+const selectOptionClass = "bg-background text-foreground";
 
 export default function ContactPage() {
   const { user } = useAuth();
@@ -37,20 +38,20 @@ export default function ContactPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[560px] mx-auto px-[5%] py-16 box-border">
+      <main className="flex-1 w-full max-w-[520px] mx-auto px-[5%] py-16 box-border">
         {sent ? (
           <div className="text-center">
             <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center rounded-full border-2 border-cyan text-cyan text-2xl">
               ✓
             </div>
-            <h1 className="font-display font-bold text-[26px] text-foreground mb-2">Message sent</h1>
+            <h1 className="font-display font-normal text-[26px] text-foreground mb-2">Message sent</h1>
             <p className="text-foreground-muted text-sm leading-relaxed">
               Thanks for reaching out. We&apos;ll get back to you at {email}.
             </p>
           </div>
         ) : (
           <>
-            <h1 className="font-display font-bold text-[30px] text-foreground mb-1.5">Contact us</h1>
+            <h1 className="font-display font-normal text-[30px] text-foreground mb-1.5">Contact us</h1>
             <p className="text-foreground-muted text-sm mb-8">
               Questions, partnership ideas, or something not working right? Send us a note.
             </p>
@@ -71,7 +72,7 @@ export default function ContactPage() {
                 <label className={labelClass}>Subject</label>
                 <select className={inputClass} value={topic} onChange={(e) => setTopic(e.target.value)}>
                   {TOPICS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t} className={selectOptionClass}>{t}</option>
                   ))}
                 </select>
               </div>
@@ -90,10 +91,10 @@ export default function ContactPage() {
 
               <div
                 onClick={busy || !email || !message.trim() ? undefined : handleSend}
-                className="self-start px-7 py-[15px] rounded font-semibold text-[15px] cursor-pointer text-white"
+                className="w-full text-center px-7 py-[15px] rounded font-semibold text-[15px] cursor-pointer text-white select-none"
                 style={
                   busy || !email || !message.trim()
-                    ? { background: "rgba(244,247,243,.08)", color: "rgba(244,247,243,.4)", cursor: "default" }
+                    ? { background: "rgba(28,38,33,.08)", color: "rgba(28,38,33,.4)", cursor: "default" }
                     : { background: "linear-gradient(135deg,#072AC8,#2f4fe0)", boxShadow: "0 10px 30px rgba(7,42,200,.45)" }
                 }
               >

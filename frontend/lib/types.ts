@@ -1,5 +1,13 @@
 export interface Agent {
-  genticspace_id: string;
+  /**
+   * Transitional fallback only: the backend's ID field is `tracent_id`
+   * (below). This is kept in case a stale/rolled-back deploy still serves
+   * the old field name. Read IDs via lib/agent.ts's `agentId()` helper,
+   * which prefers tracent_id and falls back to this — never read either
+   * field directly.
+   */
+  genticspace_id?: string;
+  tracent_id: string;
   source: string;
   source_id: string;
   owner_address: string | null;
@@ -18,12 +26,23 @@ export interface Agent {
   trust_tier: string | null;
   /**
    * Presentation-ready trust label computed server-side by
-   * app/services/trust_summary.py — one of "genticspace_verified",
-   * "genticspace_hosted", "verified", "flagged", "unverified". Always use
+   * app/services/trust_summary.py — one of "tracent_verified",
+   * "tracent_hosted", "verified", "flagged", "unverified". Always use
    * lib/trust.ts's `getTrustInfo` to render this; never show `trust_tier` or
    * `risk_score` directly to end users.
    */
   trust_summary?: string | null;
+  /**
+   * Sandbox Mode (Track A): true only for open-source HuggingFace Spaces,
+   * the one agent source with something already live and embeddable —
+   * computed server-side by app/services/agent_queries.py's
+   * compute_sandbox_fields. GitHub repos and plain HF models are never
+   * sandboxable today (no live endpoint to embed); see
+   * docs/sandbox-execution-architecture.md for the third-party-execution
+   * track that would eventually cover those.
+   */
+  sandboxable?: boolean;
+  sandbox_url?: string | null;
   risk_score: number;
   safe_to_transact: boolean;
   first_seen: string;
@@ -153,6 +172,7 @@ export interface Review {
   rating: number;
   text: string | null;
   created_at: string;
+  tracent_id?: string;
   genticspace_id?: string;
   agent_name?: string;
   user_id?: number;
@@ -226,6 +246,7 @@ export interface MarketplaceFilters {
   mcp_only?: boolean;
   x402_only?: boolean;
   safe_only?: boolean;
+  sandboxable_only?: boolean;
   industry?: string;
   license?: string;
   deployment?: string;

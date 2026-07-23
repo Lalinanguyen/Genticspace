@@ -1,6 +1,6 @@
 import type { Agent } from "./types";
 
-export type TrustTone = "verified" | "genticspace_verified" | "genticspace_hosted" | "caution" | "unknown";
+export type TrustTone = "verified" | "tracent_verified" | "tracent_hosted" | "caution" | "unknown";
 
 export interface TrustInfo {
   /** Short badge text, e.g. "Verified". */
@@ -15,34 +15,36 @@ export interface TrustInfo {
 /**
  * `trust_summary` is the single authoritative, presentation-ready trust
  * label — computed server-side by app/services/trust_summary.py from an
- * exhaustive 5-value set (`genticspace_verified` / `genticspace_hosted` / `verified`
- * / `flagged` / `unverified`). Per that module's docstring: "This is a
- * presentation-layer contract: frontend code renders these labels directly
- * to non-technical end users with no further interpretation." So this map is
- * a translation layer only (enum -> plain English + badge tone), not a
- * competing judgement call — it must not disagree with the backend's
- * precedence (genticspace tier beats genticspace-hosted beats a high-severity flag
- * beats on-chain-verified beats unverified; see compute_trust_summary).
+ * exhaustive 5-value set (`tracent_verified` / `tracent_hosted` / `verified`
+ * / `flagged` / `unverified`). These are backend-internal tokens, distinct
+ * from "Genticspace" the product's user-facing brand (see that module's
+ * docstring). Per that module's docstring: "This is a presentation-layer
+ * contract: frontend code renders these labels directly to non-technical
+ * end users with no further interpretation." So this map is a translation
+ * layer only (enum -> plain English + badge tone), not a competing
+ * judgement call — it must not disagree with the backend's precedence
+ * (tracent tier beats tracent-hosted beats a high-severity flag beats
+ * on-chain-verified beats unverified; see compute_trust_summary).
  *
  * Never render `trust_tier` or `risk_score` directly to end users — always
  * go through `getTrustInfo`.
  */
 const TRUST_SUMMARY_LABELS: Record<string, TrustInfo> = {
-  genticspace_verified: {
+  tracent_verified: {
     label: "Genticspace Verified",
-    tone: "genticspace_verified",
+    tone: "tracent_verified",
     summary: "Manually reviewed and approved by the Genticspace team.",
     details: [
-      "A person on the Genticspace team manually reviewed and approved this agent — the highest level of confidence available.",
+      "A person on the Genticspace team manually reviewed and approved this agent, the highest level of confidence available.",
     ],
   },
-  genticspace_hosted: {
+  tracent_hosted: {
     label: "Genticspace Hosted",
-    tone: "genticspace_hosted",
+    tone: "tracent_hosted",
     summary: "Genticspace wrote and runs this agent itself.",
     details: [
       "Genticspace wrote and operates this agent itself, rather than just discovering or reviewing someone else's.",
-      "That's a different guarantee than Genticspace Verified — this isn't a human review of a third-party agent, it's a first-party one.",
+      "That's a different guarantee than Genticspace Verified: this isn't a human review of a third-party agent, it's a first-party one.",
     ],
   },
   verified: {
@@ -51,25 +53,25 @@ const TRUST_SUMMARY_LABELS: Record<string, TrustInfo> = {
     summary: "Automatically verified: it exists on-chain and its endpoints are live.",
     details: [
       "This agent was automatically verified: it exists on the on-chain registry, its endpoints responded, and it hasn't changed owners.",
-      "No person has reviewed it — this is an automated check, not a human one.",
+      "No person has reviewed it, this is an automated check, not a human one.",
     ],
   },
   flagged: {
     label: "Proceed With Caution",
     tone: "caution",
-    summary: "This agent has changed owners recently — proceed carefully.",
+    summary: "This agent has changed owners recently, proceed carefully.",
     details: [
-      "This agent has changed owners recently — proceed carefully.",
+      "This agent has changed owners recently, proceed carefully.",
       "That can be a sign of a flipped or abandoned listing, even if other checks passed.",
     ],
   },
   unverified: {
     label: "Not Yet Verified",
     tone: "unknown",
-    summary: "Not yet verified — use your own judgement.",
+    summary: "Not yet verified, use your own judgement.",
     details: [
       "This agent hasn't gone through Genticspace's verification yet.",
-      "That doesn't necessarily mean something is wrong — just that nothing has been checked.",
+      "That doesn't necessarily mean something is wrong, just that nothing has been checked.",
     ],
   },
 };
@@ -84,8 +86,8 @@ const TRUST_SUMMARY_LABELS: Record<string, TrustInfo> = {
  * "unverified" — it can never independently produce "flagged".
  */
 export function deriveTrustInfo(agent: Pick<Agent, "verified" | "trust_tier">): TrustInfo {
-  if (agent.trust_tier === "genticspace") return TRUST_SUMMARY_LABELS.genticspace_verified;
-  if (agent.trust_tier === "genticspace-hosted") return TRUST_SUMMARY_LABELS.genticspace_hosted;
+  if (agent.trust_tier === "tracent") return TRUST_SUMMARY_LABELS.tracent_verified;
+  if (agent.trust_tier === "tracent-hosted") return TRUST_SUMMARY_LABELS.tracent_hosted;
   if (agent.verified && agent.trust_tier === "onchain") return TRUST_SUMMARY_LABELS.verified;
   return TRUST_SUMMARY_LABELS.unverified;
 }
@@ -115,9 +117,9 @@ export function getTrustInfo(agent: Pick<Agent, "verified" | "trust_tier" | "tru
  * a new visual style.
  */
 export const TONE_STYLES: Record<TrustTone, string> = {
-  genticspace_verified: "bg-emerald-400/14 border-emerald-400/40 text-emerald-300",
-  genticspace_hosted: "bg-violet-400/14 border-violet-400/40 text-violet-300",
+  tracent_verified: "bg-emerald-500/12 border-emerald-500/35 text-emerald-400",
+  tracent_hosted: "bg-violet-500/12 border-violet-500/35 text-violet-400",
   verified: "bg-cyan/14 border-cyan/35 text-cyan",
-  caution: "bg-amber-400/14 border-amber-400/40 text-amber-300",
-  unknown: "bg-[rgba(244,247,243,.06)] border-border text-foreground-faint",
+  caution: "bg-amber-500/12 border-amber-500/35 text-amber-400",
+  unknown: "bg-surface border-border text-foreground-faint",
 };

@@ -21,9 +21,9 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
   const loop = [...providers, ...providers];
 
   return (
-    <div className="px-[5%] pb-10 box-border">
+    <div className="mb-11">
       <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
-        <span className="font-display font-bold text-sm text-foreground">Top companies</span>
+        <h2 className="font-display font-normal text-[22px] text-foreground tracking-[-.3px] m-0">Top tools</h2>
         <span className="font-medium text-[12.5px] text-foreground-faint">
           Verified builders shipping the most-followed agents
         </span>
@@ -43,7 +43,7 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
             <Link
               href={`/company/${c.source}/${encodeURIComponent(c.name)}`}
               key={`${c.source}:${c.name}:${i}`}
-              className="flex-none w-[220px] p-4 rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] box-border no-underline hover:border-border-strong transition-colors"
+              className="glass-panel flex-none w-[220px] p-4 rounded box-border no-underline hover:border-white transition-colors"
             >
               <div className="flex items-center gap-2.5 mb-3">
                 {c.image_url ? (
@@ -54,11 +54,11 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
                     className="w-9 h-9 rounded flex-none object-cover bg-surface border border-border"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[13px] text-white">
+                  <div className="w-9 h-9 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-normal text-sm text-white">
                     {initials(c.name)}
                   </div>
                 )}
-                <span className="font-display font-bold text-[13.5px] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                <span className="font-display font-normal text-[15px] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                   {c.name}
                 </span>
               </div>
@@ -76,11 +76,11 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
               )}
               <div className="flex gap-4">
                 <div>
-                  <div className="font-display font-bold text-sm text-foreground">{c.agent_count}</div>
+                  <div className="font-display font-normal text-sm text-foreground">{c.agent_count}</div>
                   <div className="font-medium text-[10.5px] text-foreground-faint">Agents</div>
                 </div>
                 <div>
-                  <div className="font-display font-bold text-sm text-foreground">
+                  <div className="font-display font-normal text-sm text-foreground">
                     {formatCount(c.followers)}
                   </div>
                   <div className="font-medium text-[10.5px] text-foreground-faint">Followers</div>

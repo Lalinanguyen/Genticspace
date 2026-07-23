@@ -49,6 +49,7 @@ function filtersToSearchParams(filters: MarketplaceFilters): string {
   if (filters.mcp_only) params.set("mcp_only", "true");
   if (filters.x402_only) params.set("x402_only", "true");
   if (filters.safe_only) params.set("safe_only", "true");
+  if (filters.sandboxable_only) params.set("sandboxable_only", "true");
   if (filters.industry) params.set("industry", filters.industry);
   if (filters.license) params.set("license", filters.license);
   if (filters.deployment) params.set("deployment", filters.deployment);
@@ -92,6 +93,18 @@ export function askDeploymentGuide(
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: JSON.stringify({ question, history }),
+  });
+}
+
+export function getSandboxGuide(
+  genticspaceId: string,
+  task: string,
+  token?: string
+): Promise<{ guidance: string }> {
+  return request(`/public/agents/${genticspaceId}/sandbox/guide`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: JSON.stringify({ task }),
   });
 }
 

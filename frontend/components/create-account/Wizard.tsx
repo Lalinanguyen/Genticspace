@@ -29,10 +29,9 @@ const EXPERIENCE_LEVELS = [
   { level: "Advanced", desc: "Regularly build with or deploy AI" },
 ] as const;
 
-const cardClass =
-  "p-9 rounded bg-surface border border-border-strong glass-card box-border w-full max-w-[480px]";
+const cardClass = "p-9 rounded glass-panel box-border w-full max-w-[480px]";
 const inputClass =
-  "w-full box-border px-3.5 py-3 rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
+  "w-full box-border px-3.5 py-3 rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
 const labelClass = "block mb-1.5 font-semibold text-[12.5px] text-foreground-muted";
 const continueClass =
   "mt-6 text-center px-7 py-[15px] rounded font-semibold text-[15px] cursor-pointer select-none";
@@ -52,7 +51,7 @@ function ContinueButton({
       className={continueClass}
       style={
         disabled
-          ? { background: "rgba(244,247,243,.08)", color: "rgba(244,247,243,.4)", cursor: "default" }
+          ? { background: "rgba(28,38,33,.08)", color: "rgba(28,38,33,.4)", cursor: "default" }
           : {
               background: "linear-gradient(135deg,#072AC8,#2f4fe0)",
               color: "#fff",
@@ -206,24 +205,43 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
 
       {step === "role" && (
         <div className={cardClass}>
-          <h1 className="font-display font-bold text-[28px] leading-tight text-foreground mb-2">Create your account</h1>
+          <h1 className="font-display font-normal text-[28px] leading-tight text-foreground mb-2">Create your account</h1>
           <p className="text-foreground-muted text-[14.5px] leading-relaxed mb-7">First, tell us what brings you to Genticspace.</p>
 
           <div className="flex flex-col gap-3 mb-2">
             {(["individual", "business"] as const).map((type) => {
               const active = form.accountType === type;
+              // Per design README: Individual's selected state uses the cyan-selected
+              // (#22D3EE) variant; Business's selected state uses the standard cyan (#35C0B0).
+              const accent = type === "individual" ? "#22D3EE" : "#35C0B0";
+              const tintBg = type === "individual" ? "rgba(34,211,238,.1)" : "rgba(53,192,176,.1)";
+              const tintBorder = type === "individual" ? "rgba(34,211,238,.35)" : "rgba(53,192,176,.35)";
               return (
                 <div
                   key={type}
                   onClick={() => setForm((f) => ({ ...f, accountType: type }))}
                   className="cursor-pointer flex items-center gap-4 p-4.5 rounded"
                   style={{
-                    background: active ? "rgba(34,211,238,.1)" : "rgba(244,247,243,.03)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.35)" : "rgba(244,247,243,.1)"}`,
+                    background: active ? tintBg : "rgba(28,38,33,.03)",
+                    border: `1px solid ${active ? tintBorder : "rgba(28,38,33,.1)"}`,
                   }}
                 >
+                  <div className="w-9 h-[42px] flex-none flex items-center justify-center" style={{ color: active ? accent : "#1C2621" }}>
+                    {type === "individual" ? (
+                      <svg width="28" height="28" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                        <path d="M5.5 19.5c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <svg width="28" height="28" viewBox="0 0 24 24">
+                        <path d="M5 21V5.5C5 4.7 5.7 4 6.5 4h6c.8 0 1.5.7 1.5 1.5V21" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                        <path d="M14 11h3.5c.8 0 1.5.7 1.5 1.5V21" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                        <path d="M3 21h18M8 7.5h1M8 11h1M8 14.5h1" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-display font-semibold text-[15.5px] text-foreground mb-0.5">
+                    <div className="font-display font-normal text-[15.5px] text-foreground mb-0.5">
                       {type === "individual" ? "Individual use" : "Business"}
                     </div>
                     <div className="text-[12.5px] leading-tight text-foreground-muted">
@@ -235,8 +253,8 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   <div
                     className="w-[18px] h-[18px] rounded-full flex-none"
                     style={{
-                      border: `2px solid ${active ? "#22D3EE" : "rgba(244,247,243,.3)"}`,
-                      background: active ? "#22D3EE" : "transparent",
+                      border: `2px solid ${active ? accent : "rgba(28,38,33,.3)"}`,
+                      background: active ? accent : "transparent",
                     }}
                   />
                 </div>
@@ -256,7 +274,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
 
       {step === "login" && (
         <div className={cardClass}>
-          <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">Welcome back</h1>
+          <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-1.5">Welcome back</h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">Sign in to your Genticspace account.</p>
 
           <div className="flex flex-col gap-3.5 mb-5">
@@ -305,7 +323,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "details" && (
         <div className={cardClass}>
           <BackLink onClick={() => setStep("role")} />
-          <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">
+          <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-1.5">
             {isBusiness ? "Set up your business account" : "Create your account"}
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
@@ -361,11 +379,11 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               onClick={() => setForm((f) => ({ ...f, terms: !f.terms }))}
               className="cursor-pointer flex-none w-[17px] h-[17px] mt-0.5 rounded-sm flex items-center justify-center"
               style={{
-                border: `1px solid ${form.terms ? "#35C0B0" : "rgba(244,247,243,.3)"}`,
+                border: `1px solid ${form.terms ? "#35C0B0" : "rgba(28,38,33,.3)"}`,
                 background: form.terms ? "#35C0B0" : "transparent",
               }}
             >
-              {form.terms && <span className="text-background text-[11px] font-bold leading-none">✓</span>}
+              {form.terms && <span className="text-[#08302B] text-[11px] font-bold leading-none">✓</span>}
             </div>
             <span className="text-[12.5px] leading-relaxed text-foreground-muted">
               I agree to the Terms of Service and Privacy Policy
@@ -386,7 +404,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "experience" && (
         <div className={cardClass}>
           <BackLink onClick={() => setStep("details")} />
-          <h1 className="font-display font-bold text-[26px] leading-tight text-foreground mb-1.5">
+          <h1 className="font-display font-normal text-[26px] leading-tight text-foreground mb-1.5">
             What&apos;s your AI experience level?
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
@@ -402,9 +420,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   onClick={() => setForm((f) => ({ ...f, experienceLevel: opt.level }))}
                   className="cursor-pointer px-4.5 py-4 rounded font-semibold text-[14.5px]"
                   style={{
-                    background: active ? "rgba(34,211,238,.14)" : "rgba(244,247,243,.05)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.5)" : "rgba(244,247,243,.14)"}`,
-                    color: active ? "#22D3EE" : "#F4F7F3",
+                    background: active ? "rgba(34,211,238,.14)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(34,211,238,.5)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#22D3EE" : "#1C2621",
                   }}
                 >
                   <div className="mb-0.5">{opt.level}</div>
@@ -421,7 +439,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "usecase" && (
         <div className={cardClass}>
           <BackLink onClick={() => setStep("experience")} />
-          <h1 className="font-display font-bold text-[26px] leading-tight text-foreground mb-1.5">
+          <h1 className="font-display font-normal text-[26px] leading-tight text-foreground mb-1.5">
             What&apos;s your best use case for an AI tool?
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
@@ -455,7 +473,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
             <span className="w-1.5 h-1.5 rounded-full bg-cyan" />
             Two-step verification
           </div>
-          <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-2">Verify it&apos;s you</h1>
+          <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-2">Verify it&apos;s you</h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
             We sent a 6-digit code to {form.email}. Enter it below to secure your account.
           </p>
@@ -474,7 +492,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                     e.target.nextElementSibling.focus();
                   }
                 }}
-                className="w-11 h-[52px] text-center rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground font-display font-bold text-xl focus:outline-none focus:border-cyan"
+                className="w-11 h-[52px] text-center rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground font-display font-normal text-xl focus:outline-none focus:border-cyan"
               />
             ))}
           </div>
@@ -496,7 +514,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
 
       {step === "purpose" && (
         <div className={cardClass}>
-          <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">
+          <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-1.5">
             What will you use Genticspace for?
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-5">
@@ -517,9 +535,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   }
                   className="cursor-pointer px-3.5 py-2 rounded-sm font-semibold text-[12.5px]"
                   style={{
-                    background: active ? "rgba(53,192,176,.14)" : "rgba(244,247,243,.05)",
-                    border: `1px solid ${active ? "rgba(53,192,176,.4)" : "rgba(244,247,243,.14)"}`,
-                    color: active ? "#35C0B0" : "rgba(244,247,243,.7)",
+                    background: active ? "rgba(53,192,176,.14)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.4)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#35C0B0" : "rgba(28,38,33,.7)",
                   }}
                 >
                   {p.label}
@@ -544,10 +562,10 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       )}
 
       {step === "profile" && (
-        <div className="w-full max-w-[860px] p-9 rounded bg-surface border border-border-strong glass-card box-border">
+        <div className="w-full max-w-[860px] p-9 rounded glass-panel box-border">
           <div className="flex flex-wrap gap-4 items-end justify-between mb-5 pb-5 border-b border-border">
             <div>
-              <h1 className="font-display font-bold text-[28px] leading-tight text-foreground mb-1.5">
+              <h1 className="font-display font-normal text-[28px] leading-tight text-foreground mb-1.5">
                 Set up your profile
               </h1>
               <p className="text-foreground-muted text-[14.5px] leading-relaxed max-w-[480px]">
@@ -563,11 +581,11 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
 
           <div className="flex flex-wrap gap-10 items-start">
             <div className="flex-1 min-w-[220px] max-w-[260px] flex flex-col gap-4">
-              <div className="w-[120px] h-[120px] rounded bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-bold text-4xl text-white">
+              <div className="w-[120px] h-[120px] rounded bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-normal text-4xl text-white">
                 {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "TC"}
               </div>
               <div>
-                <div className="font-display font-bold text-[17px] text-foreground mb-0.5">
+                <div className="font-display font-normal text-[17px] text-foreground mb-0.5">
                   {isBusiness ? form.companyName || "Your company" : form.name || "Your name"}
                 </div>
                 <div className="font-medium text-[12.5px] font-mono text-foreground-faint">{form.email}</div>
@@ -586,7 +604,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                         setForm((f) => ({ ...f, connects: { ...f.connects, [key]: e.target.value } }))
                       }
                       placeholder={key === "github" ? "GitHub" : key === "x" ? "X (Twitter)" : key[0].toUpperCase() + key.slice(1)}
-                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(244,247,243,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
+                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(28,38,33,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
                     />
                   ))}
                 </div>
@@ -625,7 +643,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
           <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full border-2 border-cyan text-cyan text-3xl">
             ✓
           </div>
-          <h1 className="font-display font-bold text-2xl text-foreground mb-2.5">You&apos;re all set, {firstName}</h1>
+          <h1 className="font-display font-normal text-2xl text-foreground mb-2.5">You&apos;re all set, {firstName}</h1>
           <p className="text-foreground-muted text-[14.5px] leading-relaxed max-w-[360px] mx-auto mb-7">
             {isBusiness
               ? "Your company profile is ready. Add your first agent listing to start building your following."

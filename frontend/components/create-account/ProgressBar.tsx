@@ -16,8 +16,8 @@ export function ProgressBar({ step, accountType }: { step: WizardStep; accountTy
       {Array.from({ length: segments }, (_, i) => (
         <div
           key={i}
-          className="w-9 h-[3px] rounded-sm"
-          style={{ background: current >= i ? "#35C0B0" : "rgba(244,247,243,.15)" }}
+          className={current >= i ? "w-9 h-[3px] rounded-sm bg-cyan" : "w-9 h-[3px] rounded-sm"}
+          style={current >= i ? undefined : { background: "rgba(28,38,33,.15)" }}
         />
       ))}
     </div>

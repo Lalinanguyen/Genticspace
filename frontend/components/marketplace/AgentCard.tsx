@@ -1,73 +1,83 @@
 import Link from "next/link";
 import type { Agent, Recommendation } from "@/lib/types";
-import { AgentAvatar } from "@/components/ui/AgentAvatar";
+import { agentId } from "@/lib/agent";
+import { agentColor } from "@/lib/agentColor";
 import { TrustBadge } from "@/components/agent/TrustBadge";
 
-function shortId(id: string): string {
-  return id.length > 14 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
+function initials(name: string): string {
+  return name
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 export function AgentCard({ agent }: { agent: Agent | Recommendation }) {
-  const reasons = "reasons" in agent ? agent.reasons : [];
+  const id = agentId(agent);
+  const color = agentColor(id || agent.name || "agent");
+  const label = agent.name || id;
+  const industry = agent.industry_tags?.[0];
+  const tags = [agent.license, ...(agent.deployment_types ?? [])].filter((t): t is string => !!t);
 
   return (
     <Link
-      href={`/marketplace/${agent.genticspace_id}`}
-      className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex flex-col gap-3.5 box-border no-underline hover:border-border-strong transition-colors"
+      href={`/marketplace/${id}`}
+      className="glass-panel rounded overflow-hidden flex flex-col no-underline hover:border-white transition-colors"
     >
-      <div className="flex items-start gap-3.5">
-        <AgentAvatar imageUrl={agent.image_url} size={48} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-display font-bold text-base text-foreground">
-              {agent.name || shortId(agent.genticspace_id)}
-            </span>
-            {agent.verified && (
-              <span title="Verified" className="text-cyan text-sm">
-                ✓
-              </span>
-            )}
+      <div className="relative h-28" style={{ background: `linear-gradient(135deg, ${color}, ${color}55)` }}>
+        {agent.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={agent.image_url}
+            alt=""
+            className="absolute left-4 -bottom-[22px] w-[52px] h-[52px] rounded border-[3px] border-background object-cover"
+          />
+        ) : (
+          <div
+            className="absolute left-4 -bottom-[22px] w-[52px] h-[52px] rounded border-[3px] border-background flex items-center justify-center font-display font-normal text-base text-white"
+            style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)` }}
+          >
+            {initials(label)}
           </div>
-          <div className="text-[12.5px] text-foreground-faint font-mono">
-            {agent.provider_org || shortId(agent.owner_address || agent.genticspace_id)}
-          </div>
-        </div>
+        )}
       </div>
-
-      <p className="text-[13px] leading-relaxed text-foreground-muted m-0">
-        {agent.description || "No description indexed for this agent yet."}
-      </p>
-
-      {reasons.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {reasons.map((r) => (
-            <span key={r} className="text-[11px] font-medium text-cyan">
-              ✦ {r}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-1.5 flex-wrap">
-        <TrustBadge agent={agent} />
-        {[
-          agent.a2a_endpoint ? "A2A" : null,
-          agent.mcp_endpoint ? "MCP" : null,
-          agent.x402_support ? "x402" : null,
-          agent.safe_to_transact ? "Safe to transact" : null,
-          agent.license,
-          ...(agent.deployment_types ?? []),
-          ...(agent.industry_tags?.slice(0, 2) ?? []),
-        ]
-          .filter((tag): tag is string => !!tag)
-          .map((tag) => (
+      <div className="pt-[30px] pb-4 px-4 flex flex-col gap-2 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="font-display font-normal text-base text-foreground">{label}</span>
+          {agent.verified && (
             <span
-              key={tag}
-              className="px-2.5 py-1 rounded-sm bg-cyan/14 border border-cyan/35 font-semibold text-[11px] text-cyan"
+              title="Verified"
+              className="w-[17px] h-[17px] rounded-sm flex-none flex items-center justify-center bg-cyan text-background text-[10px] leading-none"
             >
+              ✓
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-foreground-faint">
+          by {agent.provider_org || agent.source}
+          {industry ? ` · ${industry}` : ""}
+        </div>
+        <p className="text-[13px] leading-relaxed text-foreground/65 mt-0.5 line-clamp-2">
+          {agent.description || "No description indexed for this agent yet."}
+        </p>
+        <div className="flex gap-1.5 flex-wrap mt-auto pt-1.5">
+          <TrustBadge agent={agent} />
+          {agent.sandboxable && (
+            <span
+              title="Try this agent live, right now, no setup"
+              className="px-2.5 py-1 rounded-sm font-semibold text-[11px] bg-cyan/14 border border-cyan/35 text-cyan"
+            >
+              ▶ Try it
+            </span>
+          )}
+          {tags.map((tag) => (
+            <span key={tag} className="px-2.5 py-1 rounded bg-foreground/6 font-semibold text-[11px] text-foreground/70">
               {tag}
             </span>
           ))}
+        </div>
       </div>
     </Link>
   );

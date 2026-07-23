@@ -45,10 +45,7 @@ function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: strin
         onClick={() => setOpen(true)}
         className="mt-4 flex items-center gap-2 cursor-pointer select-none w-fit"
       >
-        <span
-          className="w-7 h-7 rounded-full flex-none flex items-center justify-center font-display font-bold text-[11px] text-background"
-          style={{ background: "linear-gradient(135deg,#35C0B0,#1F8A7E)" }}
-        >
+        <span className="w-7 h-7 rounded-full flex-none flex items-center justify-center font-display font-normal text-[11px] text-background bg-gradient-to-br from-cyan to-cyan-deep">
           AI
         </span>
         <span className="font-semibold text-[13px] text-cyan">Ask a question about setting this up</span>
@@ -57,13 +54,10 @@ function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: strin
   }
 
   return (
-    <div className="mt-4 rounded bg-[rgba(244,247,243,.03)] border border-border overflow-hidden">
+    <div className="glass-panel mt-4 rounded overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
-          <span
-            className="w-6 h-6 rounded-full flex-none flex items-center justify-center font-display font-bold text-[10px] text-background"
-            style={{ background: "linear-gradient(135deg,#35C0B0,#1F8A7E)" }}
-          >
+          <span className="w-6 h-6 rounded-full flex-none flex items-center justify-center font-display font-normal text-[10px] text-background bg-gradient-to-br from-cyan to-cyan-deep">
             AI
           </span>
           <span className="font-semibold text-[12.5px] text-foreground">Setup help</span>
@@ -81,21 +75,15 @@ function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: strin
           {messages.map((m, i) => (
             <div
               key={i}
-              className="max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed whitespace-pre-wrap"
-              style={
-                m.role === "user"
-                  ? { alignSelf: "flex-end", background: "rgba(53,192,176,.14)", color: "#F4F7F3" }
-                  : { alignSelf: "flex-start", background: "rgba(244,247,243,.05)", color: "rgba(244,247,243,.85)" }
-              }
+              className={`max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed whitespace-pre-wrap ${
+                m.role === "user" ? "self-end bg-cyan/16 text-foreground" : "self-start bg-surface-2 text-foreground/85"
+              }`}
             >
               {m.content}
             </div>
           ))}
           {sending && (
-            <div
-              className="max-w-[85%] px-3 py-2 rounded text-[12.5px] text-foreground-faint"
-              style={{ alignSelf: "flex-start", background: "rgba(244,247,243,.05)" }}
-            >
+            <div className="self-start max-w-[85%] px-3 py-2 rounded text-[12.5px] text-foreground-faint bg-surface-2">
               Thinking…
             </div>
           )}
@@ -112,14 +100,14 @@ function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: strin
             if (e.key === "Enter") send();
           }}
           placeholder="e.g. What if step 2 fails?"
-          className="flex-1 min-w-0 box-border px-3 py-2 rounded-sm bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-[12.5px] focus:outline-none focus:border-cyan"
+          className="glass-chip flex-1 min-w-0 box-border px-3 py-2 rounded-sm text-foreground text-[12.5px] focus:outline-none focus:border-cyan"
         />
         <div
           onClick={sending ? undefined : send}
           className="flex-none px-3.5 py-2 rounded-sm font-semibold text-[12px] cursor-pointer text-white"
           style={{
-            background: input.trim() && !sending ? "linear-gradient(135deg,#072AC8,#2f4fe0)" : "rgba(244,247,243,.08)",
-            color: input.trim() && !sending ? "#fff" : "rgba(244,247,243,.4)",
+            background: input.trim() && !sending ? "linear-gradient(135deg,#072AC8,#2f4fe0)" : "rgba(28,38,33,.08)",
+            color: input.trim() && !sending ? "#fff" : "rgba(28,38,33,.4)",
           }}
         >
           Ask
@@ -160,8 +148,8 @@ export function DeploymentGuideSection({ genticspaceId }: { genticspaceId: strin
   }, [authLoading, genticspaceId, token]);
 
   return (
-    <div className="p-[26px] rounded bg-surface-2 border border-border box-border">
-      <span className="font-display font-bold text-sm text-foreground block mb-4">Deployment guide</span>
+    <div className="glass-panel p-[26px] rounded box-border">
+      <span className="font-display font-normal text-sm text-foreground block mb-4">Deployment guide</span>
 
       {loading && <p className="text-[13.5px] text-foreground-muted">Generating instructions...</p>}
 

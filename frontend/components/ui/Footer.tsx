@@ -2,15 +2,22 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <div className="flex items-center justify-between flex-wrap gap-3 border-t border-border px-[5%] py-[22px] box-border">
-      <span className="font-medium text-[12.5px] text-foreground-faint">© 2026 Genticspace</span>
-      <div className="flex gap-5 flex-wrap">
-        <Link href="/marketplace" className="font-medium text-[12.5px] text-foreground-muted hover:text-foreground">
+    <div className="border-t border-border px-[5%] py-9 box-border flex items-center justify-between flex-wrap gap-5">
+      <div className="flex items-center gap-2.5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/logo-g.png" alt="Genticspace" className="w-[26px] h-[26px] object-contain" />
+        <span className="font-display font-normal text-lg text-foreground">Genticspace</span>
+      </div>
+      <span className="font-medium text-[12.5px] text-foreground-faint">© 2026 Genticspace. All rights reserved.</span>
+      <div className="flex flex-wrap gap-[22px] font-medium text-[13px] text-foreground-muted">
+        <Link href="/marketplace" className="hover:text-foreground">
           Marketplace
         </Link>
-        <Link href="/contact" className="font-medium text-[12.5px] text-foreground-muted hover:text-foreground">
-          Contact
+        <Link href="/contribute" className="hover:text-foreground">
+          Contribute
         </Link>
+        <span>Privacy</span>
+        <span>Terms</span>
       </div>
     </div>
   );
