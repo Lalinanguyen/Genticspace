@@ -38,6 +38,7 @@ async def insert_agent(
     mcp_endpoint: Optional[str] = None,
     x402_support: bool = False,
     submitted_by: Optional[int] = None,
+    license: Optional[str] = None,
 ) -> None:
     await conn.execute(
         """
@@ -45,13 +46,13 @@ async def insert_agent(
             genticspace_id, source, source_id, name, description,
             verified, trust_tier, risk_score, safe_to_transact,
             moderation_status, submitter_email, moderation_note, is_private,
-            a2a_endpoint, mcp_endpoint, x402_support, submitted_by
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+            a2a_endpoint, mcp_endpoint, x402_support, submitted_by, license
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
         """,
         genticspace_id, source, source_id or genticspace_id, name, description,
         verified, trust_tier, risk_score, safe_to_transact,
         moderation_status, submitter_email, moderation_note, is_private,
-        a2a_endpoint, mcp_endpoint, x402_support, submitted_by,
+        a2a_endpoint, mcp_endpoint, x402_support, submitted_by, license,
     )
 
 
