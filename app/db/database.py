@@ -50,11 +50,20 @@ DO $$ BEGIN
   END IF;
 END $$;
 -- Backend-internal data values, likewise only meaningful on a pre-existing
--- database — a no-op UPDATE on a fresh one (no rows exist yet).
-UPDATE agents SET trust_tier = 'tracent' WHERE trust_tier = 'genticspace';
-UPDATE agents SET trust_tier = 'tracent-hosted' WHERE trust_tier = 'genticspace-hosted';
-UPDATE agents SET source = 'tracent' WHERE source = 'genticspace';
-UPDATE agents SET source = 'tracent-hosted' WHERE source = 'genticspace-hosted';
+-- database. Wrapped in the same table-existence guard as the column rename
+-- above: on a genuinely fresh database `agents` doesn't exist yet at this
+-- point (bug fixed here — these four UPDATEs previously ran unconditionally,
+-- so `UPDATE agents SET ...` against a not-yet-created table threw
+-- UndefinedTableError and broke init_db() on every fresh database, which is
+-- every test run and any from-scratch deploy).
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='agents') THEN
+    UPDATE agents SET trust_tier = 'tracent' WHERE trust_tier = 'genticspace';
+    UPDATE agents SET trust_tier = 'tracent-hosted' WHERE trust_tier = 'genticspace-hosted';
+    UPDATE agents SET source = 'tracent' WHERE source = 'genticspace';
+    UPDATE agents SET source = 'tracent-hosted' WHERE source = 'genticspace-hosted';
+  END IF;
+END $$;
 """
 
 
