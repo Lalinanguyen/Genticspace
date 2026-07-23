@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 from app.db.auth import verify_api_key
 from app.db.database import get_conn
 from app.rate_limit import limiter
-from app.services.agent_queries import list_skill_categories, query_agents
+from app.services.agent_queries import compute_sandbox_fields, list_skill_categories, query_agents
 from app.services.trust_summary import compute_trust_summary
 
 logger = logging.getLogger(__name__)
@@ -20,10 +20,10 @@ router = APIRouter(prefix="/agents", tags=["agents"], dependencies=[Depends(veri
 # (POST /agents/submit) — deliberately NOT part of `router` above, which is
 # key-gated at the router level. This is a distinct, lower-trust channel
 # from the existing authenticated Contribute flow (POST /public/agents,
-# source='genticspace', instant-live, no moderation) — that flow is unchanged.
+# source='tracent', instant-live, no moderation) — that flow is unchanged.
 # Anonymous submissions land as source='self-submitted',
 # moderation_status='pending', invisible until an admin approves them via
-# POST /admin/submissions/{genticspace_id}/review. Rate-limited instead of
+# POST /admin/submissions/{tracent_id}/review. Rate-limited instead of
 # key-gated since requiring an API key for an anonymous end-user action
 # defeats the point.
 submit_router = APIRouter(prefix="/agents", tags=["agents"])
@@ -42,7 +42,7 @@ def _row_to_dict(row) -> dict:
 
 def _generate_submission_id() -> str:
     # Same trc_ + random-suffix shape as app/services/indexer.py's
-    # _generate_genticspace_id, so anonymously-submitted agents get IDs
+    # _generate_tracent_id, so anonymously-submitted agents get IDs
     # indistinguishable in shape from any other source.
     suffix = secrets.token_urlsafe(10)[:10]
     return f"trc_{suffix}"
@@ -75,16 +75,16 @@ async def submit_agent(request: Request, body: AgentSubmitBody):
     """
     Public "submit your agent" intake — the anonymous, no-account path.
     Does not appear in GET /agents, GET /public/agents, or search/categories
-    until approved via POST /admin/submissions/{genticspace_id}/review.
+    until approved via POST /admin/submissions/{tracent_id}/review.
     """
-    genticspace_id = _generate_submission_id()
+    tracent_id = _generate_submission_id()
     endpoint = str(body.endpoint_url)
 
     async with get_conn() as conn:
         await conn.execute(
             """
             INSERT INTO agents (
-                genticspace_id, source, source_id,
+                tracent_id, source, source_id,
                 name, description, web_endpoint,
                 verified, moderation_status, submitter_email
             ) VALUES (
@@ -93,21 +93,21 @@ async def submit_agent(request: Request, body: AgentSubmitBody):
                 FALSE, 'pending', $5
             )
             """,
-            genticspace_id, body.name, body.description, endpoint, body.submitter_email,
+            tracent_id, body.name, body.description, endpoint, body.submitter_email,
         )
         for skill in body.skills:
             await conn.execute(
                 """
-                INSERT INTO agent_skills (genticspace_id, skill_name, description, tags)
+                INSERT INTO agent_skills (tracent_id, skill_name, description, tags)
                 VALUES ($1, $2, $3, $4)
                 """,
-                genticspace_id, skill.name, skill.description, json.dumps([]),
+                tracent_id, skill.name, skill.description, json.dumps([]),
             )
 
-    logger.info("New self-submitted agent %s from %s (pending review)", genticspace_id, body.submitter_email)
+    logger.info("New self-submitted agent %s from %s (pending review)", tracent_id, body.submitter_email)
 
     return {
-        "genticspace_id": genticspace_id,
+        "tracent_id": tracent_id,
         "moderation_status": "pending",
         "message": (
             "Thanks! Your agent has been submitted for review and will appear "
@@ -141,7 +141,7 @@ async def list_flagged(
             rows = await conn.fetch(
                 """
                 SELECT DISTINCT a.* FROM agents a
-                JOIN reputation_flags f ON f.genticspace_id = a.genticspace_id
+                JOIN reputation_flags f ON f.tracent_id = a.tracent_id
                 WHERE f.severity = $1
                 ORDER BY a.risk_score DESC
                 """,
@@ -151,7 +151,7 @@ async def list_flagged(
             rows = await conn.fetch(
                 """
                 SELECT DISTINCT a.* FROM agents a
-                JOIN reputation_flags f ON f.genticspace_id = a.genticspace_id
+                JOIN reputation_flags f ON f.tracent_id = a.tracent_id
                 ORDER BY a.risk_score DESC
                 """
             )
@@ -159,7 +159,7 @@ async def list_flagged(
         for r in rows:
             d = _row_to_dict(r)
             flags = await conn.fetch(
-                "SELECT severity FROM reputation_flags WHERE genticspace_id = $1", d["genticspace_id"]
+                "SELECT severity FROM reputation_flags WHERE tracent_id = $1", d["tracent_id"]
             )
             agents.append(_attach_trust_summary(d, [dict(f) for f in flags]))
     return {"agents": agents}
@@ -178,6 +178,7 @@ async def list_agents(
     x402_only: bool = False,
     flagged_only: bool = False,
     safe_only: bool = False,
+    sandboxable_only: bool = False,
     industry: Optional[str] = None,
     license: Optional[str] = None,
     deployment: Optional[str] = None,
@@ -194,6 +195,7 @@ async def list_agents(
             x402_only=x402_only,
             flagged_only=flagged_only,
             safe_only=safe_only,
+            sandboxable_only=sandboxable_only,
             industry=industry,
             license=license,
             deployment=deployment,
@@ -206,40 +208,40 @@ async def list_agents(
 async def get_agent_by_source(source: str, source_id: str):
     async with get_conn() as conn:
         row = await conn.fetchrow(
-            "SELECT genticspace_id FROM agents WHERE source = $1 AND source_id = $2",
+            "SELECT tracent_id FROM agents WHERE source = $1 AND source_id = $2",
             source, source_id,
         )
     if not row:
         raise HTTPException(404, f"Agent not found for source={source} source_id={source_id}")
-    return await _get_full_profile(row["genticspace_id"])
+    return await _get_full_profile(row["tracent_id"])
 
 
-@router.get("/{genticspace_id}")
-async def get_agent(genticspace_id: str):
-    return await _get_full_profile(genticspace_id)
+@router.get("/{tracent_id}")
+async def get_agent(tracent_id: str):
+    return await _get_full_profile(tracent_id)
 
 
-async def _get_full_profile(genticspace_id: str) -> dict:
+async def _get_full_profile(tracent_id: str) -> dict:
     async with get_conn() as conn:
         agent = await conn.fetchrow(
-            "SELECT * FROM agents WHERE genticspace_id = $1", genticspace_id
+            "SELECT * FROM agents WHERE tracent_id = $1", tracent_id
         )
         if not agent:
-            raise HTTPException(404, f"Agent {genticspace_id} not found")
+            raise HTTPException(404, f"Agent {tracent_id} not found")
 
         skills = await conn.fetch(
-            "SELECT * FROM agent_skills WHERE genticspace_id = $1", genticspace_id
+            "SELECT * FROM agent_skills WHERE tracent_id = $1", tracent_id
         )
         transfers = await conn.fetch(
-            "SELECT * FROM transfer_events WHERE genticspace_id = $1 ORDER BY block_number DESC",
-            genticspace_id,
+            "SELECT * FROM transfer_events WHERE tracent_id = $1 ORDER BY block_number DESC",
+            tracent_id,
         )
         flags = await conn.fetch(
-            "SELECT * FROM reputation_flags WHERE genticspace_id = $1", genticspace_id
+            "SELECT * FROM reputation_flags WHERE tracent_id = $1", tracent_id
         )
         verifications = await conn.fetch(
-            "SELECT * FROM verification_requests WHERE genticspace_id = $1 ORDER BY submitted_at DESC",
-            genticspace_id,
+            "SELECT * FROM verification_requests WHERE tracent_id = $1 ORDER BY submitted_at DESC",
+            tracent_id,
         )
 
     result = _row_to_dict(agent)
@@ -247,4 +249,6 @@ async def _get_full_profile(genticspace_id: str) -> dict:
     result["transfers"] = [_row_to_dict(t) for t in transfers]
     result["flags"] = [_row_to_dict(f) for f in flags]
     result["verification_requests"] = [_row_to_dict(v) for v in verifications]
-    return _attach_trust_summary(result, result["flags"])
+    result = _attach_trust_summary(result, result["flags"])
+    compute_sandbox_fields(result)
+    return result

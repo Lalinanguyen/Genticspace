@@ -7,9 +7,87 @@ logger = logging.getLogger(__name__)
 
 pool: asyncpg.Pool | None = None
 
+# Genticspace -> Tracent rename (reverting an earlier Tracent -> Genticspace
+# migration): on the current production database, the tables below already
+# have the `genticspace_id` column name from that earlier migration.
+# Genticspace stays the product's user-facing brand (frontend display only —
+# see CLAUDE.md); this only reverts the backend's own internal naming, which
+# doesn't need to match the brand. Renaming is metadata-only in Postgres
+# (instant, no data rewrite; indexes survive automatically since Postgres
+# tracks them by attnum, not name) — every statement in _SCHEMA, and every
+# query in the application code, already refers to `tracent_id`, so this
+# must run before _SCHEMA and commit on its own. Deliberately NOT part of
+# the _SCHEMA string: _SCHEMA is executed as one big multi-statement script,
+# which Postgres runs as a single implicit transaction — an unrelated
+# failure anywhere later in that script would silently roll back an
+# already-successful rename too, leaving the column renamed from this
+# function's point of view but not from the database's, with no error
+# surfaced (this is exactly what happened the first time this pattern was
+# tried inline in _SCHEMA, hence pulling it out into its own transaction).
+# Guarded on IF EXISTS so it safely no-ops on every startup after the first
+# successful run, and is a no-op entirely on a fresh database (created with
+# `tracent_id` directly by the CREATE TABLE IF NOT EXISTS statements in
+# _SCHEMA, which haven't run yet the first time this executes — IF EXISTS
+# against a not-yet-created table just finds no matching column, same as
+# "already renamed").
+_RENAME_GENTICSPACE_TO_TRACENT = """
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='genticspace_id') THEN
+    ALTER TABLE agents RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE agent_skills RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE transfer_events RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE reputation_flags RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE verification_requests RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_deployment_guides' AND column_name='genticspace_id') THEN
+    ALTER TABLE agent_deployment_guides RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_favorites' AND column_name='genticspace_id') THEN
+    ALTER TABLE agent_favorites RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reviews' AND column_name='genticspace_id') THEN
+    ALTER TABLE reviews RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+END $$;
+-- Backend-internal data values, likewise only meaningful on a pre-existing
+-- database — a no-op UPDATE on a fresh one (no rows exist yet).
+UPDATE agents SET trust_tier = 'tracent' WHERE trust_tier = 'genticspace';
+UPDATE agents SET trust_tier = 'tracent-hosted' WHERE trust_tier = 'genticspace-hosted';
+UPDATE agents SET source = 'tracent' WHERE source = 'genticspace';
+UPDATE agents SET source = 'tracent-hosted' WHERE source = 'genticspace-hosted';
+"""
+
+
+async def _migrate_genticspace_to_tracent(conn: asyncpg.Connection) -> None:
+    async with conn.transaction():
+        agents_table_existed = await conn.fetchval(
+            "SELECT 1 FROM information_schema.tables WHERE table_name='agents'"
+        )
+        await conn.execute(_RENAME_GENTICSPACE_TO_TRACENT)
+        renamed = await conn.fetchval(
+            "SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='tracent_id'"
+        )
+        # On a genuinely fresh database, `agents` doesn't exist yet at this
+        # point (_SCHEMA's CREATE TABLE hasn't run) — that's the expected
+        # no-op path, not a failure; _SCHEMA creates it with tracent_id
+        # directly right after this returns.
+        if agents_table_existed and not renamed:
+            # Only reachable if the rename ran but the column still isn't
+            # there afterward — a real bug, not the expected no-op path.
+            # Fail loudly here (blocking startup / the deploy's health
+            # check) rather than let the app come up "healthy" and serve
+            # 500s on every agents query, which is what silently swallowing
+            # this would do.
+            raise RuntimeError(
+                "genticspace_id -> tracent_id migration did not take effect: "
+                "agents.tracent_id still doesn't exist after running the rename"
+            )
+    logger.info("Schema migration check: agents.tracent_id present")
+
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agents (
-    genticspace_id       TEXT PRIMARY KEY,
+    tracent_id       TEXT PRIMARY KEY,
     source           TEXT NOT NULL,
     source_id        TEXT NOT NULL,
     owner_address    TEXT,
@@ -40,7 +118,7 @@ CREATE TABLE IF NOT EXISTS agents (
 
 CREATE TABLE IF NOT EXISTS agent_skills (
     id           SERIAL PRIMARY KEY,
-    genticspace_id   TEXT NOT NULL REFERENCES agents(genticspace_id),
+    tracent_id   TEXT NOT NULL REFERENCES agents(tracent_id),
     skill_id     TEXT,
     skill_name   TEXT,
     description  TEXT,
@@ -49,7 +127,7 @@ CREATE TABLE IF NOT EXISTS agent_skills (
 
 CREATE TABLE IF NOT EXISTS transfer_events (
     id            SERIAL PRIMARY KEY,
-    genticspace_id    TEXT NOT NULL REFERENCES agents(genticspace_id),
+    tracent_id    TEXT NOT NULL REFERENCES agents(tracent_id),
     source        TEXT NOT NULL,
     from_address  TEXT NOT NULL,
     to_address    TEXT NOT NULL,
@@ -58,12 +136,12 @@ CREATE TABLE IF NOT EXISTS transfer_events (
     is_mint       BOOLEAN NOT NULL,
     transfer_type TEXT,
     indexed_at    TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(tx_hash, genticspace_id)
+    UNIQUE(tx_hash, tracent_id)
 );
 
 CREATE TABLE IF NOT EXISTS reputation_flags (
     id          SERIAL PRIMARY KEY,
-    genticspace_id  TEXT NOT NULL REFERENCES agents(genticspace_id),
+    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id),
     flag_type   TEXT NOT NULL,
     severity    TEXT NOT NULL,
     detail      TEXT,
@@ -72,7 +150,7 @@ CREATE TABLE IF NOT EXISTS reputation_flags (
 
 CREATE TABLE IF NOT EXISTS verification_requests (
     id              SERIAL PRIMARY KEY,
-    genticspace_id      TEXT NOT NULL REFERENCES agents(genticspace_id),
+    tracent_id      TEXT NOT NULL REFERENCES agents(tracent_id),
     requester_email TEXT NOT NULL,
     status          TEXT DEFAULT 'pending',
     reviewer_note   TEXT,
@@ -86,49 +164,13 @@ CREATE TABLE IF NOT EXISTS index_state (
     updated_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tracent -> Genticspace rename: on a pre-existing production database, the
--- tables above already exist with the old `tracent_id` column name (the
--- CREATE TABLE IF NOT EXISTS statements above are no-ops for them). Renaming
--- is metadata-only in Postgres (instant, no data rewrite; indexes survive
--- automatically since Postgres tracks them by attnum, not name) — every
--- statement below this point in the schema, and every query in the
--- application code, already refers to `genticspace_id`, so this must run
--- before any of them. Guarded on IF EXISTS so it safely no-ops on every
--- startup after the first successful run, and is a no-op entirely on a
--- fresh database (which was already created with `genticspace_id` directly
--- by the CREATE TABLE statements above).
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='tracent_id') THEN
-    ALTER TABLE agents RENAME COLUMN tracent_id TO genticspace_id;
-    ALTER TABLE agent_skills RENAME COLUMN tracent_id TO genticspace_id;
-    ALTER TABLE transfer_events RENAME COLUMN tracent_id TO genticspace_id;
-    ALTER TABLE reputation_flags RENAME COLUMN tracent_id TO genticspace_id;
-    ALTER TABLE verification_requests RENAME COLUMN tracent_id TO genticspace_id;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_deployment_guides' AND column_name='tracent_id') THEN
-    ALTER TABLE agent_deployment_guides RENAME COLUMN tracent_id TO genticspace_id;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_favorites' AND column_name='tracent_id') THEN
-    ALTER TABLE agent_favorites RENAME COLUMN tracent_id TO genticspace_id;
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reviews' AND column_name='tracent_id') THEN
-    ALTER TABLE reviews RENAME COLUMN tracent_id TO genticspace_id;
-  END IF;
-END $$;
--- Brand-derived data values, likewise only meaningful on a pre-existing
--- database — a no-op UPDATE on a fresh one (no rows exist yet).
-UPDATE agents SET trust_tier = 'genticspace' WHERE trust_tier = 'tracent';
-UPDATE agents SET trust_tier = 'genticspace-hosted' WHERE trust_tier = 'tracent-hosted';
-UPDATE agents SET source = 'genticspace' WHERE source = 'tracent';
-UPDATE agents SET source = 'genticspace-hosted' WHERE source = 'tracent-hosted';
-
 CREATE INDEX IF NOT EXISTS idx_agents_source     ON agents(source);
 CREATE INDEX IF NOT EXISTS idx_agents_owner      ON agents(owner_address);
 CREATE INDEX IF NOT EXISTS idx_agents_verified   ON agents(verified);
 CREATE INDEX IF NOT EXISTS idx_agents_trust_tier ON agents(trust_tier);
 CREATE INDEX IF NOT EXISTS idx_agents_risk       ON agents(risk_score);
-CREATE INDEX IF NOT EXISTS idx_transfers_genticspace ON transfer_events(genticspace_id);
-CREATE INDEX IF NOT EXISTS idx_flags_genticspace     ON reputation_flags(genticspace_id);
+CREATE INDEX IF NOT EXISTS idx_transfers_tracent ON transfer_events(tracent_id);
+CREATE INDEX IF NOT EXISTS idx_flags_tracent     ON reputation_flags(tracent_id);
 
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS domain TEXT;
 CREATE INDEX IF NOT EXISTS idx_agents_domain ON agents(domain);
@@ -231,15 +273,15 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS readme_fetched_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS agent_deployment_guides (
     id                SERIAL PRIMARY KEY,
-    genticspace_id        TEXT NOT NULL REFERENCES agents(genticspace_id),
+    tracent_id        TEXT NOT NULL REFERENCES agents(tracent_id),
     experience_level  TEXT NOT NULL,
     instructions      TEXT NOT NULL,
     readme_fetched_at TIMESTAMPTZ,
     generated_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(genticspace_id, experience_level)
+    UNIQUE(tracent_id, experience_level)
 );
 
--- Self-submitted listings (source = 'genticspace'), created via the Contribute page.
+-- Self-submitted listings (source = 'tracent'), created via the Contribute page.
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS submitted_by INTEGER REFERENCES users(id);
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS license TEXT;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS deployment_types TEXT[];
@@ -297,9 +339,9 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user
 
 CREATE TABLE IF NOT EXISTS agent_favorites (
     user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    genticspace_id  TEXT NOT NULL REFERENCES agents(genticspace_id) ON DELETE CASCADE,
+    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id) ON DELETE CASCADE,
     created_at  TIMESTAMPTZ DEFAULT NOW(),
-    PRIMARY KEY (user_id, genticspace_id)
+    PRIMARY KEY (user_id, tracent_id)
 );
 
 -- Following a person (followed_user_id) or a company/provider org
@@ -325,14 +367,14 @@ CREATE INDEX IF NOT EXISTS idx_follows_followed_org ON follows(org_source, follo
 
 CREATE TABLE IF NOT EXISTS reviews (
     id          SERIAL PRIMARY KEY,
-    genticspace_id  TEXT NOT NULL REFERENCES agents(genticspace_id) ON DELETE CASCADE,
+    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id) ON DELETE CASCADE,
     user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating      SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     text        TEXT,
     created_at  TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(genticspace_id, user_id)
+    UNIQUE(tracent_id, user_id)
 );
-CREATE INDEX IF NOT EXISTS idx_reviews_genticspace_id ON reviews(genticspace_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_tracent_id ON reviews(tracent_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 
 CREATE TABLE IF NOT EXISTS contact_messages (
@@ -357,7 +399,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 -- Moderation for the new *anonymous* submission path (POST /agents/submit,
 -- source = 'self-submitted') — distinct from the existing authenticated
--- Contribute flow (source = 'genticspace', submitted_by set), which stays
+-- Contribute flow (source = 'tracent', submitted_by set), which stays
 -- instant-live and untouched. DEFAULT 'approved' is deliberate: every
 -- pre-existing row across every source (erc8004, ard, github, huggingface,
 -- npm, futurepedia, ycombinator, genticspace) and every future row from any of
@@ -368,6 +410,28 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS submitter_email   TEXT;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderation_note   TEXT;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderated_at      TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_agents_moderation_status ON agents(moderation_status);
+
+-- Sandbox Mode, Track B (see docs/sandbox-execution-architecture.md):
+-- foundation-only scaffolding for eventually running third-party
+-- GitHub-repo/HF-model agent code in our own sandbox, for agents Track A's
+-- compute_sandbox_fields() can't cover (no live embeddable endpoint). This
+-- table is the admission record for a small, manually hand-picked cohort —
+-- it does NOT mean anything actually runs. There is no admin-user concept
+-- distinct from the master API key in this codebase (see app/db/auth.py),
+-- so `admitted_by` is a free-text identifier (e.g. an admin's email) rather
+-- than a FK. `status` starts (and, via scripts/admit_to_sandbox_cohort.py,
+-- can only start) at 'pending_security_review' — deliberately never
+-- 'running', since the security baseline docs/sandbox-execution-architecture.md
+-- requires before any cohort agent executes doesn't exist yet. Moving a row
+-- to 'approved' is a manual, out-of-band step once that baseline is real.
+CREATE TABLE IF NOT EXISTS sandbox_cohort (
+    tracent_id  TEXT NOT NULL REFERENCES agents(tracent_id),
+    admitted_at     TIMESTAMPTZ DEFAULT NOW(),
+    admitted_by     TEXT NOT NULL,
+    manifest_path   TEXT,
+    status          TEXT NOT NULL DEFAULT 'pending_security_review',
+    PRIMARY KEY (tracent_id)
+);
 """
 
 
@@ -384,6 +448,7 @@ async def init_db() -> None:
         max_size=20,
     )
     async with pool.acquire() as conn:
+        await _migrate_genticspace_to_tracent(conn)
         await conn.execute(_SCHEMA)
     logger.info("Database initialised")
 

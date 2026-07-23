@@ -111,7 +111,7 @@ def _parse_services(metadata: dict) -> tuple[str | None, str | None, str | None]
     return a2a, mcp, web
 
 
-def _generate_genticspace_id() -> str:
+def _generate_tracent_id() -> str:
     suffix = secrets.token_urlsafe(10)[:10]
     return f"trc_{suffix}"
 
@@ -215,13 +215,13 @@ async def _process_token(cfg: EvmSource, token_id: int, events: list[dict]) -> N
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT genticspace_id FROM agents WHERE source = $1 AND source_id = $2",
+            "SELECT tracent_id FROM agents WHERE source = $1 AND source_id = $2",
             source, source_id,
         )
         if existing:
-            genticspace_id = existing["genticspace_id"]
+            tracent_id = existing["tracent_id"]
         else:
-            genticspace_id = _generate_genticspace_id()
+            tracent_id = _generate_tracent_id()
 
         mint_event = None
         for event in events:
@@ -243,22 +243,22 @@ async def _process_token(cfg: EvmSource, token_id: int, events: list[dict]) -> N
             if not existing:
                 await conn.execute(
                     """
-                    INSERT INTO agents (genticspace_id, source, source_id)
+                    INSERT INTO agents (tracent_id, source, source_id)
                     VALUES ($1, $2, $3)
                     ON CONFLICT (source, source_id) DO NOTHING
                     """,
-                    genticspace_id, source, source_id,
+                    tracent_id, source, source_id,
                 )
                 existing = True
 
             await conn.execute(
                 """
                 INSERT INTO transfer_events
-                  (genticspace_id, source, from_address, to_address, block_number, tx_hash, is_mint, transfer_type)
+                  (tracent_id, source, from_address, to_address, block_number, tx_hash, is_mint, transfer_type)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (tx_hash, genticspace_id) DO NOTHING
+                ON CONFLICT (tx_hash, tracent_id) DO NOTHING
                 """,
-                genticspace_id, source, from_addr, to_addr, block_number, tx_hash, is_mint, transfer_type,
+                tracent_id, source, from_addr, to_addr, block_number, tx_hash, is_mint, transfer_type,
             )
 
     uri = await _get_token_uri(cfg, token_id)
@@ -293,7 +293,7 @@ async def _process_token(cfg: EvmSource, token_id: int, events: list[dict]) -> N
         await conn.execute(
             """
             INSERT INTO agents (
-                genticspace_id, source, source_id,
+                tracent_id, source, source_id,
                 owner_address, name, description, image_url, metadata_uri,
                 is_active, x402_support,
                 a2a_endpoint, mcp_endpoint, web_endpoint,
@@ -325,7 +325,7 @@ async def _process_token(cfg: EvmSource, token_id: int, events: list[dict]) -> N
                 updated_at       = EXCLUDED.updated_at,
                 last_indexed     = NOW()
             """,
-            genticspace_id, source, source_id,
+            tracent_id, source, source_id,
             owner_address, name, description, image_url, uri,
             is_active, x402_support,
             a2a_endpoint, mcp_endpoint, web_endpoint,
@@ -334,21 +334,21 @@ async def _process_token(cfg: EvmSource, token_id: int, events: list[dict]) -> N
         )
 
         await conn.execute(
-            "DELETE FROM agent_skills WHERE genticspace_id = $1", genticspace_id
+            "DELETE FROM agent_skills WHERE tracent_id = $1", tracent_id
         )
         for skill in skills:
             tags_str = json.dumps(skill.get("tags", []))
             await conn.execute(
                 """
-                INSERT INTO agent_skills (genticspace_id, skill_id, skill_name, description, tags)
+                INSERT INTO agent_skills (tracent_id, skill_id, skill_name, description, tags)
                 VALUES ($1, $2, $3, $4, $5)
                 """,
-                genticspace_id,
+                tracent_id,
                 skill.get("id"),
                 skill.get("name"),
                 skill.get("description"),
                 tags_str,
             )
 
-    await run_auto_verification(genticspace_id)
-    logger.info("Indexed token %d → %s", token_id, genticspace_id)
+    await run_auto_verification(tracent_id)
+    logger.info("Indexed token %d → %s", token_id, tracent_id)

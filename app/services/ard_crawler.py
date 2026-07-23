@@ -29,7 +29,7 @@ _TIMEOUT = 10.0
 _MIN_CRAWL_INTERVAL_SECS = 23 * 3600
 
 
-def _ard_genticspace_id() -> str:
+def _ard_tracent_id() -> str:
     return "ard_" + secrets.token_urlsafe(8)
 
 
@@ -110,15 +110,15 @@ async def _crawl_domain(client: httpx.AsyncClient, domain: str) -> int:
             a2a, mcp, web = _extract_endpoints(agent)
 
             existing = await conn.fetchrow(
-                "SELECT genticspace_id FROM agents WHERE source = 'ard' AND source_id = $1",
+                "SELECT tracent_id FROM agents WHERE source = 'ard' AND source_id = $1",
                 source_id,
             )
-            genticspace_id = existing["genticspace_id"] if existing else _ard_genticspace_id()
+            tracent_id = existing["tracent_id"] if existing else _ard_tracent_id()
 
             await conn.execute(
                 """
                 INSERT INTO agents (
-                    genticspace_id, source, source_id, domain,
+                    tracent_id, source, source_id, domain,
                     name, description,
                     a2a_endpoint, mcp_endpoint, web_endpoint,
                     provider_org,
@@ -139,7 +139,7 @@ async def _crawl_domain(client: httpx.AsyncClient, domain: str) -> int:
                     provider_org = EXCLUDED.provider_org,
                     last_indexed = NOW()
                 """,
-                genticspace_id, source_id, domain,
+                tracent_id, source_id, domain,
                 name, description,
                 a2a, mcp, web,
                 publisher,

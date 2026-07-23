@@ -41,7 +41,7 @@ async def admin_stats():
         total_agents = await conn.fetchval("SELECT COUNT(*) FROM agents")
         verified_count = await conn.fetchval("SELECT COUNT(*) FROM agents WHERE verified = TRUE")
         flagged_count = await conn.fetchval(
-            "SELECT COUNT(DISTINCT genticspace_id) FROM reputation_flags"
+            "SELECT COUNT(DISTINCT tracent_id) FROM reputation_flags"
         )
         index_rows = await conn.fetch("SELECT source, last_indexed_block FROM index_state")
 
@@ -237,19 +237,19 @@ class ReviewBody(BaseModel):
     reviewer_note: Optional[str] = None
 
 
-@router.post("/admin/verify/{genticspace_id}", tags=["admin"])
-async def admin_verify(genticspace_id: str, body: ReviewBody):
+@router.post("/admin/verify/{tracent_id}", tags=["admin"])
+async def admin_verify(tracent_id: str, body: ReviewBody):
     async with get_conn() as conn:
         req = await conn.fetchrow(
             """
             SELECT id FROM verification_requests
-            WHERE genticspace_id = $1 AND status = 'pending'
+            WHERE tracent_id = $1 AND status = 'pending'
             ORDER BY submitted_at DESC LIMIT 1
             """,
-            genticspace_id,
+            tracent_id,
         )
     if not req:
-        raise HTTPException(404, f"No pending verification request for {genticspace_id}")
+        raise HTTPException(404, f"No pending verification request for {tracent_id}")
 
     try:
         await run_verification_review(req["id"], body.action, body.reviewer_note or "")
@@ -268,7 +268,7 @@ async def admin_list_reviews():
             """
             SELECT vr.*, a.name AS agent_name
             FROM verification_requests vr
-            JOIN agents a ON a.genticspace_id = vr.genticspace_id
+            JOIN agents a ON a.tracent_id = vr.tracent_id
             WHERE vr.status = 'pending'
             ORDER BY vr.submitted_at ASC
             """
@@ -282,7 +282,7 @@ async def admin_list_reviews():
 # review pattern above: admin_list_submissions mirrors admin_list_reviews,
 # admin_review_submission mirrors admin_verify. Does NOT touch or gate the
 # existing authenticated Contribute flow (POST /public/agents,
-# source='genticspace'), which stays instant-live as before.
+# source='tracent'), which stays instant-live as before.
 # ---------------------------------------------------------------------------
 
 @router.get("/admin/submissions", tags=["admin"])
@@ -290,7 +290,7 @@ async def admin_list_submissions():
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT genticspace_id, name, description, web_endpoint, submitter_email,
+            SELECT tracent_id, name, description, web_endpoint, submitter_email,
                    moderation_status, first_seen
             FROM agents
             WHERE source = 'self-submitted' AND moderation_status = 'pending'
@@ -305,21 +305,21 @@ class SubmissionReviewBody(BaseModel):
     note: Optional[str] = None
 
 
-@router.post("/admin/submissions/{genticspace_id}/review", tags=["admin"])
-async def admin_review_submission(genticspace_id: str, body: SubmissionReviewBody):
+@router.post("/admin/submissions/{tracent_id}/review", tags=["admin"])
+async def admin_review_submission(tracent_id: str, body: SubmissionReviewBody):
     async with get_conn() as conn:
         agent = await conn.fetchrow(
             """
-            SELECT genticspace_id, moderation_status FROM agents
-            WHERE genticspace_id = $1 AND source = 'self-submitted'
+            SELECT tracent_id, moderation_status FROM agents
+            WHERE tracent_id = $1 AND source = 'self-submitted'
             """,
-            genticspace_id,
+            tracent_id,
         )
         if not agent:
-            raise HTTPException(404, f"Self-submitted agent {genticspace_id} not found")
+            raise HTTPException(404, f"Self-submitted agent {tracent_id} not found")
         if agent["moderation_status"] != "pending":
             raise HTTPException(
-                400, f"Submission {genticspace_id} has already been {agent['moderation_status']}"
+                400, f"Submission {tracent_id} has already been {agent['moderation_status']}"
             )
 
         new_status = "approved" if body.action == "approve" else "rejected"
@@ -327,13 +327,13 @@ async def admin_review_submission(genticspace_id: str, body: SubmissionReviewBod
             """
             UPDATE agents
             SET moderation_status = $1, moderation_note = $2, moderated_at = NOW()
-            WHERE genticspace_id = $3
+            WHERE tracent_id = $3
             """,
-            new_status, body.note, genticspace_id,
+            new_status, body.note, tracent_id,
         )
 
-    logger.info("Submission %s %s by admin", genticspace_id, new_status)
-    return {"genticspace_id": genticspace_id, "action": body.action, "moderation_status": new_status}
+    logger.info("Submission %s %s by admin", tracent_id, new_status)
+    return {"tracent_id": tracent_id, "action": body.action, "moderation_status": new_status}
 
 
 # ---------------------------------------------------------------------------
@@ -377,7 +377,7 @@ async def admin_create_api_key(body: ApiKeyCreateBody):
 # ---------------------------------------------------------------------------
 
 class VerifyRequestBody(BaseModel):
-    genticspace_id: str
+    tracent_id: str
     requester_email: str
 
 
@@ -385,44 +385,44 @@ class VerifyRequestBody(BaseModel):
 async def submit_verification_request(body: VerifyRequestBody):
     async with get_conn() as conn:
         agent = await conn.fetchrow(
-            "SELECT genticspace_id FROM agents WHERE genticspace_id = $1", body.genticspace_id
+            "SELECT tracent_id FROM agents WHERE tracent_id = $1", body.tracent_id
         )
         if not agent:
-            raise HTTPException(404, f"Agent {body.genticspace_id} not found")
+            raise HTTPException(404, f"Agent {body.tracent_id} not found")
 
         row = await conn.fetchrow(
             """
-            INSERT INTO verification_requests (genticspace_id, requester_email)
+            INSERT INTO verification_requests (tracent_id, requester_email)
             VALUES ($1, $2)
             RETURNING id, status
             """,
-            body.genticspace_id, body.requester_email,
+            body.tracent_id, body.requester_email,
         )
     return {"request_id": row["id"], "status": row["status"]}
 
 
-@router.get("/verify/status/{genticspace_id}", tags=["verification"])
-async def verification_status(genticspace_id: str):
+@router.get("/verify/status/{tracent_id}", tags=["verification"])
+async def verification_status(tracent_id: str):
     async with get_conn() as conn:
         agent = await conn.fetchrow(
-            "SELECT verified, trust_tier, verified_at FROM agents WHERE genticspace_id = $1",
-            genticspace_id,
+            "SELECT verified, trust_tier, verified_at FROM agents WHERE tracent_id = $1",
+            tracent_id,
         )
         if not agent:
-            raise HTTPException(404, f"Agent {genticspace_id} not found")
+            raise HTTPException(404, f"Agent {tracent_id} not found")
 
         latest_request = await conn.fetchrow(
             """
             SELECT id, status, submitted_at, reviewed_at, reviewer_note
             FROM verification_requests
-            WHERE genticspace_id = $1
+            WHERE tracent_id = $1
             ORDER BY submitted_at DESC LIMIT 1
             """,
-            genticspace_id,
+            tracent_id,
         )
 
     result = {
-        "genticspace_id": genticspace_id,
+        "tracent_id": tracent_id,
         "verified": agent["verified"],
         "trust_tier": agent["trust_tier"],
         "verified_at": agent["verified_at"],

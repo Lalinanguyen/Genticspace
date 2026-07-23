@@ -38,7 +38,7 @@ _A2A_MARKERS = {"a2a", "agent2agent", "agent-protocol"}
 _X402_MARKERS = {"x402"}
 
 
-def _npm_genticspace_id() -> str:
+def _npm_tracent_id() -> str:
     return "npm_" + secrets.token_urlsafe(8)
 
 
@@ -101,15 +101,15 @@ async def _upsert_package(pkg: dict) -> str:
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT genticspace_id FROM agents WHERE source = 'npm' AND source_id = $1",
+            "SELECT tracent_id FROM agents WHERE source = 'npm' AND source_id = $1",
             source_id,
         )
-        genticspace_id = existing["genticspace_id"] if existing else _npm_genticspace_id()
+        tracent_id = existing["tracent_id"] if existing else _npm_tracent_id()
 
         await conn.execute(
             """
             INSERT INTO agents (
-                genticspace_id, source, source_id,
+                tracent_id, source, source_id,
                 name, description, web_endpoint, github_url,
                 a2a_endpoint, mcp_endpoint, x402_support,
                 provider_org, provider_url,
@@ -137,7 +137,7 @@ async def _upsert_package(pkg: dict) -> str:
                 industry_tags = CASE WHEN agents.industry_tags IS NULL THEN EXCLUDED.industry_tags ELSE agents.industry_tags END,
                 last_indexed  = NOW()
             """,
-            genticspace_id, source_id,
+            tracent_id, source_id,
             name, description, web_endpoint, github_url,
             web_endpoint if is_a2a else None,
             web_endpoint if is_mcp else None,
@@ -146,22 +146,22 @@ async def _upsert_package(pkg: dict) -> str:
             license_name, industry_tags,
         )
 
-    return genticspace_id
+    return tracent_id
 
 
 async def _process_candidate(client: httpx.AsyncClient, sem: asyncio.Semaphore, pkg: dict) -> bool:
     async with sem:
         try:
-            genticspace_id = await _upsert_package(pkg)
+            tracent_id = await _upsert_package(pkg)
         except Exception as exc:
             logger.warning("Failed to upsert npm package %s: %s", pkg.get("package", {}).get("name"), exc)
             return False
 
     from app.services.verifier import run_auto_verification
     try:
-        await run_auto_verification(genticspace_id)
+        await run_auto_verification(tracent_id)
     except Exception as exc:
-        logger.debug("Verification failed for %s: %s", genticspace_id, exc)
+        logger.debug("Verification failed for %s: %s", tracent_id, exc)
     return True
 
 
@@ -221,7 +221,7 @@ async def _get_npm_backfill_batch(batch_size: int) -> list[dict]:
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT genticspace_id, source_id, name, description FROM agents
+            SELECT tracent_id, source_id, name, description FROM agents
             WHERE source = 'npm' AND npm_enriched_at IS NULL
             ORDER BY last_indexed ASC
             LIMIT $1
@@ -249,8 +249,8 @@ async def backfill_npm(batch_size: int | None = None) -> None:
                 # unpublished/gone — nothing more to learn, stop retrying it
                 async with get_conn() as conn:
                     await conn.execute(
-                        "UPDATE agents SET npm_enriched_at = NOW() WHERE genticspace_id = $1",
-                        agent["genticspace_id"],
+                        "UPDATE agents SET npm_enriched_at = NOW() WHERE tracent_id = $1",
+                        agent["tracent_id"],
                     )
                 continue
 
@@ -283,9 +283,9 @@ async def backfill_npm(batch_size: int | None = None) -> None:
                         industry_tags = CASE WHEN industry_tags IS NULL OR array_length(industry_tags, 1) IS NULL
                                              THEN $4 ELSE industry_tags END,
                         npm_enriched_at = NOW()
-                    WHERE genticspace_id = $1
+                    WHERE tracent_id = $1
                     """,
-                    agent["genticspace_id"], description, license_name, industry_tags or None,
+                    agent["tracent_id"], description, license_name, industry_tags or None,
                 )
             updated += 1
 

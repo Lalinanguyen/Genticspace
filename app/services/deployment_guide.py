@@ -67,40 +67,40 @@ async def _fetch_website_text(url: str | None) -> str | None:
         return None
 
 
-async def _get_agent(genticspace_id: str) -> dict | None:
+async def _get_agent(tracent_id: str) -> dict | None:
     async with get_conn() as conn:
         row = await conn.fetchrow(
             """
-            SELECT genticspace_id, name, web_endpoint, github_url, huggingface_url,
+            SELECT tracent_id, name, web_endpoint, github_url, huggingface_url,
                    readme_text, readme_fetched_at
-            FROM agents WHERE genticspace_id = $1
+            FROM agents WHERE tracent_id = $1
             """,
-            genticspace_id,
+            tracent_id,
         )
     return dict(row) if row else None
 
 
-async def _get_cached_guide(genticspace_id: str, experience_level: str) -> dict | None:
+async def _get_cached_guide(tracent_id: str, experience_level: str) -> dict | None:
     async with get_conn() as conn:
         row = await conn.fetchrow(
-            "SELECT * FROM agent_deployment_guides WHERE genticspace_id = $1 AND experience_level = $2",
-            genticspace_id, experience_level,
+            "SELECT * FROM agent_deployment_guides WHERE tracent_id = $1 AND experience_level = $2",
+            tracent_id, experience_level,
         )
     return dict(row) if row else None
 
 
-async def _save_guide(genticspace_id: str, experience_level: str, instructions: str, readme_fetched_at) -> None:
+async def _save_guide(tracent_id: str, experience_level: str, instructions: str, readme_fetched_at) -> None:
     async with get_conn() as conn:
         await conn.execute(
             """
-            INSERT INTO agent_deployment_guides (genticspace_id, experience_level, instructions, readme_fetched_at, generated_at)
+            INSERT INTO agent_deployment_guides (tracent_id, experience_level, instructions, readme_fetched_at, generated_at)
             VALUES ($1, $2, $3, $4, NOW())
-            ON CONFLICT (genticspace_id, experience_level) DO UPDATE SET
+            ON CONFLICT (tracent_id, experience_level) DO UPDATE SET
                 instructions      = EXCLUDED.instructions,
                 readme_fetched_at = EXCLUDED.readme_fetched_at,
                 generated_at      = NOW()
             """,
-            genticspace_id, experience_level, instructions, readme_fetched_at,
+            tracent_id, experience_level, instructions, readme_fetched_at,
         )
 
 
@@ -111,7 +111,7 @@ async def _generate(agent: dict, experience_level: str, website_text: str | None
     client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     sources = [
-        f"Agent name: {agent.get('name') or agent['genticspace_id']}\n"
+        f"Agent name: {agent.get('name') or agent['tracent_id']}\n"
         f"Website: {agent.get('web_endpoint') or 'unknown'}\n"
         f"User experience level: {experience_level}"
     ]
@@ -133,7 +133,7 @@ async def _generate(agent: dict, experience_level: str, website_text: str | None
     )
 
     if response.stop_reason == "refusal":
-        logger.warning("Deployment guide generation refused for %s", agent["genticspace_id"])
+        logger.warning("Deployment guide generation refused for %s", agent["tracent_id"])
         return "We couldn't generate deployment instructions for this agent right now. Check the agent's website or repository directly."
 
     text = next((b.text for b in response.content if b.type == "text"), "")
@@ -142,16 +142,16 @@ async def _generate(agent: dict, experience_level: str, website_text: str | None
 
 
 async def get_or_generate_deployment_guide(
-    genticspace_id: str, experience_level: str | None, force: bool = False
+    tracent_id: str, experience_level: str | None, force: bool = False
 ) -> dict:
     level = _normalize_level(experience_level)
 
-    agent = await _get_agent(genticspace_id)
+    agent = await _get_agent(tracent_id)
     if agent is None:
-        raise LookupError(f"Agent {genticspace_id} not found")
+        raise LookupError(f"Agent {tracent_id} not found")
 
     if not force:
-        cached = await _get_cached_guide(genticspace_id, level)
+        cached = await _get_cached_guide(tracent_id, level)
         if cached and cached["readme_fetched_at"] == agent["readme_fetched_at"]:
             return {
                 "instructions": cached["instructions"],
@@ -179,7 +179,7 @@ async def get_or_generate_deployment_guide(
         }
 
     instructions = await _generate(agent, level, website_text)
-    await _save_guide(genticspace_id, level, instructions, agent["readme_fetched_at"])
+    await _save_guide(tracent_id, level, instructions, agent["readme_fetched_at"])
 
     return {
         "instructions": instructions,
@@ -197,7 +197,7 @@ _MAX_CHAT_HISTORY_TURNS = 6
 
 
 async def answer_deployment_question(
-    genticspace_id: str,
+    tracent_id: str,
     question: str,
     experience_level: str | None,
     history: list[dict] | None = None,
@@ -205,16 +205,16 @@ async def answer_deployment_question(
     if not settings.ANTHROPIC_API_KEY:
         raise RuntimeError("ANTHROPIC_API_KEY is not configured")
 
-    agent = await _get_agent(genticspace_id)
+    agent = await _get_agent(tracent_id)
     if agent is None:
-        raise LookupError(f"Agent {genticspace_id} not found")
+        raise LookupError(f"Agent {tracent_id} not found")
 
     level = _normalize_level(experience_level)
     website_text = await _fetch_website_text(agent.get("web_endpoint"))
-    cached_guide = await _get_cached_guide(genticspace_id, level)
+    cached_guide = await _get_cached_guide(tracent_id, level)
 
     context_parts = [
-        f"Agent name: {agent.get('name') or agent['genticspace_id']}",
+        f"Agent name: {agent.get('name') or agent['tracent_id']}",
         f"Website: {agent.get('web_endpoint') or 'unknown'}",
     ]
     readme_text = agent.get("readme_text")

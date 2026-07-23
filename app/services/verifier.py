@@ -7,24 +7,24 @@ from app.services.endpoint_checker import check_endpoints
 logger = logging.getLogger(__name__)
 
 
-async def run_auto_verification(genticspace_id: str) -> None:
-    endpoints_live = await check_endpoints(genticspace_id)
+async def run_auto_verification(tracent_id: str) -> None:
+    endpoints_live = await check_endpoints(tracent_id)
 
     async with get_conn() as conn:
         agent = await conn.fetchrow(
-            "SELECT name, description FROM agents WHERE genticspace_id = $1",
-            genticspace_id,
+            "SELECT name, description FROM agents WHERE tracent_id = $1",
+            tracent_id,
         )
         if not agent:
-            logger.warning("run_auto_verification: agent %s not found", genticspace_id)
+            logger.warning("run_auto_verification: agent %s not found", tracent_id)
             return
 
         transfer_count = await conn.fetchval(
             """
             SELECT COUNT(*) FROM transfer_events
-            WHERE genticspace_id = $1 AND is_mint = FALSE
+            WHERE tracent_id = $1 AND is_mint = FALSE
             """,
-            genticspace_id,
+            tracent_id,
         )
 
         has_name = bool(agent["name"])
@@ -59,46 +59,46 @@ async def run_auto_verification(genticspace_id: str) -> None:
                 verified_at      = $3,
                 risk_score       = $4,
                 safe_to_transact = $5
-            WHERE genticspace_id = $6
+            WHERE tracent_id = $6
             """,
-            auto_verified, trust_tier, verified_at, risk_score, safe_to_transact, genticspace_id,
+            auto_verified, trust_tier, verified_at, risk_score, safe_to_transact, tracent_id,
         )
 
-        await _upsert_flag(conn, genticspace_id, transfer_count >= 1, "ownership_transfer", "high",
+        await _upsert_flag(conn, tracent_id, transfer_count >= 1, "ownership_transfer", "high",
                            f"Agent has {transfer_count} ownership transfer(s)")
-        await _upsert_flag(conn, genticspace_id, transfer_count >= 2, "rapid_resale", "high",
+        await _upsert_flag(conn, tracent_id, transfer_count >= 2, "rapid_resale", "high",
                            f"Agent has {transfer_count} transfers, possible rapid resale")
-        await _upsert_flag(conn, genticspace_id, not endpoints_live, "endpoint_dead", "medium",
+        await _upsert_flag(conn, tracent_id, not endpoints_live, "endpoint_dead", "medium",
                            "No agent endpoints returned HTTP 200")
-        await _upsert_flag(conn, genticspace_id, not has_name or not has_description,
+        await _upsert_flag(conn, tracent_id, not has_name or not has_description,
                            "schema_invalid", "low",
                            "Agent card missing required fields (name or description)")
 
     logger.info(
         "Verified %s: risk=%.2f trust_tier=%s safe=%s",
-        genticspace_id, risk_score, trust_tier, safe_to_transact,
+        tracent_id, risk_score, trust_tier, safe_to_transact,
     )
 
 
-async def _upsert_flag(conn, genticspace_id: str, condition: bool, flag_type: str,
+async def _upsert_flag(conn, tracent_id: str, condition: bool, flag_type: str,
                        severity: str, detail: str) -> None:
     if condition:
         existing = await conn.fetchrow(
-            "SELECT id FROM reputation_flags WHERE genticspace_id = $1 AND flag_type = $2",
-            genticspace_id, flag_type,
+            "SELECT id FROM reputation_flags WHERE tracent_id = $1 AND flag_type = $2",
+            tracent_id, flag_type,
         )
         if not existing:
             await conn.execute(
                 """
-                INSERT INTO reputation_flags (genticspace_id, flag_type, severity, detail)
+                INSERT INTO reputation_flags (tracent_id, flag_type, severity, detail)
                 VALUES ($1, $2, $3, $4)
                 """,
-                genticspace_id, flag_type, severity, detail,
+                tracent_id, flag_type, severity, detail,
             )
     else:
         await conn.execute(
-            "DELETE FROM reputation_flags WHERE genticspace_id = $1 AND flag_type = $2",
-            genticspace_id, flag_type,
+            "DELETE FROM reputation_flags WHERE tracent_id = $1 AND flag_type = $2",
+            tracent_id, flag_type,
         )
 
 
@@ -108,7 +108,7 @@ async def run_verification_review(request_id: int, action: str, note: str) -> No
 
     async with get_conn() as conn:
         req = await conn.fetchrow(
-            "SELECT genticspace_id, status FROM verification_requests WHERE id = $1",
+            "SELECT tracent_id, status FROM verification_requests WHERE id = $1",
             request_id,
         )
         if not req:
@@ -131,13 +131,13 @@ async def run_verification_review(request_id: int, action: str, note: str) -> No
             await conn.execute(
                 """
                 UPDATE agents SET
-                    trust_tier  = 'genticspace',
+                    trust_tier  = 'tracent',
                     verified    = TRUE,
                     verified_at = $1
-                WHERE genticspace_id = $2
+                WHERE tracent_id = $2
                 """,
-                now, req["genticspace_id"],
+                now, req["tracent_id"],
             )
-            logger.info("Genticspace-verified agent %s (request %d)", req["genticspace_id"], request_id)
+            logger.info("Genticspace-verified agent %s (request %d)", req["tracent_id"], request_id)
         else:
-            logger.info("Rejected verification request %d for %s", request_id, req["genticspace_id"])
+            logger.info("Rejected verification request %d for %s", request_id, req["tracent_id"])

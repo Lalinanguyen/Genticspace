@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from app.services.agent_queries import query_agents
+from app.services.agent_queries import compute_sandbox_fields, query_agents
 
 _STOPWORDS = {
     "the", "and", "for", "with", "that", "this", "from", "into", "your",
@@ -215,13 +215,13 @@ async def get_recommendations(
     if not agents:
         return []
 
-    genticspace_ids = [a["genticspace_id"] for a in agents]
+    tracent_ids = [a["tracent_id"] for a in agents]
     skill_rows = await conn.fetch(
-        "SELECT * FROM agent_skills WHERE genticspace_id = ANY($1::text[])", genticspace_ids
+        "SELECT * FROM agent_skills WHERE tracent_id = ANY($1::text[])", tracent_ids
     )
-    skills_by_genticspace: dict[str, list[dict]] = {}
+    skills_by_tracent: dict[str, list[dict]] = {}
     for row in skill_rows:
-        skills_by_genticspace.setdefault(row["genticspace_id"], []).append(dict(row))
+        skills_by_tracent.setdefault(row["tracent_id"], []).append(dict(row))
 
     github_cache = await conn.fetchrow(
         "SELECT * FROM github_repo_cache WHERE user_id = $1", user["id"]
@@ -234,9 +234,17 @@ async def get_recommendations(
     for agent in agents:
         profile = provider_profiles.get((agent.get("source"), agent.get("provider_org")))
         score, reasons = score_agent(
-            agent, skills_by_genticspace.get(agent["genticspace_id"], []), user, github_cache, task_tokens, profile
+            agent, skills_by_tracent.get(agent["tracent_id"], []), user, github_cache, task_tokens, profile
         )
         scored.append({**agent, "score": score, "reasons": reasons})
+
+    # Recommendations bypass agent_queries.py's _row_to_dict (this module
+    # builds its own candidate rows via _fetch_task_candidates/query_agents),
+    # so sandboxable/sandbox_url never got computed here — added so Sandbox
+    # Mode's badge shows up on task-based recommendation results too, not
+    # just plain marketplace browsing.
+    for agent in scored:
+        compute_sandbox_fields(agent)
 
     scored.sort(key=lambda a: a["score"], reverse=True)
     return scored[:limit]

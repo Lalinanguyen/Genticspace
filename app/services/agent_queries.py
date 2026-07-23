@@ -8,9 +8,39 @@ from app.services.trust_summary import compute_trust_summary
 _HIGH_FLAG_EXISTS = """(
         EXISTS (
             SELECT 1 FROM reputation_flags hf
-            WHERE hf.genticspace_id = a.genticspace_id AND hf.severity = 'high'
+            WHERE hf.tracent_id = a.tracent_id AND hf.severity = 'high'
         )
     ) AS has_high_flag"""
+
+
+def _hf_space_url(source_id: str) -> str | None:
+    # source_id is "spaces:{owner}/{space}" for HF Spaces (huggingface_scraper.py).
+    # Links to the canonical HF page (always valid, always resolves) rather than
+    # guessing the "{owner}-{space}.hf.space" embed-subdomain form, which needs
+    # HF's own name-normalization rules to get exactly right — the frontend
+    # tries an iframe of this URL and always shows a working "open in new tab"
+    # link alongside it, so correctness never depends on iframe support.
+    repo_id = source_id.split(":", 1)[1] if ":" in source_id else None
+    return f"https://huggingface.co/spaces/{repo_id}" if repo_id else None
+
+
+def compute_sandbox_fields(d: dict) -> None:
+    """
+    Sandboxable today means "has something live and callable we can embed
+    without running any code ourselves" — which, per investigation, is only
+    ever true for open-source HuggingFace Spaces (source_id prefixed
+    'spaces:'). GitHub repos and plain HF models/datasets have no live
+    endpoint (their web_endpoint is just the repo/model's own webpage), so
+    they're never sandboxable until real third-party code execution exists
+    (see docs/sandbox-execution-architecture.md) — deliberately not
+    conflated with this flag.
+    """
+    source = d.get("source")
+    source_id = d.get("source_id") or ""
+    is_space = source == "huggingface" and source_id.startswith("spaces:")
+    sandboxable = is_space and d.get("license") == "Open Source"
+    d["sandboxable"] = sandboxable
+    d["sandbox_url"] = _hf_space_url(source_id) if sandboxable else None
 
 
 def _row_to_dict(row) -> dict:
@@ -26,6 +56,7 @@ def _row_to_dict(row) -> dict:
         verified=bool(d.get("verified", False)),
         has_high_severity_flag=bool(has_high_flag),
     )
+    compute_sandbox_fields(d)
     return d
 
 
@@ -41,6 +72,7 @@ async def query_agents(
     x402_only: bool = False,
     flagged_only: bool = False,
     safe_only: bool = False,
+    sandboxable_only: bool = False,
     industry: Optional[str] = None,
     license: Optional[str] = None,
     deployment: Optional[str] = None,
@@ -77,6 +109,12 @@ async def query_agents(
         conditions.append("a.x402_support = TRUE")
     if safe_only:
         conditions.append("a.safe_to_transact = TRUE")
+    if sandboxable_only:
+        # Mirrors compute_sandbox_fields' definition of sandboxable exactly —
+        # keep these two in sync if that definition ever changes.
+        conditions.append(
+            "a.source = 'huggingface' AND a.source_id LIKE 'spaces:%' AND a.license = 'Open Source'"
+        )
     if industry:
         parts = [p.strip() for p in industry.split(",") if p.strip()]
         if parts:
@@ -103,7 +141,7 @@ async def query_agents(
     conditions.append("a.moderation_status = 'approved'")
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    skills_join = "LEFT JOIN agent_skills s ON s.genticspace_id = a.genticspace_id" if needs_skills_join else ""
+    skills_join = "LEFT JOIN agent_skills s ON s.tracent_id = a.tracent_id" if needs_skills_join else ""
 
     # Named so it can appear in the ORDER BY below: Postgres requires
     # SELECT DISTINCT's ORDER BY expressions to appear literally in the
@@ -120,7 +158,7 @@ async def query_agents(
         base = f"""
             SELECT DISTINCT a.*, {_HIGH_FLAG_EXISTS}, {no_desc} FROM agents a
             {skills_join}
-            JOIN reputation_flags f ON f.genticspace_id = a.genticspace_id
+            JOIN reputation_flags f ON f.tracent_id = a.tracent_id
             {where}
         """
     elif needs_skills_join:
@@ -163,9 +201,9 @@ async def list_skill_categories(conn) -> list[dict]:
     """
     rows = await conn.fetch(
         """
-        SELECT tag AS category, COUNT(DISTINCT genticspace_id) AS agent_count
+        SELECT tag AS category, COUNT(DISTINCT tracent_id) AS agent_count
         FROM (
-            SELECT s.genticspace_id,
+            SELECT s.tracent_id,
                    jsonb_array_elements_text(
                        CASE
                            WHEN s.tags IS NOT NULL AND s.tags <> '' THEN s.tags::jsonb
@@ -173,7 +211,7 @@ async def list_skill_categories(conn) -> list[dict]:
                        END
                    ) AS tag
             FROM agent_skills s
-            JOIN agents a ON a.genticspace_id = s.genticspace_id
+            JOIN agents a ON a.tracent_id = s.tracent_id
             WHERE a.is_private IS NOT TRUE AND a.moderation_status = 'approved'
         ) expanded
         GROUP BY tag

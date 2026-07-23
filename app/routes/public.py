@@ -7,10 +7,11 @@ from pydantic import BaseModel
 
 from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
-from app.services.agent_queries import list_skill_categories, query_agents
+from app.services.agent_queries import compute_sandbox_fields, list_skill_categories, query_agents
 from app.services.deployment_guide import answer_deployment_question, get_or_generate_deployment_guide
 from app.services.github_signals import get_github_signals_nonblocking
 from app.services.recommender import get_recommendations
+from app.services.sandbox_guide import get_sandbox_task_guidance
 from app.services.trust_summary import compute_trust_summary
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ async def list_public_agents(
     x402_only: bool = False,
     flagged_only: bool = False,
     safe_only: bool = False,
+    sandboxable_only: bool = False,
     industry: Optional[str] = None,
     license: Optional[str] = None,
     deployment: Optional[str] = None,
@@ -75,6 +77,7 @@ async def list_public_agents(
             x402_only=x402_only,
             flagged_only=flagged_only,
             safe_only=safe_only,
+            sandboxable_only=sandboxable_only,
             industry=industry,
             license=license,
             deployment=deployment,
@@ -85,34 +88,34 @@ async def list_public_agents(
 
 @router.get("/agents/categories")
 async def public_list_categories():
-    # Must stay declared before GET /agents/{genticspace_id} below — otherwise
-    # FastAPI would match "categories" against the {genticspace_id} path param.
+    # Must stay declared before GET /agents/{tracent_id} below — otherwise
+    # FastAPI would match "categories" against the {tracent_id} path param.
     async with get_conn() as conn:
         return {"categories": await list_skill_categories(conn)}
 
 
-@router.get("/agents/{genticspace_id}")
+@router.get("/agents/{tracent_id}")
 async def get_public_agent(
-    genticspace_id: str, current_user: Optional[dict] = Depends(get_current_user_optional)
+    tracent_id: str, current_user: Optional[dict] = Depends(get_current_user_optional)
 ):
     async with get_conn() as conn:
-        agent = await conn.fetchrow("SELECT * FROM agents WHERE genticspace_id = $1", genticspace_id)
+        agent = await conn.fetchrow("SELECT * FROM agents WHERE tracent_id = $1", tracent_id)
         if not agent:
-            raise HTTPException(404, f"Agent {genticspace_id} not found")
+            raise HTTPException(404, f"Agent {tracent_id} not found")
 
         skills = await conn.fetch(
-            "SELECT * FROM agent_skills WHERE genticspace_id = $1", genticspace_id
+            "SELECT * FROM agent_skills WHERE tracent_id = $1", tracent_id
         )
         flags = await conn.fetch(
-            "SELECT severity FROM reputation_flags WHERE genticspace_id = $1", genticspace_id
+            "SELECT severity FROM reputation_flags WHERE tracent_id = $1", tracent_id
         )
 
         is_favorited = False
         if current_user:
             is_favorited = bool(
                 await conn.fetchval(
-                    "SELECT 1 FROM agent_favorites WHERE user_id = $1 AND genticspace_id = $2",
-                    current_user["id"], genticspace_id,
+                    "SELECT 1 FROM agent_favorites WHERE user_id = $1 AND tracent_id = $2",
+                    current_user["id"], tracent_id,
                 )
             )
 
@@ -126,6 +129,7 @@ async def get_public_agent(
         verified=bool(result.get("verified", False)),
         has_high_severity_flag=any(f["severity"] == "high" for f in flags),
     )
+    compute_sandbox_fields(result)
     return result
 
 
@@ -146,12 +150,12 @@ async def create_agent_listing(
     if not body.name.strip() or not body.description.strip():
         raise HTTPException(400, "Name and description are required")
 
-    genticspace_id = _new_listing_id()
+    tracent_id = _new_listing_id()
     async with get_conn() as conn:
         row = await conn.fetchrow(
             """
             INSERT INTO agents (
-                genticspace_id, source, source_id, name, description, web_endpoint,
+                tracent_id, source, source_id, name, description, web_endpoint,
                 image_url, demo_url,
                 github_url, huggingface_url, ard_ref, producthunt_url, erc8004_ref,
                 contact_email, support_channel, terms_url,
@@ -159,7 +163,7 @@ async def create_agent_listing(
                 license, deployment_types, access_model, pricing_model,
                 is_private, submitted_by, is_active
             ) VALUES (
-                $1, 'genticspace', $1, $2, $3, $4,
+                $1, 'tracent', $1, $2, $3, $4,
                 $5, $6,
                 $7, $8, $9, $10, $11,
                 $12, $13, $14,
@@ -169,7 +173,7 @@ async def create_agent_listing(
             )
             RETURNING *
             """,
-            genticspace_id,
+            tracent_id,
             body.name.strip(),
             body.description.strip(),
             body.website_url,
@@ -196,9 +200,9 @@ async def create_agent_listing(
     return dict(row)
 
 
-@router.patch("/agents/{genticspace_id}")
+@router.patch("/agents/{tracent_id}")
 async def update_agent_listing(
-    genticspace_id: str,
+    tracent_id: str,
     body: AgentListingBody,
     current_user: dict = Depends(get_current_user),
 ):
@@ -207,10 +211,10 @@ async def update_agent_listing(
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT submitted_by FROM agents WHERE genticspace_id = $1", genticspace_id
+            "SELECT submitted_by FROM agents WHERE tracent_id = $1", tracent_id
         )
         if not existing:
-            raise HTTPException(404, f"Agent {genticspace_id} not found")
+            raise HTTPException(404, f"Agent {tracent_id} not found")
         if existing["submitted_by"] != current_user["id"]:
             raise HTTPException(403, "You can only edit listings you created")
 
@@ -225,10 +229,10 @@ async def update_agent_listing(
                 interaction_types = $15, sdk_compat = $16, industry_tags = $17,
                 license = $18, deployment_types = $19, access_model = $20, pricing_model = $21,
                 is_private = $22, last_indexed = NOW()
-            WHERE genticspace_id = $1
+            WHERE tracent_id = $1
             RETURNING *
             """,
-            genticspace_id,
+            tracent_id,
             body.name.strip(),
             body.description.strip(),
             body.website_url,
@@ -254,9 +258,9 @@ async def update_agent_listing(
     return dict(row)
 
 
-@router.get("/agents/{genticspace_id}/deployment-guide")
+@router.get("/agents/{tracent_id}/deployment-guide")
 async def agent_deployment_guide(
-    genticspace_id: str,
+    tracent_id: str,
     experience_level: Optional[str] = Query(
         None, description="Beginner | Intermediate | Advanced, defaults to the logged-in user's own level"
     ),
@@ -265,9 +269,36 @@ async def agent_deployment_guide(
 ):
     level = experience_level or (current_user.get("experience_level") if current_user else None)
     try:
-        return await get_or_generate_deployment_guide(genticspace_id, level, force=force)
+        return await get_or_generate_deployment_guide(tracent_id, level, force=force)
     except LookupError as exc:
         raise HTTPException(404, str(exc))
+
+
+class SandboxGuideBody(BaseModel):
+    task: str
+
+
+@router.post("/agents/{tracent_id}/sandbox/guide")
+async def agent_sandbox_guide(
+    tracent_id: str,
+    body: SandboxGuideBody,
+    current_user: Optional[dict] = Depends(get_current_user_optional),
+):
+    # current_user unused today (guidance isn't personalized by experience
+    # level) — kept for symmetry with the other agent routes and in case
+    # personalization is added later, and so this route's auth story matches
+    # the rest of Sandbox Mode (anonymous-callable, like deployment-guide/ask).
+    if not body.task.strip():
+        raise HTTPException(400, "task is required")
+    try:
+        blurb = await get_sandbox_task_guidance(tracent_id, body.task)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    return {"guidance": blurb}
 
 
 class DeploymentGuideChatTurn(BaseModel):
@@ -280,9 +311,9 @@ class DeploymentGuideChatBody(BaseModel):
     history: list[DeploymentGuideChatTurn] = []
 
 
-@router.post("/agents/{genticspace_id}/deployment-guide/ask")
+@router.post("/agents/{tracent_id}/deployment-guide/ask")
 async def agent_deployment_guide_ask(
-    genticspace_id: str,
+    tracent_id: str,
     body: DeploymentGuideChatBody,
     current_user: Optional[dict] = Depends(get_current_user_optional),
 ):
@@ -292,7 +323,7 @@ async def agent_deployment_guide_ask(
     level = current_user.get("experience_level") if current_user else None
     try:
         answer = await answer_deployment_question(
-            genticspace_id,
+            tracent_id,
             body.question.strip(),
             level,
             [t.model_dump() for t in body.history],

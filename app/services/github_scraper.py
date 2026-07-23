@@ -36,7 +36,7 @@ _A2A_MARKERS = {"a2a", "agent2agent", "agent-protocol"}
 _X402_MARKERS = {"x402"}
 
 
-def _github_genticspace_id() -> str:
+def _github_tracent_id() -> str:
     return "gh_" + secrets.token_urlsafe(8)
 
 
@@ -122,15 +122,15 @@ async def _upsert_repo(item: dict) -> str:
 
     async with get_conn() as conn:
         existing = await conn.fetchrow(
-            "SELECT genticspace_id FROM agents WHERE source = 'github' AND source_id = $1",
+            "SELECT tracent_id FROM agents WHERE source = 'github' AND source_id = $1",
             source_id,
         )
-        genticspace_id = existing["genticspace_id"] if existing else _github_genticspace_id()
+        tracent_id = existing["tracent_id"] if existing else _github_tracent_id()
 
         await conn.execute(
             """
             INSERT INTO agents (
-                genticspace_id, source, source_id,
+                tracent_id, source, source_id,
                 name, description, metadata_uri,
                 is_active, x402_support,
                 a2a_endpoint, mcp_endpoint, web_endpoint,
@@ -159,7 +159,7 @@ async def _upsert_repo(item: dict) -> str:
                 provider_url = EXCLUDED.provider_url,
                 last_indexed = NOW()
             """,
-            genticspace_id, source_id,
+            tracent_id, source_id,
             item.get("name"), description, metadata_uri,
             is_active, has_x402,
             web_endpoint if is_a2a else None,
@@ -168,16 +168,16 @@ async def _upsert_repo(item: dict) -> str:
             provider_org, provider_url,
         )
 
-    return genticspace_id
+    return tracent_id
 
 
-async def _verify_one(sem: asyncio.Semaphore, genticspace_id: str) -> None:
+async def _verify_one(sem: asyncio.Semaphore, tracent_id: str) -> None:
     from app.services.verifier import run_auto_verification
     async with sem:
         try:
-            await run_auto_verification(genticspace_id)
+            await run_auto_verification(tracent_id)
         except Exception as exc:
-            logger.debug("Verification failed for %s: %s", genticspace_id, exc)
+            logger.debug("Verification failed for %s: %s", tracent_id, exc)
 
 
 async def scrape_github() -> None:
@@ -208,18 +208,18 @@ async def scrape_github() -> None:
             len(selected), len(ranked),
         )
 
-        genticspace_ids = []
+        tracent_ids = []
         for item in selected:
             try:
-                genticspace_ids.append(await _upsert_repo(item))
+                tracent_ids.append(await _upsert_repo(item))
             except Exception as exc:
                 logger.warning("Failed to upsert GitHub repo %s: %s", item.get("full_name"), exc)
 
         sem = asyncio.Semaphore(settings.GITHUB_SCRAPE_CONCURRENCY)
-        await asyncio.gather(*(_verify_one(sem, tid) for tid in genticspace_ids))
+        await asyncio.gather(*(_verify_one(sem, tid) for tid in tracent_ids))
 
     elapsed = time.monotonic() - start
     logger.info(
         "GitHub scrape complete: %d candidates found, %d upserted, %.1fs",
-        len(ranked), len(genticspace_ids), elapsed,
+        len(ranked), len(tracent_ids), elapsed,
     )
