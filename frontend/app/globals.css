@@ -65,6 +65,16 @@ body {
   50%, 100% { opacity: 0; }
 }
 
+@keyframes v2Dot {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes v2In {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
 .glass-card {
   backdrop-filter: blur(20px) saturate(1.7);
   -webkit-backdrop-filter: blur(20px) saturate(1.7);
