@@ -7,8 +7,8 @@ Tracent is the canonical trust and verification registry for AI agents — Crunc
 ## Local Setup
 
 ```bash
-# 1. Install dependencies
-pip install -r requirements.txt
+# 1. Install dependencies (use the pinned lockfile for a reproducible install)
+pip install -r requirements-lock.txt
 
 # 2. Configure environment
 cp .env.example .env
@@ -22,6 +22,17 @@ uvicorn app.main:app --reload
 ```
 
 On startup, Tracent creates the database schema, runs an initial blockchain index, and starts the background scheduler.
+
+### Dependency pinning
+
+`requirements.txt` lists direct dependencies with minimum versions (what the code needs); `requirements-lock.txt` pins every dependency, direct and transitive, to an exact version for reproducible installs in CI and production. Regenerate it after changing `requirements.txt`:
+
+```bash
+pip install pip-tools
+pip-compile --output-file=requirements-lock.txt requirements.txt
+```
+
+`pip-compile` resolves for the platform it runs on rather than producing a universal lockfile. If you regenerate on Windows, `pywin32` (a Windows-only dependency of `web3`) comes back as an unconditional pin instead of the `; platform_system == "Windows"`-guarded one it should be, which breaks installation on Linux CI/Docker. Re-add that marker to the `pywin32` line before committing.
 
 ---
 

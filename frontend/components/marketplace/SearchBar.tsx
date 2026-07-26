@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export function SearchBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [value, setValue] = useState(searchParams.get("q") || "");
+  const q = searchParams.get("q") || "";
+  const [value, setValue] = useState(q);
+  const [syncedQ, setSyncedQ] = useState(q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  useEffect(() => {
-    setValue(searchParams.get("q") || "");
-  }, [searchParams]);
+  // Keep the input in sync when `q` changes from outside this component
+  // (e.g. browser back/forward, or another filter resetting it) without
+  // clobbering it every render, or during the local debounce window above.
+  if (q !== syncedQ) {
+    setSyncedQ(q);
+    setValue(q);
+  }
 
   function handleChange(next: string) {
     setValue(next);

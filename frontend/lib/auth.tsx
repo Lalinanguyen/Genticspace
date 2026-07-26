@@ -29,18 +29,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(TOKEN_KEY);
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
-    getMe(stored)
-      .then((u) => {
+    async function loadStoredSession() {
+      const stored = window.localStorage.getItem(TOKEN_KEY);
+      if (!stored) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const u = await getMe(stored);
         setToken(stored);
         setUser(u);
-      })
-      .catch(() => window.localStorage.removeItem(TOKEN_KEY))
-      .finally(() => setLoading(false));
+      } catch {
+        window.localStorage.removeItem(TOKEN_KEY);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStoredSession();
   }, []);
 
   const setSession = useCallback((newToken: string, newUser: User) => {
