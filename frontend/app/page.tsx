@@ -2,6 +2,7 @@ import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { SandboxFeature } from "@/components/landing/SandboxFeature";
 import { CapabilityShowcase } from "@/components/landing/CapabilityShowcase";
 import { BuilderFeature } from "@/components/landing/BuilderFeature";
 
@@ -12,6 +13,7 @@ export default function LandingPage() {
       <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background-page box-border">
         <Hero />
         <HowItWorks />
+        <SandboxFeature />
         <CapabilityShowcase />
         <BuilderFeature />
       </main>
