@@ -7,6 +7,8 @@ import type {
   OrgProfile,
   Recommendation,
   Review,
+  SandboxConfig,
+  SandboxRun,
   SignupPayload,
   TopProvider,
   UpdateProfilePayload,
@@ -275,5 +277,33 @@ export function sendContactMessage(email: string, topic: string, message: string
   return request("/public/contact", {
     method: "POST",
     body: JSON.stringify({ email, topic, message }),
+  });
+}
+
+export function getSandboxConfig(tracentId: string): Promise<SandboxConfig> {
+  return request(`/public/agents/${tracentId}/sandbox/config`);
+}
+
+export function getSandboxReadyAgents(): Promise<{ agents: Agent[] }> {
+  return request("/public/sandbox/agents");
+}
+
+export function startSandboxRun(tracentId: string, token: string): Promise<{ run_id: number; status: string }> {
+  return request(`/public/agents/${tracentId}/sandbox/runs`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function getSandboxRun(runId: number, token: string): Promise<SandboxRun> {
+  return request(`/public/sandbox/runs/${runId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function stopSandboxRun(runId: number, token: string): Promise<{ run_id: number; status: string }> {
+  return request(`/public/sandbox/runs/${runId}/stop`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
   });
 }

@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from datetime import datetime, timezone
 
 import anthropic
@@ -57,7 +58,7 @@ async def _fetch_website_text(url: str | None) -> str | None:
         return None
     try:
         async with httpx.AsyncClient(timeout=_WEBSITE_FETCH_TIMEOUT, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "TracentBot/1.0 (+https://tracent.me)"})
+            resp = await client.get(url, headers={"User-Agent": "TracentBot/1.0 (+https://genticspace.com)"})
         if resp.status_code != 200 or "text/html" not in resp.headers.get("content-type", ""):
             return None
         text = _html_to_text(resp.text)
@@ -89,18 +90,22 @@ async def _get_cached_guide(tracent_id: str, experience_level: str) -> dict | No
     return dict(row) if row else None
 
 
-async def _save_guide(tracent_id: str, experience_level: str, instructions: str, readme_fetched_at) -> None:
+async def _save_guide(
+    tracent_id: str, experience_level: str, instructions: str, readme_fetched_at, has_material: bool = True
+) -> None:
     async with get_conn() as conn:
         await conn.execute(
             """
-            INSERT INTO agent_deployment_guides (tracent_id, experience_level, instructions, readme_fetched_at, generated_at)
-            VALUES ($1, $2, $3, $4, NOW())
+            INSERT INTO agent_deployment_guides
+                (tracent_id, experience_level, instructions, readme_fetched_at, has_material, generated_at)
+            VALUES ($1, $2, $3, $4, $5, NOW())
             ON CONFLICT (tracent_id, experience_level) DO UPDATE SET
                 instructions      = EXCLUDED.instructions,
                 readme_fetched_at = EXCLUDED.readme_fetched_at,
+                has_material      = EXCLUDED.has_material,
                 generated_at      = NOW()
             """,
-            tracent_id, experience_level, instructions, readme_fetched_at,
+            tracent_id, experience_level, instructions, readme_fetched_at, has_material,
         )
 
 
@@ -157,7 +162,7 @@ async def get_or_generate_deployment_guide(
                 "instructions": cached["instructions"],
                 "generated_at": cached["generated_at"],
                 "cached": True,
-                "has_readme": True,
+                "has_readme": cached["has_material"],
             }
 
     # Github/Hugging Face README (already indexed) plus a live fetch of the
@@ -168,18 +173,23 @@ async def get_or_generate_deployment_guide(
     website_text = await _fetch_website_text(agent.get("web_endpoint"))
 
     if not agent.get("readme_text") and not website_text:
+        placeholder = (
+            "No README or website content could be found for this agent yet. Check back "
+            "after the next scrape, or visit the agent's page directly."
+        )
+        # Cached too (as has_material=False) so repeat views/backfill passes
+        # don't re-fetch the website every time; it naturally refreshes once
+        # readme_fetched_at changes (e.g. github/hf enrichment reaches it).
+        await _save_guide(tracent_id, level, placeholder, agent["readme_fetched_at"], has_material=False)
         return {
-            "instructions": (
-                "No README or website content could be found for this agent yet. Check back "
-                "after the next scrape, or visit the agent's page directly."
-            ),
-            "generated_at": None,
+            "instructions": placeholder,
+            "generated_at": datetime.now(timezone.utc),
             "cached": False,
             "has_readme": False,
         }
 
     instructions = await _generate(agent, level, website_text)
-    await _save_guide(tracent_id, level, instructions, agent["readme_fetched_at"])
+    await _save_guide(tracent_id, level, instructions, agent["readme_fetched_at"], has_material=True)
 
     return {
         "instructions": instructions,
@@ -257,3 +267,47 @@ async def answer_deployment_question(
     text = next((b.text for b in response.content if b.type == "text"), "")
     text = text.replace("—", ", ")
     return text.strip() or "I couldn't come up with an answer to that from what's indexed for this agent."
+
+
+async def _get_guide_backfill_batch(batch_size: int) -> list[str]:
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT a.tracent_id FROM agents a
+            LEFT JOIN agent_deployment_guides g
+              ON g.tracent_id = a.tracent_id AND g.experience_level = $2
+            WHERE g.tracent_id IS NULL
+            ORDER BY a.first_seen ASC
+            LIMIT $1
+            """,
+            batch_size, _DEFAULT_LEVEL,
+        )
+    return [r["tracent_id"] for r in rows]
+
+
+async def backfill_deployment_guides(batch_size: int | None = None) -> None:
+    """Proactively generate (and cache) the default-level installation guide
+    for every agent, instead of only ever generating one the first time a
+    user happens to view that specific agent's profile page -- which left
+    89% of the catalog with no instructions at all since most agents had
+    never been viewed. Runs in small batches: each guide is a real Anthropic
+    API call, so this is deliberately conservative rather than a one-shot
+    blast over the whole catalog."""
+    start = time.monotonic()
+    batch = await _get_guide_backfill_batch(batch_size or settings.DEPLOYMENT_GUIDE_BACKFILL_BATCH_SIZE)
+    if not batch:
+        logger.info("Deployment guide backfill: nothing to backfill")
+        return
+
+    processed = 0
+    for tracent_id in batch:
+        try:
+            await get_or_generate_deployment_guide(tracent_id, _DEFAULT_LEVEL)
+            processed += 1
+        except Exception as exc:
+            logger.warning("Deployment guide backfill failed for %s: %s", tracent_id, exc)
+
+    elapsed = time.monotonic() - start
+    logger.info(
+        "Deployment guide backfill complete: %d/%d processed, %.1fs", processed, len(batch), elapsed
+    )

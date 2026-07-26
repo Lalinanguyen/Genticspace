@@ -210,6 +210,29 @@ export interface SignupPayload {
   connects?: ConnectAccounts;
 }
 
+export interface SandboxConfig {
+  sandbox_enabled: boolean;
+  runtime: "python" | "node" | null;
+}
+
+export type SandboxRunStatus =
+  | "queued"
+  | "provisioning"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "timeout"
+  | "canceled";
+
+export interface SandboxRun {
+  run_id: number;
+  status: SandboxRunStatus;
+  exit_code: number | null;
+  logs: string;
+  created_at: string;
+  finished_at: string | null;
+}
+
 export interface MarketplaceFilters {
   q?: string;
   verified?: boolean;

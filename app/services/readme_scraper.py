@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 import time
@@ -13,6 +14,10 @@ logger = logging.getLogger(__name__)
 _API_BASE = "https://api.github.com"
 _TIMEOUT = 10.0
 _MAX_README_CHARS = 20000
+# See description_backfill._GITHUB_REQUEST_DELAY_SECONDS: GitHub's secondary
+# rate limiter can 403 a fast sequential burst well before the primary
+# x-ratelimit-remaining hits 0, which github_rate_limit_wait() can't detect.
+_GITHUB_REQUEST_DELAY_SECONDS = 0.3
 
 
 async def _get_stale_github_agents() -> list[dict]:
@@ -67,6 +72,7 @@ async def scrape_readmes() -> None:
 
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=github_headers(), follow_redirects=True) as client:
         for agent in agents:
+            await asyncio.sleep(_GITHUB_REQUEST_DELAY_SECONDS)
             readme, wait = await _fetch_readme(client, agent["source_id"])
             if wait is not None:
                 logger.info(

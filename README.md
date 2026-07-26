@@ -1,4 +1,4 @@
-# Tracent
+226# Tracent
 
 Tracent is the canonical trust and verification registry for AI agents — Crunchbase + Clearbit for the agent economy. Developers and autonomous AI agents query Tracent before integrating or transacting with an unknown agent. Every agent gets a universal **Tracent ID** (`trc_...`) that works across all data sources. Agents can be auto-verified on-chain or human-reviewed (Tracent-verified) for the highest trust tier.
 

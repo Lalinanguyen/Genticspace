@@ -27,8 +27,8 @@ def _send(to: str, subject: str, body: str, log_fallback: str) -> None:
 def send_otp_email(email: str, code: str) -> None:
     _send(
         email,
-        "Your Tracent verification code",
-        f"Your Tracent verification code is {code}. It expires in 10 minutes.",
+        "Your Genticspace verification code",
+        f"Your Genticspace verification code is {code}. It expires in 10 minutes.",
         f"OTP for {email} is {code}",
     )
 
@@ -36,7 +36,7 @@ def send_otp_email(email: str, code: str) -> None:
 def send_password_reset_email(email: str, reset_link: str) -> None:
     _send(
         email,
-        "Reset your Tracent password",
+        "Reset your Genticspace password",
         f"Someone requested a password reset for this account. If this was you, "
         f"reset your password here (expires in 30 minutes):\n\n{reset_link}\n\n"
         f"If you didn't request this, you can ignore this email.",
@@ -50,7 +50,7 @@ def send_contact_email(from_email: str, topic: str, message_text: str) -> None:
         return
     _send(
         settings.CONTACT_INBOX,
-        f"[Tracent contact] {topic or 'General'} — {from_email}",
+        f"[Genticspace contact] {topic or 'General'} — {from_email}",
         f"From: {from_email}\nTopic: {topic or 'General'}\n\n{message_text}",
         f"contact message from {from_email}",
     )

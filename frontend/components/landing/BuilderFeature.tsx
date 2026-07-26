@@ -70,15 +70,14 @@ export function BuilderFeature() {
             }}
           >
             <div className="flex items-center gap-3.5 mb-[18px]">
-              <div className="w-[52px] h-[52px] rounded bg-gradient-to-br from-blue to-cyan flex-none flex items-center justify-center font-display font-bold text-lg text-white">
-                T
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.svg" alt="Genticspace" className="w-[52px] h-[52px] rounded flex-none" />
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-display font-bold text-[17px] text-foreground">Tracent</span>
+                  <span className="font-display font-bold text-[17px] text-foreground">Genticspace</span>
                   <span className="text-cyan text-sm">✓</span>
                 </div>
-                <div className="font-medium text-[12.5px] font-mono text-foreground-faint">tracent</div>
+                <div className="font-medium text-[12.5px] font-mono text-foreground-faint">genticspace</div>
               </div>
               <Link href="/marketplace" className="ml-auto flex-none font-semibold text-[12.5px] text-cyan no-underline whitespace-nowrap">
                 View profile →

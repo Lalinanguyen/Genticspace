@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 dist/
 *.egg-info/
+
+# Design reference exports (large binaries, not source code)
+*.zip

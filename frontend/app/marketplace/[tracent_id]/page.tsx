@@ -4,6 +4,7 @@ import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { DeploymentGuideSection } from "@/components/agent/DeploymentGuideSection";
+import { SandboxSection } from "@/components/agent/SandboxSection";
 import { FavoriteButton } from "@/components/agent/FavoriteButton";
 import { getAgent, ApiError } from "@/lib/api";
 
@@ -143,6 +144,8 @@ export default async function AgentProfilePage({
               )}
 
               <div className="flex flex-col gap-6 min-w-0">
+                <SandboxSection tracentId={agent.tracent_id} />
+
                 <DeploymentGuideSection tracentId={agent.tracent_id} />
 
                 {agent.skills && agent.skills.length > 0 && (

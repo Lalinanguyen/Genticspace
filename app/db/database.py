@@ -202,6 +202,11 @@ CREATE TABLE IF NOT EXISTS agent_deployment_guides (
     generated_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(tracent_id, experience_level)
 );
+-- Distinguishes a real generated guide from a cached "no source material yet"
+-- placeholder, so the placeholder can itself be cached (instead of
+-- re-fetching the agent's website on every single view/backfill pass) without
+-- the API reporting has_readme=true for an agent with nothing real to show.
+ALTER TABLE agent_deployment_guides ADD COLUMN IF NOT EXISTS has_material BOOLEAN DEFAULT TRUE;
 
 -- Self-submitted listings (source = 'tracent'), created via the Contribute page.
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS submitted_by INTEGER REFERENCES users(id);
@@ -306,6 +311,54 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     message     TEXT NOT NULL,
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Durable "last successful run" record for scheduled background jobs, kept
+-- in the DB rather than APScheduler's in-memory timer: this app redeploys
+-- roughly every few hours, which reset the in-memory interval countdown on
+-- every restart and kept multi-hour-interval backfills (GitHub enrichment,
+-- README scraping, etc.) from ever reaching a first successful full pass.
+CREATE TABLE IF NOT EXISTS job_runs (
+    job_id           TEXT PRIMARY KEY,
+    last_started_at  TIMESTAMPTZ,
+    last_finished_at TIMESTAMPTZ
+);
+
+-- Sandbox mode: lets a user run an agent's actual open-source repo in an
+-- isolated Fly Machine. sandbox_enabled only ever becomes true once a valid
+-- tracent.yaml manifest (build/run commands) has been found in the agent's
+-- repo -- there is no admin allowlist, but there is also no attempt to guess
+-- build steps for repos that don't declare them.
+CREATE TABLE IF NOT EXISTS agent_sandbox_config (
+    tracent_id          TEXT PRIMARY KEY REFERENCES agents(tracent_id),
+    sandbox_enabled     BOOLEAN DEFAULT FALSE,
+    runtime             TEXT,
+    source_ref          TEXT,
+    build_command       TEXT,
+    run_command         TEXT,
+    entrypoint          TEXT,
+    default_port        INTEGER,
+    manifest_path       TEXT,
+    manifest_fetched_at TIMESTAMPTZ,
+    updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS agent_sandbox_runs (
+    id             SERIAL PRIMARY KEY,
+    tracent_id     TEXT NOT NULL REFERENCES agents(tracent_id),
+    user_id        INTEGER NOT NULL REFERENCES users(id),
+    status         TEXT NOT NULL DEFAULT 'queued',
+    fly_machine_id TEXT,
+    ingest_token   TEXT NOT NULL,
+    exit_code      INTEGER,
+    logs           TEXT DEFAULT '',
+    log_bytes      INTEGER DEFAULT 0,
+    created_at     TIMESTAMPTZ DEFAULT NOW(),
+    started_at     TIMESTAMPTZ,
+    finished_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_sandbox_runs_user   ON agent_sandbox_runs(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_sandbox_runs_active ON agent_sandbox_runs(status)
+    WHERE status IN ('queued', 'provisioning', 'running');
 """
 
 
@@ -327,7 +380,6 @@ async def init_db() -> None:
 
 
 async def close_db() -> None:
-    global pool
     if pool:
         await pool.close()
 

@@ -2,11 +2,12 @@ import logging
 from typing import Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from app.db.auth import verify_api_key
 from app.db.database import get_conn
 from app.services.ard_crawler import crawl_ard
+from app.services.deployment_guide import backfill_deployment_guides
 from app.services.description_backfill import (
     backfill_connects,
     backfill_erc8004,
@@ -42,12 +43,16 @@ async def admin_stats():
             "SELECT COUNT(DISTINCT tracent_id) FROM reputation_flags"
         )
         index_rows = await conn.fetch("SELECT source, last_indexed_block FROM index_state")
+        job_rows = await conn.fetch(
+            "SELECT job_id, last_started_at, last_finished_at FROM job_runs ORDER BY job_id"
+        )
 
     return {
         "total_agents": total_agents,
         "verified_count": verified_count,
         "flagged_count": flagged_count,
         "index_state": [dict(r) for r in index_rows],
+        "job_runs": [dict(r) for r in job_rows],
     }
 
 
@@ -150,6 +155,12 @@ async def admin_trigger_backfill_npm(background_tasks: BackgroundTasks):
 async def admin_trigger_backfill_futurepedia(background_tasks: BackgroundTasks):
     background_tasks.add_task(backfill_futurepedia)
     return {"status": "backfill started", "source": "futurepedia"}
+
+
+@router.post("/admin/backfill-deployment-guides", tags=["admin"])
+async def admin_trigger_backfill_deployment_guides(background_tasks: BackgroundTasks):
+    background_tasks.add_task(backfill_deployment_guides)
+    return {"status": "backfill started", "source": "deployment_guides"}
 
 
 @router.get("/admin/github-profiles", tags=["admin"])

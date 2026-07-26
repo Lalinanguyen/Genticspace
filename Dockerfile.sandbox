@@ -1,0 +1,31 @@
+# Dockerfile.sandbox — image for the tracent-sandbox Fly app.
+# One generic image for both Python and Node manifests in v1 (see the
+# Sandbox Mode plan) rather than per-language images; a Phase-3 optimization
+# once volume justifies the smaller/faster alternative.
+# Build/deploy separately from the main app: fly deploy -c fly.sandbox.toml
+
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        curl \
+        ca-certificates \
+        iptables \
+        python3 \
+        python3-pip \
+        python3-venv \
+        nodejs \
+        npm \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash sandbox
+
+RUN pip install --no-cache-dir --break-system-packages httpx
+
+WORKDIR /supervisor
+COPY sandbox/supervisor.py .
+
+# NET_ADMIN (for the iptables lockdown between build and run) requires root;
+# the supervisor itself drops to the unprivileged `sandbox` user for every
+# command it runs on the cloned repo's behalf (see run_step in supervisor.py).
+CMD ["python3", "/supervisor/supervisor.py"]
