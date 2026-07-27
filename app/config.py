@@ -4,8 +4,16 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     ALCHEMY_API_KEY: str
     DATABASE_URL: str
-    ADMIN_API_KEY: str
-    PARTNER_API_KEY: str
+    # ADMIN_API_KEY/PARTNER_API_KEY replace the old single API_KEY (two-tier
+    # admin/partner key scopes -- see app/db/auth.py). All three are optional
+    # here; the fallback below fills in ADMIN_API_KEY/PARTNER_API_KEY from
+    # the legacy API_KEY if either new var isn't set, so this rename doesn't
+    # require rotating secrets before it's safe to deploy. Set distinct
+    # ADMIN_API_KEY/PARTNER_API_KEY values whenever you're ready to actually
+    # separate the two scopes -- no code change needed then.
+    API_KEY: str | None = None
+    ADMIN_API_KEY: str | None = None
+    PARTNER_API_KEY: str | None = None
     CONTRACT_ADDRESS: str = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
     INDEX_INTERVAL_MINUTES: int = 10
     INITIAL_LOOKBACK_BLOCKS: int = 500
@@ -96,3 +104,12 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if not settings.ADMIN_API_KEY or not settings.PARTNER_API_KEY:
+    if not settings.API_KEY:
+        raise RuntimeError(
+            "Set ADMIN_API_KEY and PARTNER_API_KEY (or the legacy API_KEY as a "
+            "shared fallback for both) before starting the app."
+        )
+    settings.ADMIN_API_KEY = settings.ADMIN_API_KEY or settings.API_KEY
+    settings.PARTNER_API_KEY = settings.PARTNER_API_KEY or settings.API_KEY
