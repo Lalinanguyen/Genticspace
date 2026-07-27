@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { INDUSTRIES } from "./industries";
 
 const SEARCH_PHRASES = [
   "summarize customer emails",
@@ -141,31 +139,6 @@ export function Hero() {
             >
               {task}
             </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="px-[5%] pt-2 pb-16 box-border">
-        <div className="font-semibold text-xs text-foreground-faint uppercase tracking-[.6px] mb-5">
-          Browse by industry
-        </div>
-        <div className="flex gap-[26px] overflow-x-auto no-scrollbar pb-2">
-          {INDUSTRIES.map((industry) => (
-            <Link
-              key={industry.name}
-              href={`/marketplace?industry=${encodeURIComponent(industry.name)}`}
-              className="flex flex-col items-center gap-2.5 flex-none w-20 no-underline group"
-            >
-              <div
-                className="w-14 h-14 flex items-center justify-center text-foreground transition-transform duration-200 group-hover:scale-125"
-                style={{ color: industry.color }}
-              >
-                {industry.icon(32)}
-              </div>
-              <span className="text-center font-semibold text-xs leading-tight text-[rgba(28,38,33,.65)]">
-                {industry.name}
-              </span>
-            </Link>
           ))}
         </div>
       </div>
