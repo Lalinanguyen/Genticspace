@@ -393,21 +393,26 @@ async def admin_delete_listing(tracent_id: str, actor: str = Depends(verify_admi
 
 
 # ---------------------------------------------------------------------------
-# Sandbox mode admin kill switch (see sandbox_cohort in app/db/database.py).
-# This table is admission-only scaffolding — it doesn't mean anything
-# actually executes yet. `enable` exists only so the admin UI has a row to
-# toggle; `disable` is the real requirement (force sandbox off for an agent).
+# Sandbox mode admin kill switch. The real eligibility gate is
+# agent_sandbox_config.sandbox_enabled, set automatically by
+# sandbox_manifest.py's periodic tracent.yaml scan -- sandbox_cohort is an
+# admin *override* on top of that, not a competing gate: a 'disabled' row
+# here blocks app/services/sandbox_runner.py's start_run() regardless of
+# sandbox_enabled (see _admin_disabled there); no row, or any other status,
+# leaves the self-serve gate as the only check.
 # ---------------------------------------------------------------------------
 @router.get("/admin/sandbox", tags=["admin"])
 async def admin_list_sandbox_cohort():
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT sc.tracent_id, a.name AS agent_name, sc.status,
-                   sc.admitted_by, sc.admitted_at, sc.manifest_path
-            FROM sandbox_cohort sc
-            JOIN agents a ON a.tracent_id = sc.tracent_id
-            ORDER BY sc.admitted_at DESC
+            SELECT a.tracent_id, a.name AS agent_name,
+                   COALESCE(sc.status, 'enabled') AS status,
+                   sc.admitted_by, sc.admitted_at, c.manifest_path
+            FROM agents a
+            JOIN agent_sandbox_config c ON c.tracent_id = a.tracent_id AND c.sandbox_enabled = TRUE
+            LEFT JOIN sandbox_cohort sc ON sc.tracent_id = a.tracent_id
+            ORDER BY COALESCE(sc.admitted_at, a.first_seen) DESC
             """
         )
     return {"sandbox_cohort": [dict(r) for r in rows]}
@@ -415,6 +420,9 @@ async def admin_list_sandbox_cohort():
 
 @router.post("/admin/sandbox/{tracent_id}/enable", tags=["admin"])
 async def admin_enable_sandbox(tracent_id: str, actor: str = Depends(verify_admin_key)):
+    """Clears a previous disable. Agents don't need this to become
+    sandbox-ready in the first place -- that's automatic -- only to lift an
+    admin override back off."""
     async with get_conn() as conn:
         agent = await conn.fetchval("SELECT 1 FROM agents WHERE tracent_id = $1", tracent_id)
         if not agent:
@@ -434,12 +442,17 @@ async def admin_enable_sandbox(tracent_id: str, actor: str = Depends(verify_admi
 @router.post("/admin/sandbox/{tracent_id}/disable", tags=["admin"])
 async def admin_disable_sandbox(tracent_id: str, actor: str = Depends(verify_admin_key)):
     async with get_conn() as conn:
-        updated = await conn.fetchval(
-            "UPDATE sandbox_cohort SET status = 'disabled' WHERE tracent_id = $1 RETURNING tracent_id",
-            tracent_id,
+        agent = await conn.fetchval("SELECT 1 FROM agents WHERE tracent_id = $1", tracent_id)
+        if not agent:
+            raise HTTPException(404, f"Agent {tracent_id} not found")
+        await conn.execute(
+            """
+            INSERT INTO sandbox_cohort (tracent_id, admitted_by, status)
+            VALUES ($1, $2, 'disabled')
+            ON CONFLICT (tracent_id) DO UPDATE SET status = 'disabled'
+            """,
+            tracent_id, actor,
         )
-        if not updated:
-            raise HTTPException(404, f"No sandbox cohort entry for {tracent_id}")
         await log_admin_action(conn, actor, "sandbox_disable", tracent_id)
     return {"tracent_id": tracent_id, "status": "disabled"}
 

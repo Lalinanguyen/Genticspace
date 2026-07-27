@@ -30,7 +30,7 @@ export default function AdminSandboxPage() {
 
   if (error) return <p className="text-error text-[12.5px] font-semibold">{error}</p>;
   if (!entries) return null;
-  if (entries.length === 0) return <p className="text-foreground-muted text-sm">No agents in the sandbox cohort yet.</p>;
+  if (entries.length === 0) return <p className="text-foreground-muted text-sm">No sandbox-ready agents yet.</p>;
 
   return (
     <div className="rounded bg-surface-2 border border-border divide-y divide-border">
@@ -39,11 +39,14 @@ export default function AdminSandboxPage() {
           <div className="min-w-0">
             <div className="font-semibold text-[13.5px] text-foreground mb-1">{e.agent_name || e.tracent_id}</div>
             <div className="text-[12px] text-foreground-faint mb-1">
-              status: {e.status} · admitted by {e.admitted_by}
+              status: {e.status}
+              {e.admitted_by ? ` · admin action by ${e.admitted_by}` : " · sandbox-ready via its own manifest"}
             </div>
-            <div className="text-[11px] text-foreground-faint">
-              {new Date(e.admitted_at).toLocaleDateString()}
-            </div>
+            {e.admitted_at && (
+              <div className="text-[11px] text-foreground-faint">
+                {new Date(e.admitted_at).toLocaleDateString()}
+              </div>
+            )}
           </div>
           <div className="flex-none">
             {e.status !== "disabled" ? (

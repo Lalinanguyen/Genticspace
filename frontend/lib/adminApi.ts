@@ -145,8 +145,8 @@ export interface SandboxCohortEntry {
   tracent_id: string;
   agent_name: string | null;
   status: string;
-  admitted_by: string;
-  admitted_at: string;
+  admitted_by: string | null;
+  admitted_at: string | null;
   manifest_path: string | null;
 }
 

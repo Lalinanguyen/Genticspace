@@ -82,12 +82,27 @@ def _repo_url(agent: dict) -> str:
     return agent.get("github_url") or f"https://github.com/{agent['source_id']}"
 
 
+async def _admin_disabled(tracent_id: str) -> bool:
+    """The real kill switch behind /admin/sandbox/{tracent_id}/disable
+    (app/routes/admin.py). sandbox_cohort is otherwise just an admin-facing
+    view over the same sandbox_enabled agents -- this is the one place a
+    'disabled' row there actually has to change execution behavior, not
+    just what the admin dashboard displays."""
+    async with get_conn() as conn:
+        status = await conn.fetchval(
+            "SELECT status FROM sandbox_cohort WHERE tracent_id = $1", tracent_id
+        )
+    return status == "disabled"
+
+
 async def start_run(tracent_id: str, user: dict) -> dict:
     agent, config = await _get_agent_and_config(tracent_id)
     if agent is None:
         raise SandboxError("Agent not found", 404)
     if not config or not config["sandbox_enabled"]:
         raise SandboxError("This agent hasn't been made sandbox-ready yet", 400)
+    if await _admin_disabled(tracent_id):
+        raise SandboxError("Sandbox access for this agent has been disabled by an admin", 403)
 
     user_id = user["id"]
     async with get_conn() as conn:
