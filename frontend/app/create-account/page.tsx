@@ -14,8 +14,9 @@ export default async function CreateAccountPage({
     <div className="flex flex-col min-h-screen">
       <div className="sticky top-0 z-20 w-full box-border flex flex-wrap gap-4 items-center justify-between px-[5%] py-[22px] bg-[rgba(0,23,31,.55)] backdrop-blur-[22px] border-b border-border">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-[30px] h-[30px] rounded bg-gradient-to-br from-blue to-cyan shadow-[0_0_22px_rgba(7,42,200,.55)]" />
-          <span className="font-display font-bold text-lg text-foreground tracking-tight">Tracent</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Genticspace" className="w-[30px] h-[30px] rounded" />
+          <span className="font-display font-bold text-lg text-foreground tracking-tight">Genticspace</span>
         </Link>
         <div className="flex gap-3 items-center flex-none">
           <span className="text-[13px] text-foreground-muted whitespace-nowrap">Already have an account?</span>

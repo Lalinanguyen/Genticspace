@@ -207,7 +207,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "role" && (
         <div className={cardClass}>
           <h1 className="font-display font-bold text-[28px] leading-tight text-foreground mb-2">Create your account</h1>
-          <p className="text-foreground-muted text-[14.5px] leading-relaxed mb-7">First, tell us what brings you to Tracent.</p>
+          <p className="text-foreground-muted text-[14.5px] leading-relaxed mb-7">First, tell us what brings you to Genticspace.</p>
 
           <div className="flex flex-col gap-3 mb-2">
             {(["individual", "business"] as const).map((type) => {
@@ -222,6 +222,47 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                     border: `1px solid ${active ? "rgba(34,211,238,.35)" : "rgba(244,247,243,.1)"}`,
                   }}
                 >
+                  <div
+                    className="w-9 h-[42px] flex-none flex items-center justify-center"
+                    style={{ color: active ? "#22D3EE" : "rgba(244,247,243,.55)" }}
+                  >
+                    {type === "individual" ? (
+                      <svg width="28" height="28" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                        <path
+                          d="M5.5 19.5c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg width="28" height="28" viewBox="0 0 24 24">
+                        <path
+                          d="M5 21V5.5C5 4.7 5.7 4 6.5 4h6c.8 0 1.5.7 1.5 1.5V21"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M14 11h3.5c.8 0 1.5.7 1.5 1.5V21"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M3 21h18M8 7.5h1M8 11h1M8 14.5h1"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-display font-semibold text-[15.5px] text-foreground mb-0.5">
                       {type === "individual" ? "Individual use" : "Business"}
@@ -257,7 +298,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "login" && (
         <div className={cardClass}>
           <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">Welcome back</h1>
-          <p className="text-foreground-muted text-sm leading-relaxed mb-6">Sign in to your Tracent account.</p>
+          <p className="text-foreground-muted text-sm leading-relaxed mb-6">Sign in to your Genticspace account.</p>
 
           <div className="flex flex-col gap-3.5 mb-5">
             <div>
@@ -294,7 +335,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
             {busy ? "Signing in…" : "Sign in"}
           </ContinueButton>
           <div className="mt-4 text-center text-sm text-foreground-muted">
-            New to Tracent?{" "}
+            New to Genticspace?{" "}
             <span onClick={() => { setError(null); setStep("role"); }} className="text-cyan font-semibold cursor-pointer">
               Create an account
             </span>
@@ -309,7 +350,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
             {isBusiness ? "Set up your business account" : "Create your account"}
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
-            {isBusiness ? "This becomes your public company profile on Tracent." : "Just a few details and you're in."}
+            {isBusiness ? "This becomes your public company profile on Genticspace." : "Just a few details and you're in."}
           </p>
 
           <div className="flex flex-col gap-3.5 mb-4.5">
@@ -497,7 +538,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
       {step === "purpose" && (
         <div className={cardClass}>
           <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">
-            What will you use Tracent for?
+            What will you use Genticspace for?
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-5">
             Pick the areas you care about. This shapes what we show you first. Choose as many as apply.

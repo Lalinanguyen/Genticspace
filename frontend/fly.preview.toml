@@ -1,7 +1,8 @@
-# fly.toml — Genticspace Frontend
-# Deploy: fly deploy --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.genticspace.com
+# fly.preview.toml — throwaway preview app for testing Sandbox Mode UI
+# without touching the live tracent-app deployment/design.
+# Deploy: fly deploy -c fly.preview.toml --app tracent-sandbox-preview --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.genticspace.com
 
-app = "tracent-app"
+app = "tracent-sandbox-preview"
 primary_region = "iad"
 
 [build]

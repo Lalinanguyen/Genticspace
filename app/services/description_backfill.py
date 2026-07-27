@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import time
@@ -10,6 +11,13 @@ from app.db.database import get_conn
 from app.services.github_analysis import github_headers, github_rate_limit_wait
 
 logger = logging.getLogger(__name__)
+
+# GitHub's secondary/abuse-detection limiter can 403 a burst of sequential
+# REST calls well before the primary x-ratelimit-remaining hits 0 (which is
+# the only case github_rate_limit_wait() detects) -- a small delay between
+# requests keeps this batch under that threshold instead of silently losing
+# most of a 300-agent batch to un-retried 403s every run.
+_GITHUB_REQUEST_DELAY_SECONDS = 0.3
 
 _TIMEOUT = 10.0
 _MAX_README_CHARS_FOR_PROMPT = 8000
@@ -186,6 +194,7 @@ async def backfill_github(batch_size: int | None = None) -> None:
     rate_limited = False
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=github_headers(), follow_redirects=True) as client:
         for agent in batch:
+            await asyncio.sleep(_GITHUB_REQUEST_DELAY_SECONDS)
             try:
                 resp = await client.get(f"https://api.github.com/repos/{agent['source_id']}")
             except Exception as exc:

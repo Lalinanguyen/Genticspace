@@ -121,14 +121,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
             )}
           </div>
 
-          <div className="flex-none">
+          <div className="flex-none flex items-center gap-2">
             {profile.is_owner ? (
-              <Link
-                href="/settings"
-                className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground no-underline"
-              >
-                Edit profile
-              </Link>
+              <>
+                <Link
+                  href="/sandbox"
+                  className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground no-underline"
+                >
+                  Sandbox mode
+                </Link>
+                <Link
+                  href="/settings"
+                  className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground no-underline"
+                >
+                  Edit profile
+                </Link>
+              </>
             ) : viewer ? (
               <div
                 onClick={followBusy ? undefined : toggleFollow}

@@ -68,6 +68,31 @@ class Settings(BaseSettings):
 
     YC_SCRAPE_INTERVAL_HOURS: int = 24
 
+    # Proactively backfills installation instructions for every agent instead
+    # of only generating them the first time someone views that agent's page.
+    # Batched and interval-gated like the other backfills since each guide is
+    # a real Anthropic API call.
+    DEPLOYMENT_GUIDE_BACKFILL_INTERVAL_HOURS: int = 24
+    DEPLOYMENT_GUIDE_BACKFILL_BATCH_SIZE: int = 150
+
+    # Sandbox mode: runs an agent's repo in an ephemeral Fly Machine, in a
+    # separate Fly org from tracent-registry so a sandboxed machine has no
+    # network path to production regardless of misconfiguration.
+    FLY_API_TOKEN: str | None = None
+    FLY_SANDBOX_APP: str = "tracent-sandbox"
+    SANDBOX_IMAGE: str = "registry.fly.io/tracent-sandbox:latest"
+    SANDBOX_INGEST_BASE_URL: str = "https://api.genticspace.com"
+    SANDBOX_MEMORY_MB: int = 512
+    SANDBOX_MAX_RUN_SECONDS: int = 180
+    SANDBOX_MAX_LOG_BYTES: int = 200_000
+    SANDBOX_MAX_CONCURRENT_PER_USER: int = 1
+    SANDBOX_DAILY_RUNS_PER_USER: int = 20
+    SANDBOX_GLOBAL_MAX_CONCURRENT: int = 10
+    SANDBOX_RUN_TTL_SECONDS: int = 300
+    SANDBOX_MANIFEST_SCAN_INTERVAL_HOURS: int = 12
+    SANDBOX_MANIFEST_SCAN_BATCH_SIZE: int = 200
+    SANDBOX_REAP_INTERVAL_MINUTES: int = 5
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

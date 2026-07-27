@@ -39,6 +39,9 @@ export interface Agent {
   erc8004_ref?: string | null;
   skills?: AgentSkill[];
   is_favorited?: boolean;
+  flags?: ReputationFlag[];
+  review_count?: number;
+  avg_rating?: number | null;
 }
 
 export interface AgentSkill {
@@ -46,6 +49,13 @@ export interface AgentSkill {
   skill_name: string | null;
   description: string | null;
   tags: string | null;
+}
+
+export interface ReputationFlag {
+  flag_type: string;
+  severity: "high" | "medium" | "low" | string;
+  detail: string | null;
+  flagged_at: string;
 }
 
 export interface DeploymentGuide {
@@ -208,6 +218,29 @@ export interface SignupPayload {
   purposes?: string[];
   bio?: string;
   connects?: ConnectAccounts;
+}
+
+export interface SandboxConfig {
+  sandbox_enabled: boolean;
+  runtime: "python" | "node" | null;
+}
+
+export type SandboxRunStatus =
+  | "queued"
+  | "provisioning"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "timeout"
+  | "canceled";
+
+export interface SandboxRun {
+  run_id: number;
+  status: SandboxRunStatus;
+  exit_code: number | null;
+  logs: string;
+  created_at: string;
+  finished_at: string | null;
 }
 
 export interface MarketplaceFilters {

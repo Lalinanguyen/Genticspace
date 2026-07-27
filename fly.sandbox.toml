@@ -1,0 +1,37 @@
+# fly.sandbox.toml — Tracent Sandbox
+#
+# Deliberately its own Fly app, in its own Fly org (not the org
+# tracent-registry lives in) — see the Sandbox Mode plan's isolation
+# section. This keeps sandbox machines off tracent-registry's private
+# 6PN network entirely, so there's no possible path from untrusted
+# agent code to the production DB/internal APIs regardless of
+# misconfiguration.
+#
+# This app has no standing service: it exists only so `fly deploy` can
+# build and push SANDBOX_IMAGE. Every machine is created on demand by
+# app/services/fly_machines.py (create_machine) with auto_destroy=true,
+# and torn down again either by the supervisor exiting or by the
+# reap_stale_runs backstop job — never by this file.
+#
+# One-time setup:
+#   fly apps create tracent-sandbox --org <the-separate-sandbox-org>
+#   fly secrets set --app tracent-sandbox <whatever the sandbox image itself needs, if anything>
+# Deploy (pushes the image only, starts no machines):
+#   fly deploy -c fly.sandbox.toml --app tracent-sandbox --build-only --push
+#
+# NOTE: `fly deploy` without --build-only will spin up a standing machine
+# for the default "app" process group (confirmed: --ha=false --no-public-ips
+# alone does NOT prevent this, since the [[vm]] block below still describes
+# a deployable process). That machine has no run-spec env vars and just
+# crash-loops doing nothing useful — always use --build-only --push here.
+
+app = "tracent-sandbox"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.sandbox"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

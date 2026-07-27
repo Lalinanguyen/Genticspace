@@ -1,7 +1,11 @@
+import logging
 import re
 from typing import Optional
 
 from app.services.agent_queries import query_agents
+from app.services.search_assist import resolve_ambiguous_query, semantic_rerank
+
+logger = logging.getLogger(__name__)
 
 _STOPWORDS = {
     "the", "and", "for", "with", "that", "this", "from", "into", "your",
@@ -28,6 +32,10 @@ _PROTOCOL_LIB_TO_FIELD = {
 # pool size just bounds the worst case rather than being the typical fetch.
 _CANDIDATE_POOL_SIZE_WITH_TASK = 20000
 _CANDIDATE_POOL_SIZE_NO_TASK = 200
+
+# Above this many significant tokens, a task query is specific/detailed
+# enough to warrant a semantic re-rank pass on top of keyword scoring.
+_SPECIFIC_QUERY_TOKEN_THRESHOLD = 4
 
 
 def _tokenize(text: str) -> set[str]:
@@ -197,6 +205,39 @@ async def _fetch_task_candidates(conn, task_tokens: set[str], pool_size: int) ->
     return [dict(r) for r in fallback]
 
 
+async def _score_candidates(
+    conn,
+    agents: list[dict],
+    user: dict,
+    github_cache: Optional[dict],
+    task_tokens: set[str],
+) -> list[dict]:
+    tracent_ids = [a["tracent_id"] for a in agents]
+    skill_rows = await conn.fetch(
+        "SELECT * FROM agent_skills WHERE tracent_id = ANY($1::text[])", tracent_ids
+    )
+    skills_by_tracent: dict[str, list[dict]] = {}
+    for row in skill_rows:
+        skills_by_tracent.setdefault(row["tracent_id"], []).append(dict(row))
+
+    provider_profiles = await _load_provider_profiles(conn, agents)
+
+    scored = []
+    for agent in agents:
+        profile = provider_profiles.get((agent.get("source"), agent.get("provider_org")))
+        score, reasons = score_agent(
+            agent, skills_by_tracent.get(agent["tracent_id"], []), user, github_cache, task_tokens, profile
+        )
+        scored.append({**agent, "score": score, "reasons": reasons})
+
+    scored.sort(key=lambda a: a["score"], reverse=True)
+    return scored
+
+
+def _has_task_match(scored: list[dict]) -> bool:
+    return any(any(r.startswith("Matches your task:") for r in a["reasons"]) for a in scored)
+
+
 async def get_recommendations(
     conn,
     user: dict,
@@ -215,28 +256,38 @@ async def get_recommendations(
     if not agents:
         return []
 
-    tracent_ids = [a["tracent_id"] for a in agents]
-    skill_rows = await conn.fetch(
-        "SELECT * FROM agent_skills WHERE tracent_id = ANY($1::text[])", tracent_ids
-    )
-    skills_by_tracent: dict[str, list[dict]] = {}
-    for row in skill_rows:
-        skills_by_tracent.setdefault(row["tracent_id"], []).append(dict(row))
-
     github_cache = await conn.fetchrow(
         "SELECT * FROM github_repo_cache WHERE user_id = $1", user["id"]
     )
     github_cache = dict(github_cache) if github_cache else None
 
-    provider_profiles = await _load_provider_profiles(conn, agents)
+    scored = await _score_candidates(conn, agents, user, github_cache, task_tokens)
 
-    scored = []
-    for agent in agents:
-        profile = provider_profiles.get((agent.get("source"), agent.get("provider_org")))
-        score, reasons = score_agent(
-            agent, skills_by_tracent.get(agent["tracent_id"], []), user, github_cache, task_tokens, profile
-        )
-        scored.append({**agent, "score": score, "reasons": reasons})
+    if task_tokens and not _has_task_match(scored):
+        # Keyword search found nothing meaningful for this task - last
+        # resort: ask Claude, with live web search, for better search terms
+        # and retry once. This is the only path that costs a web_search fee,
+        # so it's gated to queries that would otherwise come back empty.
+        extra_terms = await resolve_ambiguous_query(task_text)
+        if extra_terms:
+            expanded_tokens = task_tokens | _tokenize(" ".join(extra_terms))
+            retried_agents = await _fetch_task_candidates(conn, expanded_tokens, pool_size)
+            if retried_agents:
+                retried_scored = await _score_candidates(conn, retried_agents, user, github_cache, expanded_tokens)
+                if _has_task_match(retried_scored):
+                    scored = retried_scored
 
-    scored.sort(key=lambda a: a["score"], reverse=True)
+    elif task_tokens and len(task_tokens) >= _SPECIFIC_QUERY_TOKEN_THRESHOLD:
+        # Specific, detailed query with real keyword matches - layer in a
+        # semantic re-rank pass so ranking/reasons reflect actual relevance
+        # rather than raw token overlap.
+        reranked = await semantic_rerank(task_text, scored)
+        if reranked:
+            for a in scored:
+                reason = reranked.get(a["tracent_id"])
+                if reason:
+                    a["score"] += 8
+                    a["reasons"] = [f"Strong match: {reason}"] + a["reasons"]
+            scored.sort(key=lambda a: a["score"], reverse=True)
+
     return scored[:limit]

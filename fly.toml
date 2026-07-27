@@ -16,7 +16,7 @@ primary_region = "iad"
   INITIAL_LOOKBACK_BLOCKS           = "500"
   ENDPOINT_CHECK_INTERVAL_MINUTES   = "30"
   CONTRACT_ADDRESS                  = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
-  CORS_ORIGINS                      = "https://tracent.me,https://www.tracent.me,http://localhost:3000"
+  CORS_ORIGINS                      = "https://genticspace.com,https://www.genticspace.com,http://localhost:3000,https://tracent-sandbox-preview.fly.dev"
 
 [http_service]
   internal_port        = 8000

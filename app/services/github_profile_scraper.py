@@ -1,10 +1,8 @@
-import asyncio
 import logging
 import time
 
 import httpx
 
-from app.config import settings
 from app.db.database import get_conn
 from app.services.github_analysis import analyze_github_username, github_headers, github_rate_limit_wait
 

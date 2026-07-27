@@ -190,8 +190,6 @@ async def ingest_agents(source: str = "erc8004") -> None:
 
     logger.info("Found %d unique token IDs in %d logs", len(token_events), len(all_logs))
 
-    from app.services.verifier import run_auto_verification
-
     for token_id, events in token_events.items():
         try:
             await _process_token(source, token_id, events)
@@ -220,11 +218,6 @@ async def _process_token(source: str, token_id: int, events: list[dict]) -> None
 
         mint_event = None
         for event in events:
-            from_addr = "0x" + event["topics"][1][-40:]
-            to_addr = "0x" + event["topics"][2 if len(event["topics"]) > 2 else 2][-40:]
-            from_raw = "0x" + event["topics"][1][-40:]
-            to_raw = "0x" + event["topics"][2][-40:] if len(event["topics"]) > 2 else None
-
             from_addr = "0x" + event["topics"][1][-40:]
             to_addr = "0x" + event["topics"][2][-40:]
             is_mint = from_addr.lower() == _NULL_ADDRESS.lower()
