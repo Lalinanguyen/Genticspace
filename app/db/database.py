@@ -7,6 +7,69 @@ logger = logging.getLogger(__name__)
 
 pool: asyncpg.Pool | None = None
 
+# Guards against a genticspace_id-named schema, ported from the `deslop`
+# branch's app/db/database.py (see that branch's history: e362746 renamed
+# tracent_id -> genticspace_id, 1508e92 reverted it, 023b6e5 fixed a
+# fresh-database crash in the revert). This branch (`main`) never carried
+# either migration — it predates that whole rename saga and every _SCHEMA
+# statement below has always said `tracent_id` directly. This guard is
+# purely defensive: it only matters if this branch's backend is ever
+# deployed against a database that was last touched by `deslop`'s backend
+# mid-rename (i.e. still has genticspace_id) or that drifts back to it by
+# some other means. As of 2026-07-27 the live production database already
+# reads back tracent_id (verified via the public API), so this is a no-op
+# on the actual current database — added purely so this branch is no
+# longer the one copy of the schema with zero protection if that ever
+# changes. Guarded on IF EXISTS so it's a no-op on a fresh database too
+# (created with tracent_id directly by _SCHEMA, which hasn't run yet the
+# first time this executes).
+_RENAME_GENTICSPACE_TO_TRACENT = """
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='genticspace_id') THEN
+    ALTER TABLE agents RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE agent_skills RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE transfer_events RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE reputation_flags RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE verification_requests RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_deployment_guides' AND column_name='genticspace_id') THEN
+    ALTER TABLE agent_deployment_guides RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_favorites' AND column_name='genticspace_id') THEN
+    ALTER TABLE agent_favorites RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reviews' AND column_name='genticspace_id') THEN
+    ALTER TABLE reviews RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='agents') THEN
+    UPDATE agents SET trust_tier = 'tracent' WHERE trust_tier = 'genticspace';
+    UPDATE agents SET trust_tier = 'tracent-hosted' WHERE trust_tier = 'genticspace-hosted';
+    UPDATE agents SET source = 'tracent' WHERE source = 'genticspace';
+    UPDATE agents SET source = 'tracent-hosted' WHERE source = 'genticspace-hosted';
+  END IF;
+END $$;
+"""
+
+
+async def _migrate_genticspace_to_tracent(conn: asyncpg.Connection) -> None:
+    async with conn.transaction():
+        agents_table_existed = await conn.fetchval(
+            "SELECT 1 FROM information_schema.tables WHERE table_name='agents'"
+        )
+        await conn.execute(_RENAME_GENTICSPACE_TO_TRACENT)
+        renamed = await conn.fetchval(
+            "SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='tracent_id'"
+        )
+        if agents_table_existed and not renamed:
+            raise RuntimeError(
+                "genticspace_id -> tracent_id migration did not take effect: "
+                "agents.tracent_id still doesn't exist after running the rename"
+            )
+    logger.info("Schema migration check: agents.tracent_id present")
+
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agents (
     tracent_id       TEXT PRIMARY KEY,
@@ -375,6 +438,7 @@ async def init_db() -> None:
         max_size=20,
     )
     async with pool.acquire() as conn:
+        await _migrate_genticspace_to_tracent(conn)
         await conn.execute(_SCHEMA)
     logger.info("Database initialised")
 
