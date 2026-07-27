@@ -248,12 +248,6 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                   </div>
                 ))}
               </div>
-              <Link
-                href="/sandbox"
-                className="inline-flex items-center gap-1.5 font-bold text-[13.5px] text-[#08302B] bg-cyan px-5 py-2.5 rounded no-underline"
-              >
-                Try a sandboxed agent &rarr;
-              </Link>
             </div>
           </div>
         </div>
