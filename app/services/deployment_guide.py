@@ -1,3 +1,4 @@
+import base64
 import logging
 import re
 import time
@@ -8,6 +9,7 @@ import httpx
 
 from app.config import settings
 from app.db.database import get_conn
+from app.services.github_analysis import github_headers
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,20 @@ _DEFAULT_LEVEL = "Intermediate"
 _MAX_README_CHARS_FOR_PROMPT = 12000
 _MAX_WEBSITE_CHARS_FOR_PROMPT = 6000
 _WEBSITE_FETCH_TIMEOUT = 8.0
+
+_GITHUB_API_BASE = "https://api.github.com"
+_GITHUB_FETCH_TIMEOUT = 10.0
+# The README often describes install steps in prose that goes stale or was
+# never fully accurate; these are the actual files a real install depends on,
+# so pulling them gives the model ground truth (real dependency names, real
+# entrypoint, real container command) instead of trusting prose alone.
+_CODEBASE_FILES = [
+    "requirements.txt", "pyproject.toml", "package.json", "Dockerfile",
+    "docker-compose.yml", "docker-compose.yaml", "Makefile", "go.mod",
+    "Cargo.toml", "pom.xml", "setup.py",
+]
+_MAX_CODEBASE_FILE_CHARS = 3000
+_MAX_CODEBASE_TOTAL_CHARS = 9000
 
 _SCRIPT_STYLE_RE = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -28,12 +44,14 @@ _HTML_ENTITIES = {
 
 _SYSTEM_PROMPT = """You are a technical writer for Tracent, an AI agent marketplace. You are given whatever real source material is available for an AI agent (a GitHub/Hugging Face README, and/or text scraped from its website), along with the user's stated AI experience level. Write clear installation and deployment instructions based ONLY on what is actually present in that material — never invent commands, prerequisites, pricing, or steps that aren't there. Different sources may cover different things (e.g. the README has install commands, the website has pricing/signup info) — synthesize across whatever is given rather than picking just one. If the material doesn't contain enough information to actually deploy or start using the agent, say so plainly rather than guessing or padding with generic advice.
 
-Tailor depth and vocabulary to the stated experience level:
-- Beginner: spell out every step, assume no prior familiarity with package managers, environment variables, virtual environments, or the command line. Briefly explain what each command does before showing it.
-- Intermediate: concise numbered steps, standard terminology, no hand-holding.
-- Advanced: just the commands and key configuration/environment variables, minimal prose.
+You are producing an installation walkthrough, not a reformatted copy of the README. Never lightly paraphrase the source material's own section structure or prose. Extract the actual sequence of actions a person needs to perform and present ONLY that sequence, as numbered steps (1, 2, 3, ...), regardless of experience level. Each numbered step is exactly one discrete, concrete action: run this command, edit this file, set this value, create this account. Never bundle multiple actions into one step, and never write a step as a descriptive paragraph — if the README explains something in prose, convert it into the concrete action(s) that prose implies. Skip anything from the source that isn't an actionable step (marketing copy, feature lists, badges, etc.).
 
-Format the response as markdown with clear section headers (e.g. Prerequisites, Installation, Configuration, Running/Deployment). Never use em dashes (—) anywhere in the response; use a comma, period, or colon instead."""
+Tailor depth and vocabulary to the stated experience level, but keep the numbered-step structure at every level:
+- Beginner: assume no prior familiarity with package managers, environment variables, virtual environments, or the command line. Add one short clause after each step explaining what it does, if that's not already obvious.
+- Intermediate: standard terminology, no hand-holding, no explanatory asides.
+- Advanced: just the commands and key configuration/environment variables, no prose at all beyond the step itself.
+
+Format the response as markdown: a numbered list under clear section headers (e.g. Prerequisites, Installation, Configuration, Running/Deployment) — never as unordered bullets or plain paragraphs. Never use em dashes (—) anywhere in the response; use a comma, period, or colon instead."""
 
 
 def _normalize_level(level: str | None) -> str:
@@ -68,11 +86,57 @@ async def _fetch_website_text(url: str | None) -> str | None:
         return None
 
 
+async def _fetch_codebase_context(source: str | None, source_id: str | None) -> str | None:
+    """Pulls the actual dependency/entrypoint files out of the agent's real
+    repo (requirements.txt, package.json, Dockerfile, etc.) so the guide is
+    grounded in what the code actually requires, not just what the README
+    happens to say. GitHub-sourced agents only, since source_id is the
+    "owner/repo" needed to hit the Contents API; best-effort, never blocks
+    guide generation on failure."""
+    if source != "github" or not source_id:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=_GITHUB_FETCH_TIMEOUT, headers=github_headers()) as client:
+            listing_resp = await client.get(f"{_GITHUB_API_BASE}/repos/{source_id}/contents/")
+            if listing_resp.status_code != 200:
+                return None
+            listing = listing_resp.json()
+            if not isinstance(listing, list):
+                return None
+            present = {item["name"] for item in listing if item.get("type") == "file"}
+
+            found = []
+            total_chars = 0
+            for filename in _CODEBASE_FILES:
+                if total_chars >= _MAX_CODEBASE_TOTAL_CHARS:
+                    break
+                if filename not in present:
+                    continue
+                file_resp = await client.get(f"{_GITHUB_API_BASE}/repos/{source_id}/contents/{filename}")
+                if file_resp.status_code != 200:
+                    continue
+                data = file_resp.json()
+                if data.get("encoding") != "base64":
+                    continue
+                content = base64.b64decode(data["content"]).decode("utf-8", errors="ignore")
+                content = content[:_MAX_CODEBASE_FILE_CHARS]
+                found.append(f"--- {filename} ---\n{content}")
+                total_chars += len(content)
+
+            if not found:
+                return None
+            return "\n\n".join(found)
+    except Exception as exc:
+        logger.debug("Codebase context fetch failed for %s: %s", source_id, exc)
+        return None
+
+
 async def _get_agent(tracent_id: str) -> dict | None:
     async with get_conn() as conn:
         row = await conn.fetchrow(
             """
-            SELECT tracent_id, name, web_endpoint, github_url, huggingface_url,
+            SELECT tracent_id, name, source, source_id, web_endpoint, github_url, huggingface_url,
                    readme_text, readme_fetched_at
             FROM agents WHERE tracent_id = $1
             """,
@@ -109,7 +173,9 @@ async def _save_guide(
         )
 
 
-async def _generate(agent: dict, experience_level: str, website_text: str | None) -> str:
+async def _generate(
+    agent: dict, experience_level: str, website_text: str | None, codebase_context: str | None
+) -> str:
     if not settings.ANTHROPIC_API_KEY:
         raise RuntimeError("ANTHROPIC_API_KEY is not configured")
 
@@ -124,6 +190,11 @@ async def _generate(agent: dict, experience_level: str, website_text: str | None
     if readme_text:
         source_label = "Hugging Face" if agent.get("huggingface_url") else "GitHub"
         sources.append(f"{source_label} README:\n{readme_text[:_MAX_README_CHARS_FOR_PROMPT]}")
+    if codebase_context:
+        sources.append(
+            "Actual files from the repository (ground truth for real dependencies, "
+            f"entrypoint, and run/build commands, takes priority over anything the README claims):\n{codebase_context}"
+        )
     if website_text:
         sources.append(f"Website content (scraped from {agent.get('web_endpoint')}):\n{website_text}")
 
@@ -169,10 +240,14 @@ async def get_or_generate_deployment_guide(
     # agent's own website, when it has one — different sources tend to cover
     # different things (install commands vs. pricing/signup), so guides pull
     # from whatever real material actually exists for this agent instead of
-    # requiring a README specifically.
+    # requiring a README specifically. For GitHub-sourced agents, also pull
+    # the actual dependency/entrypoint files (requirements.txt, Dockerfile,
+    # etc.) so instructions are grounded in what the code really needs rather
+    # than trusting README prose, which is often incomplete or stale.
     website_text = await _fetch_website_text(agent.get("web_endpoint"))
+    codebase_context = await _fetch_codebase_context(agent.get("source"), agent.get("source_id"))
 
-    if not agent.get("readme_text") and not website_text:
+    if not agent.get("readme_text") and not website_text and not codebase_context:
         placeholder = (
             "No README or website content could be found for this agent yet. Check back "
             "after the next scrape, or visit the agent's page directly."
@@ -188,7 +263,7 @@ async def get_or_generate_deployment_guide(
             "has_readme": False,
         }
 
-    instructions = await _generate(agent, level, website_text)
+    instructions = await _generate(agent, level, website_text, codebase_context)
     await _save_guide(tracent_id, level, instructions, agent["readme_fetched_at"], has_material=True)
 
     return {
@@ -221,6 +296,7 @@ async def answer_deployment_question(
 
     level = _normalize_level(experience_level)
     website_text = await _fetch_website_text(agent.get("web_endpoint"))
+    codebase_context = await _fetch_codebase_context(agent.get("source"), agent.get("source_id"))
     cached_guide = await _get_cached_guide(tracent_id, level)
 
     context_parts = [
@@ -231,6 +307,8 @@ async def answer_deployment_question(
     if readme_text:
         source_label = "Hugging Face" if agent.get("huggingface_url") else "GitHub"
         context_parts.append(f"{source_label} README:\n{readme_text[:_MAX_README_CHARS_FOR_PROMPT]}")
+    if codebase_context:
+        context_parts.append(f"Actual files from the repository:\n{codebase_context}")
     if website_text:
         context_parts.append(f"Website content (scraped from {agent.get('web_endpoint')}):\n{website_text}")
     if cached_guide:
