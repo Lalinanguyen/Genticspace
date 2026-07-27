@@ -23,7 +23,7 @@ export function Nav() {
         WebkitBackdropFilter: "blur(30px) saturate(1.9) contrast(1.05)",
         border: "1px solid rgba(255,255,255,.45)",
         boxShadow:
-          "0 12px 40px rgba(28,38,33,.12), inset 0 1.5px 1px rgba(255,255,255,.75), inset 1.5px 0 1px rgba(255,255,255,.4), inset 0 -1.5px 1px rgba(28,38,33,.07), inset -1.5px 0 1px rgba(28,38,33,.04)",
+          "0 4px 14px rgba(28,38,33,.06), inset 0 1.5px 1px rgba(255,255,255,.75), inset 1.5px 0 1px rgba(255,255,255,.4), inset 0 -1.5px 1px rgba(28,38,33,.07), inset -1.5px 0 1px rgba(28,38,33,.04)",
       }}
     >
       <div

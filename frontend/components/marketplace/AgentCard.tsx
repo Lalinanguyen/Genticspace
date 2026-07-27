@@ -36,7 +36,7 @@ export function AgentCard({ agent }: { agent: Agent | Recommendation }) {
   return (
     <Link
       href={`/marketplace/${agent.tracent_id}`}
-      className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex flex-col gap-3.5 box-border no-underline hover:border-border-strong transition-colors min-w-0 overflow-hidden"
+      className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-3.5 box-border no-underline hover:border-border-strong transition-colors min-w-0 overflow-hidden"
     >
       <div className="flex items-start gap-3.5 min-w-0">
         <AgentAvatar imageUrl={agent.image_url} size={48} />

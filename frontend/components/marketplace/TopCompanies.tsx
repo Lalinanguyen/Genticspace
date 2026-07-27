@@ -43,7 +43,7 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
             <Link
               href={`/company/${c.source}/${encodeURIComponent(c.name)}`}
               key={`${c.source}:${c.name}:${i}`}
-              className="flex-none w-[220px] p-4 rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] box-border no-underline hover:border-border-strong transition-colors"
+              className="flex-none w-[220px] p-4 rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] box-border no-underline hover:border-border-strong transition-colors"
             >
               <div className="flex items-center gap-2.5 mb-3">
                 {c.image_url ? (

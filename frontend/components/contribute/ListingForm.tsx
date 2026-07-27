@@ -354,7 +354,7 @@ export function ListingForm() {
       {/* FORM */}
       <div className="flex-1 flex flex-col gap-8" style={{ flexBasis: 520, minWidth: 300 }}>
         {/* BASICS */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex flex-col gap-[18px] box-border">
+        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-[18px] box-border">
           <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-wide">
             Basics
           </span>
@@ -599,7 +599,7 @@ export function ListingForm() {
         </div>
 
         {/* VISIBILITY */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex items-center justify-between gap-4 flex-wrap box-border">
+        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex items-center justify-between gap-4 flex-wrap box-border">
           <div>
             <div className="font-display font-bold text-sm text-foreground mb-1">
               {form.is_private ? "Private listing" : "Public listing"}
@@ -623,7 +623,7 @@ export function ListingForm() {
         </div>
 
         {/* LICENSING & DEPLOYMENT */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex flex-col gap-[18px] box-border">
+        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-[18px] box-border">
           <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-wide">
             Licensing &amp; deployment
           </span>
@@ -713,7 +713,7 @@ export function ListingForm() {
           Listing preview
         </div>
 
-        <div className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] flex flex-col gap-3.5 box-border">
+        <div className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-3.5 box-border">
           <div className="flex items-start gap-3.5">
             <div className="w-12 h-12 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[15px] text-white">
               {initials}
