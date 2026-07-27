@@ -32,7 +32,7 @@ const EXPERIENCE_LEVELS = [
 const cardClass =
   "p-9 rounded bg-surface border border-border-strong glass-card box-border w-full max-w-[480px]";
 const inputClass =
-  "w-full box-border px-3.5 py-3 rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
+  "w-full box-border px-3.5 py-3 rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
 const labelClass = "block mb-1.5 font-semibold text-[12.5px] text-foreground-muted";
 const continueClass =
   "mt-6 text-center px-7 py-[15px] rounded font-semibold text-[15px] cursor-pointer select-none";
@@ -52,7 +52,7 @@ function ContinueButton({
       className={continueClass}
       style={
         disabled
-          ? { background: "rgba(244,247,243,.08)", color: "rgba(244,247,243,.4)", cursor: "default" }
+          ? { background: "rgba(28,38,33,.08)", color: "rgba(28,38,33,.4)", cursor: "default" }
           : {
               background: "linear-gradient(135deg,#072AC8,#2f4fe0)",
               color: "#fff",
@@ -218,13 +218,13 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   onClick={() => setForm((f) => ({ ...f, accountType: type }))}
                   className="cursor-pointer flex items-center gap-4 p-4.5 rounded"
                   style={{
-                    background: active ? "rgba(34,211,238,.1)" : "rgba(244,247,243,.03)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.35)" : "rgba(244,247,243,.1)"}`,
+                    background: active ? "rgba(53,192,176,.1)" : "rgba(28,38,33,.03)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.35)" : "rgba(28,38,33,.1)"}`,
                   }}
                 >
                   <div
                     className="w-9 h-[42px] flex-none flex items-center justify-center"
-                    style={{ color: active ? "#22D3EE" : "rgba(244,247,243,.55)" }}
+                    style={{ color: active ? "#35C0B0" : "rgba(28,38,33,.55)" }}
                   >
                     {type === "individual" ? (
                       <svg width="28" height="28" viewBox="0 0 24 24">
@@ -276,8 +276,8 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   <div
                     className="w-[18px] h-[18px] rounded-full flex-none"
                     style={{
-                      border: `2px solid ${active ? "#22D3EE" : "rgba(244,247,243,.3)"}`,
-                      background: active ? "#22D3EE" : "transparent",
+                      border: `2px solid ${active ? "#35C0B0" : "rgba(28,38,33,.3)"}`,
+                      background: active ? "#35C0B0" : "transparent",
                     }}
                   />
                 </div>
@@ -402,7 +402,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               onClick={() => setForm((f) => ({ ...f, terms: !f.terms }))}
               className="cursor-pointer flex-none w-[17px] h-[17px] mt-0.5 rounded-sm flex items-center justify-center"
               style={{
-                border: `1px solid ${form.terms ? "#35C0B0" : "rgba(244,247,243,.3)"}`,
+                border: `1px solid ${form.terms ? "#35C0B0" : "rgba(28,38,33,.3)"}`,
                 background: form.terms ? "#35C0B0" : "transparent",
               }}
             >
@@ -450,9 +450,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   onClick={() => setForm((f) => ({ ...f, experienceLevel: opt.level }))}
                   className="cursor-pointer px-4.5 py-4 rounded font-semibold text-[14.5px]"
                   style={{
-                    background: active ? "rgba(34,211,238,.14)" : "rgba(244,247,243,.05)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.5)" : "rgba(244,247,243,.14)"}`,
-                    color: active ? "#22D3EE" : "#F4F7F3",
+                    background: active ? "rgba(53,192,176,.14)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.5)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#35C0B0" : "#1C2621",
                   }}
                 >
                   <div className="mb-0.5">{opt.level}</div>
@@ -522,7 +522,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                     e.target.nextElementSibling.focus();
                   }
                 }}
-                className="w-11 h-[52px] text-center rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground font-display font-bold text-xl focus:outline-none focus:border-cyan"
+                className="w-11 h-[52px] text-center rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground font-display font-bold text-xl focus:outline-none focus:border-cyan"
               />
             ))}
           </div>
@@ -565,9 +565,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   }
                   className="cursor-pointer px-3.5 py-2 rounded-sm font-semibold text-[12.5px]"
                   style={{
-                    background: active ? "rgba(53,192,176,.14)" : "rgba(244,247,243,.05)",
-                    border: `1px solid ${active ? "rgba(53,192,176,.4)" : "rgba(244,247,243,.14)"}`,
-                    color: active ? "#35C0B0" : "rgba(244,247,243,.7)",
+                    background: active ? "rgba(53,192,176,.14)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.4)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#35C0B0" : "rgba(28,38,33,.7)",
                   }}
                 >
                   {p.label}
@@ -634,7 +634,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                         setForm((f) => ({ ...f, connects: { ...f.connects, [key]: e.target.value } }))
                       }
                       placeholder={key === "github" ? "GitHub" : key === "x" ? "X (Twitter)" : key[0].toUpperCase() + key.slice(1)}
-                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(244,247,243,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
+                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(28,38,33,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
                     />
                   ))}
                 </div>
