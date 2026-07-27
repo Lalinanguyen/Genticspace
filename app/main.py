@@ -2,11 +2,15 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(dsn=settings.SENTRY_DSN)
 from app.db.database import close_db, init_db
 from app.routes.admin import router as admin_router
 from app.routes.agents import router as agents_router
@@ -79,10 +83,31 @@ _JOBS: list[tuple[str, object, tuple, float]] = [
 ]
 
 
+def _check_mailer_config() -> None:
+    missing = [
+        name
+        for name, value in (
+            ("SMTP_HOST", settings.SMTP_HOST),
+            ("SMTP_USER", settings.SMTP_USER),
+            ("SMTP_PASSWORD", settings.SMTP_PASSWORD),
+            ("CONTACT_INBOX", settings.CONTACT_INBOX),
+        )
+        if not value
+    ]
+    if missing:
+        logger.critical(
+            "!!! MAILER NOT CONFIGURED (missing: %s) !!! "
+            "Signup OTP codes, password reset links, and contact emails will "
+            "silently NOT be sent -- they will only appear in this log. "
+            "Set these env vars/secrets before relying on email delivery.",
+            ", ".join(missing),
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-
+    _check_mailer_config()
     # Startup used to fire all ~15 scrapers/backfills as concurrent tasks on
     # every boot, which OOM-killed this instance (shared-cpu-1x, 512MB;
     # confirmed via `fly machine status`, exit_code=137, oom_killed=true).

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     ANTHROPIC_API_KEY: str | None = None
 
+    SENTRY_DSN: str | None = None
+
     GITHUB_ENRICH_INTERVAL_HOURS: int = 24
     GITHUB_ENRICH_BATCH_SIZE: int = 300
 

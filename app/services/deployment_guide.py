@@ -263,6 +263,18 @@ async def get_or_generate_deployment_guide(
             "has_readme": False,
         }
 
+    if not settings.ANTHROPIC_API_KEY:
+        logger.warning("ANTHROPIC_API_KEY not configured — serving placeholder deployment guide for %s", tracent_id)
+        return {
+            "instructions": (
+                "Deployment guide generation is temporarily unavailable. Check the agent's "
+                "README or website directly for install and deployment instructions."
+            ),
+            "generated_at": None,
+            "cached": False,
+            "has_readme": True,
+        }
+
     instructions = await _generate(agent, level, website_text, codebase_context)
     await _save_guide(tracent_id, level, instructions, agent["readme_fetched_at"], has_material=True)
 
