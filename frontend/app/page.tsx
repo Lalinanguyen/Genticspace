@@ -4,7 +4,6 @@ import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { SandboxFeature } from "@/components/landing/SandboxFeature";
 import { CapabilityShowcase } from "@/components/landing/CapabilityShowcase";
-import { BuilderFeature } from "@/components/landing/BuilderFeature";
 
 export default function LandingPage() {
   return (
@@ -15,7 +14,6 @@ export default function LandingPage() {
         <HowItWorks />
         <SandboxFeature />
         <CapabilityShowcase />
-        <BuilderFeature />
       </main>
       <Footer />
     </div>
