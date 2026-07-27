@@ -46,30 +46,30 @@ def test_compute_sandbox_fields_github_never_sandboxable():
 async def test_sandboxable_only_filter_on_public_agents(client):
     async with get_conn() as conn:
         await insert_agent(
-            conn, genticspace_id="gs_space_yes", source="huggingface",
+            conn, tracent_id="gs_space_yes", source="huggingface",
             source_id="spaces:owner/yes-space", name="Yes Space", license="Open Source",
         )
         await insert_agent(
-            conn, genticspace_id="gs_space_no_license", source="huggingface",
+            conn, tracent_id="gs_space_no_license", source="huggingface",
             source_id="spaces:owner/no-license-space", name="No License Space",
         )
         await insert_agent(
-            conn, genticspace_id="gs_model", source="huggingface",
+            conn, tracent_id="gs_model", source="huggingface",
             source_id="models:owner/model", name="A Model", license="Open Source",
         )
         await insert_agent(
-            conn, genticspace_id="gs_gh", source="github",
+            conn, tracent_id="gs_gh", source="github",
             source_id="owner/repo", name="A Repo", license="Open Source",
         )
 
     resp = await client.get("/public/agents", params={"sandboxable_only": "true"})
     assert resp.status_code == 200
-    ids = {a["genticspace_id"] for a in resp.json()["agents"]}
+    ids = {a["tracent_id"] for a in resp.json()["agents"]}
     assert ids == {"gs_space_yes"}
 
     resp = await client.get("/agents", params={"sandboxable_only": "true"}, headers={"X-API-Key": settings.API_KEY})
     assert resp.status_code == 200
-    ids = {a["genticspace_id"] for a in resp.json()["agents"]}
+    ids = {a["tracent_id"] for a in resp.json()["agents"]}
     assert ids == {"gs_space_yes"}, "legacy /agents surface must apply the same sandboxable filter as /public/agents"
 
 
@@ -77,7 +77,7 @@ async def test_sandboxable_only_filter_on_public_agents(client):
 async def test_agent_detail_includes_sandbox_fields(client):
     async with get_conn() as conn:
         await insert_agent(
-            conn, genticspace_id="gs_space_detail", source="huggingface",
+            conn, tracent_id="gs_space_detail", source="huggingface",
             source_id="spaces:owner/detail-space", name="Detail Space", license="Open Source",
         )
 
@@ -92,7 +92,7 @@ async def test_agent_detail_includes_sandbox_fields(client):
 async def test_sandbox_guide_404_for_non_sandboxable_agent(client):
     async with get_conn() as conn:
         await insert_agent(
-            conn, genticspace_id="gs_not_sandboxable", source="github",
+            conn, tracent_id="gs_not_sandboxable", source="github",
             source_id="owner/repo", name="A Repo", license="Open Source",
         )
 
@@ -110,7 +110,7 @@ async def test_sandbox_guide_404_for_nonexistent_agent(client):
 async def test_sandbox_guide_400_for_empty_task(client):
     async with get_conn() as conn:
         await insert_agent(
-            conn, genticspace_id="gs_space_empty_task", source="huggingface",
+            conn, tracent_id="gs_space_empty_task", source="huggingface",
             source_id="spaces:owner/space", name="Space", license="Open Source",
         )
 
@@ -126,7 +126,7 @@ async def test_sandbox_guide_503_without_anthropic_key(client):
     # than silently succeeding or erroring some other way.
     async with get_conn() as conn:
         await insert_agent(
-            conn, genticspace_id="gs_space_no_key", source="huggingface",
+            conn, tracent_id="gs_space_no_key", source="huggingface",
             source_id="spaces:owner/space", name="Space", license="Open Source",
         )
 

@@ -24,32 +24,32 @@ from tests.helpers import insert_agent, insert_flag, insert_skill, unique_id
 
 
 async def _seed_flagged_agent(conn):
-    genticspace_id = unique_id()
+    tracent_id = unique_id()
     await insert_agent(
-        conn, genticspace_id=genticspace_id, name="Flagged Regression Agent",
+        conn, tracent_id=tracent_id, name="Flagged Regression Agent",
         description="has a high severity flag", risk_score=9.0,
     )
-    await insert_skill(conn, genticspace_id=genticspace_id, skill_name="risky-skill", tags=["risky-category"])
-    await insert_flag(conn, genticspace_id=genticspace_id, severity="high", flag_type="ownership_transfer")
-    return genticspace_id
+    await insert_skill(conn, tracent_id=tracent_id, skill_name="risky-skill", tags=["risky-category"])
+    await insert_flag(conn, tracent_id=tracent_id, severity="high", flag_type="ownership_transfer")
+    return tracent_id
 
 
 async def test_legacy_flagged_only_does_not_500(client, master_key_headers):
     async with db_module.get_conn() as conn:
-        genticspace_id = await _seed_flagged_agent(conn)
+        tracent_id = await _seed_flagged_agent(conn)
 
     resp = await client.get("/agents", params={"flagged_only": "true"}, headers=master_key_headers)
     assert resp.status_code == 200, resp.text
-    assert genticspace_id in {a["genticspace_id"] for a in resp.json()["agents"]}
+    assert tracent_id in {a["tracent_id"] for a in resp.json()["agents"]}
 
 
 async def test_public_flagged_only_does_not_500(client):
     async with db_module.get_conn() as conn:
-        genticspace_id = await _seed_flagged_agent(conn)
+        tracent_id = await _seed_flagged_agent(conn)
 
     resp = await client.get("/public/agents", params={"flagged_only": "true"})
     assert resp.status_code == 200, resp.text
-    assert genticspace_id in {a["genticspace_id"] for a in resp.json()["agents"]}
+    assert tracent_id in {a["tracent_id"] for a in resp.json()["agents"]}
 
 
 async def test_flagged_only_combined_with_q_does_not_500(client, master_key_headers):
@@ -58,7 +58,7 @@ async def test_flagged_only_combined_with_q_does_not_500(client, master_key_head
     # JOIN agent_skills) — the riskiest combination for an ORDER BY /
     # SELECT DISTINCT column mismatch to resurface in.
     async with db_module.get_conn() as conn:
-        genticspace_id = await _seed_flagged_agent(conn)
+        tracent_id = await _seed_flagged_agent(conn)
 
     resp = await client.get(
         "/agents",
@@ -66,13 +66,13 @@ async def test_flagged_only_combined_with_q_does_not_500(client, master_key_head
         headers=master_key_headers,
     )
     assert resp.status_code == 200, resp.text
-    assert genticspace_id in {a["genticspace_id"] for a in resp.json()["agents"]}
+    assert tracent_id in {a["tracent_id"] for a in resp.json()["agents"]}
 
     public_resp = await client.get(
         "/public/agents", params={"flagged_only": "true", "q": "risky-category"}
     )
     assert public_resp.status_code == 200, public_resp.text
-    assert genticspace_id in {a["genticspace_id"] for a in public_resp.json()["agents"]}
+    assert tracent_id in {a["tracent_id"] for a in public_resp.json()["agents"]}
 
 
 async def test_flagged_only_with_severity_filter_on_dedicated_flagged_route_does_not_500(
@@ -83,8 +83,8 @@ async def test_flagged_only_with_severity_filter_on_dedicated_flagged_route_does
     # BY risk_score shape — covered here too since it's a distinct code path
     # from query_agents's flagged_only branch above.
     async with db_module.get_conn() as conn:
-        genticspace_id = await _seed_flagged_agent(conn)
+        tracent_id = await _seed_flagged_agent(conn)
 
     resp = await client.get("/agents/flagged", params={"severity": "high"}, headers=master_key_headers)
     assert resp.status_code == 200, resp.text
-    assert genticspace_id in {a["genticspace_id"] for a in resp.json()["agents"]}
+    assert tracent_id in {a["tracent_id"] for a in resp.json()["agents"]}
