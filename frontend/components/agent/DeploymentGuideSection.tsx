@@ -9,6 +9,48 @@ interface ChatMessage {
   content: string;
 }
 
+// The deployment guide is AI-generated plain text that uses markdown-style
+// "## Heading" lines to break up sections — rendered as-is it showed the
+// literal "##" instead of a heading, so this splits the text on those lines
+// and renders them as titles instead of raw text.
+function renderGuideContent(text: string) {
+  const lines = text.split("\n");
+  const blocks: { heading: boolean; content: string }[] = [];
+  let buffer: string[] = [];
+
+  const flushBuffer = () => {
+    const content = buffer.join("\n").trim();
+    if (content) blocks.push({ heading: false, content });
+    buffer = [];
+  };
+
+  for (const line of lines) {
+    const match = line.match(/^#{1,6}\s+(.+)/);
+    if (match) {
+      flushBuffer();
+      blocks.push({ heading: true, content: match[1].trim() });
+    } else {
+      buffer.push(line);
+    }
+  }
+  flushBuffer();
+
+  return blocks.map((block, i) =>
+    block.heading ? (
+      <div
+        key={i}
+        className="font-display font-normal text-[15px] text-foreground mt-5 mb-1.5 first:mt-0"
+      >
+        {block.content}
+      </div>
+    ) : (
+      <p key={i} className="whitespace-pre-wrap mb-3 last:mb-0">
+        {block.content}
+      </p>
+    ),
+  );
+}
+
 function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: string | null }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -162,8 +204,8 @@ export function DeploymentGuideSection({ genticspaceId }: { genticspaceId: strin
               No source material has been indexed for this agent yet.
             </p>
           )}
-          <div className="text-[13.5px] leading-relaxed text-foreground-muted whitespace-pre-wrap">
-            {instructions}
+          <div className="text-[13.5px] leading-relaxed text-foreground-muted">
+            {instructions && renderGuideContent(instructions)}
           </div>
 
           {hasReadme && <HelpBot genticspaceId={genticspaceId} token={token} />}
