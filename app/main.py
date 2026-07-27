@@ -2,14 +2,16 @@ import logging
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
-from app.db.database import close_db, init_db
+from app.db.database import close_db, cleanup_expired_auth_tokens, init_db
 from app.routes.admin import router as admin_router
 from app.routes.agents import router as agents_router
-from app.routes.auth import router as auth_router
+from app.routes.auth import limiter, router as auth_router
 from app.routes.profiles import router as profiles_router
 from app.routes.public import router as public_router
 from app.routes.trust import router as trust_router
@@ -158,6 +160,12 @@ async def lifespan(app: FastAPI):
         hours=settings.YC_SCRAPE_INTERVAL_HOURS,
         id="ycombinator_scraper",
     )
+    scheduler.add_job(
+        cleanup_expired_auth_tokens,
+        "interval",
+        hours=settings.AUTH_TOKEN_CLEANUP_INTERVAL_HOURS,
+        id="cleanup_expired_auth_tokens",
+    )
     scheduler.start()
     logger.info(
         "Scheduler started: index every %dm, endpoint checks every %dm, HF scrape every %dh",
@@ -187,6 +195,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _handle_rate_limit_exceeded(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    response = JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"detail": "Too many requests. Please try again later."},
+    )
+    return limiter._inject_headers(response, request.state.view_rate_limit)
+
 
 app.include_router(agents_router)
 app.include_router(trust_router)

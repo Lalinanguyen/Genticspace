@@ -5,12 +5,19 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.config import settings
 from app.db.database import get_conn
-from app.db.jwt_auth import create_access_token, get_current_user
+from app.db.jwt_auth import (
+    create_access_token,
+    get_current_session_id,
+    get_current_user,
+    revoke_session,
+)
 from app.services.mailer import send_otp_email, send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -25,6 +32,27 @@ _RESET_TOKEN_TTL_MINUTES = 30
 
 def _hash_code(code: str) -> str:
     return hashlib.sha256(code.encode()).hexdigest()
+
+
+def _rate_limit_key(request: Request) -> str:
+    email = getattr(request.state, "rate_limit_email", "") or ""
+    return f"{get_remote_address(request)}:{email.strip().lower()}"
+
+
+limiter = Limiter(key_func=_rate_limit_key, headers_enabled=True)
+
+
+async def _capture_email_for_rate_limit(request: Request) -> None:
+    # slowapi's key_func only receives `request`, not the parsed body, so the
+    # email has to be stashed onto request.state by a dependency that runs
+    # before the rate-limit check (FastAPI resolves all params/dependencies
+    # before invoking the route). Starlette caches the raw body after this
+    # read, so the route's own `body: ...` param parses it for free.
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    request.state.rate_limit_email = str(payload.get("email") or "")
 
 
 class RequestOtpBody(BaseModel):
@@ -71,7 +99,13 @@ def _user_response(row) -> dict:
 
 
 @router.post("/request-otp")
-async def request_otp(body: RequestOtpBody):
+@limiter.limit(settings.AUTH_RATE_LIMIT)
+async def request_otp(
+    request: Request,
+    response: Response,
+    body: RequestOtpBody,
+    _: None = Depends(_capture_email_for_rate_limit),
+):
     code = f"{secrets.randbelow(1_000_000):06d}"
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=_OTP_TTL_MINUTES)
 
@@ -131,6 +165,9 @@ def _decode_email_token(token: str, email: str) -> None:
 
 @router.post("/signup")
 async def signup(body: SignupBody):
+    if len(body.password) < 8:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password must be at least 8 characters")
+
     _decode_email_token(body.email_verified_token, body.email)
 
     password_hash = bcrypt.hashpw(body.password.encode(), bcrypt.gensalt()).decode()
@@ -158,25 +195,37 @@ async def signup(body: SignupBody):
             connects.huggingface, connects.other,
         )
 
-    token = create_access_token(row["id"], row["email"])
+    token = await create_access_token(row["id"], row["email"])
     return {"access_token": token, "user": _user_response(row)}
 
 
 @router.post("/login")
-async def login(body: LoginBody):
+@limiter.limit(settings.AUTH_RATE_LIMIT)
+async def login(
+    request: Request,
+    response: Response,
+    body: LoginBody,
+    _: None = Depends(_capture_email_for_rate_limit),
+):
     async with get_conn() as conn:
         row = await conn.fetchrow("SELECT * FROM users WHERE email = $1", body.email)
 
     if not row or not bcrypt.checkpw(body.password.encode(), row["password_hash"].encode()):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
 
-    token = create_access_token(row["id"], row["email"])
+    token = await create_access_token(row["id"], row["email"])
     return {"access_token": token, "user": _user_response(row)}
 
 
 @router.get("/me")
 async def me(current_user: dict = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/logout")
+async def logout(session_id: str = Depends(get_current_session_id)):
+    await revoke_session(session_id)
+    return {"status": "logged_out"}
 
 
 class ForgotPasswordBody(BaseModel):
@@ -189,7 +238,13 @@ class ResetPasswordBody(BaseModel):
 
 
 @router.post("/forgot-password")
-async def forgot_password(body: ForgotPasswordBody):
+@limiter.limit(settings.AUTH_RATE_LIMIT)
+async def forgot_password(
+    request: Request,
+    response: Response,
+    body: ForgotPasswordBody,
+    _: None = Depends(_capture_email_for_rate_limit),
+):
     async with get_conn() as conn:
         user = await conn.fetchrow("SELECT id FROM users WHERE email = $1", body.email)
         if user:
