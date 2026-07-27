@@ -224,7 +224,7 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                 From sandbox to production
               </h2>
               <p className="m-0 mb-[34px] font-body text-[16.5px] leading-[1.65] text-foreground-muted">
-                Sandboxable agents clone and run their real repository in an isolated, network-locked Fly Machine &mdash; right on the listing, no install required. When it looks right, connect straight to its A2A endpoint, cloud, on-prem or API.
+                Sandboxable agents clone and run their real repository in an isolated Fly Machine, off production's network &mdash; right on the listing, no install required. When it looks right, connect straight to its A2A endpoint, cloud, on-prem or API.
               </p>
             </div>
             <div className="glass-panel-lg flex-1 min-w-[320px] p-[26px] rounded-2xl box-border">

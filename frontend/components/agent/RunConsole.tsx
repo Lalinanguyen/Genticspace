@@ -136,8 +136,8 @@ export function RunConsole({ agent }: { agent: Agent }) {
             Run console
           </h1>
           <p className="m-0 text-sm text-foreground-muted">
-            Clones and runs {agent.name || agent.tracent_id}&apos;s real repository in an isolated, network-locked
-            sandbox.
+            Clones and runs {agent.name || agent.tracent_id}&apos;s real repository in an isolated sandbox, off
+            production&apos;s network.
           </p>
         </div>
         {run && (

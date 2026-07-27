@@ -51,11 +51,15 @@ async def send(chunk: str = "", status: str | None = None, exit_code: int | None
 
 
 def lock_down_network() -> None:
-    """Cuts all outbound network access except to the log-ingest host, once
-    the build step (which legitimately needs to reach GitHub/PyPI/npm) is
-    done. The run step -- executing an unreviewed third-party agent -- gets
-    no egress at all beyond reporting its own logs, so it can't reach
-    production Tracent infra or exfiltrate anything."""
+    """Restricts (but no longer fully cuts) outbound network access once the
+    build step (which legitimately needs to reach GitHub/PyPI/npm) is done.
+    The run step -- executing an unreviewed third-party agent -- gets DNS
+    plus plain HTTP/HTTPS egress, so it can call real external APIs the way
+    a real deployment would, plus the log-ingest host. Everything else
+    (arbitrary TCP/UDP ports -- SMTP relay, DB protocols, port scanning,
+    etc.) stays dropped. This machine is also in its own Fly org, off
+    production's private 6PN network, so even with HTTP(S) egress there's
+    no network path to internal Tracent infra."""
     host = INGEST_URL.split("/")[2].split(":")[0]
     try:
         ingest_ip = socket.gethostbyname(host)
@@ -70,6 +74,12 @@ def lock_down_network() -> None:
             ["iptables", "-A", "OUTPUT", "-d", ingest_ip, "-p", "tcp", "--dport", "443", "-j", "ACCEPT"],
             check=False,
         )
+    # DNS, so the run step can resolve hostnames for its own API calls.
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", "ACCEPT"], check=False)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", "ACCEPT"], check=False)
+    # General HTTP(S) egress for the agent's own network calls.
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT"], check=False)
+    subprocess.run(["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", "443", "-j", "ACCEPT"], check=False)
 
 
 async def _pump_output(proc: asyncio.subprocess.Process) -> None:
