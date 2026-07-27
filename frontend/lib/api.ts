@@ -273,6 +273,13 @@ export function submitAgentReview(
   });
 }
 
+export function deleteAgentReview(tracentId: string, token: string): Promise<{ status: string }> {
+  return request(`/public/agents/${tracentId}/reviews`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export function sendContactMessage(email: string, topic: string, message: string): Promise<{ status: string }> {
   return request("/public/contact", {
     method: "POST",

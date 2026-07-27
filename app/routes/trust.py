@@ -3,12 +3,12 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.db.auth import verify_api_key
+from app.db.auth import verify_partner_key
 from app.db.database import get_conn
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/trust", tags=["trust"], dependencies=[Depends(verify_api_key)])
+router = APIRouter(prefix="/trust", tags=["trust"], dependencies=[Depends(verify_partner_key)])
 
 
 async def _build_trust_response(tracent_id: str) -> dict:

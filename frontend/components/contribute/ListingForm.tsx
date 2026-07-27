@@ -374,6 +374,7 @@ export function ListingForm() {
                 placeholder="e.g. Atlas Vision"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
+                maxLength={200}
                 className={textInputClass()}
               />
             </div>
@@ -574,6 +575,7 @@ export function ListingForm() {
               placeholder="What does this agent do, in one or two plain-English sentences?"
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
+              maxLength={5000}
               className="w-full box-border min-h-[84px] px-3.5 py-3 rounded bg-surface border border-border-strong text-foreground text-[14px] leading-relaxed placeholder:text-foreground-faint resize-y"
             />
             {showAiSuggestion && (

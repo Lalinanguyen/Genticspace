@@ -3,7 +3,8 @@
 # Secrets (run once):
 #   fly secrets set ALCHEMY_API_KEY=<key>
 #   fly secrets set DATABASE_URL=<postgres-connection-string>
-#   fly secrets set API_KEY=$(openssl rand -hex 32)
+#   fly secrets set ADMIN_API_KEY=$(openssl rand -hex 32)
+#   fly secrets set PARTNER_API_KEY=$(openssl rand -hex 32)
 
 app = "tracent-registry"
 primary_region = "iad"

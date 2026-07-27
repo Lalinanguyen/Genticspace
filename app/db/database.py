@@ -422,6 +422,47 @@ CREATE TABLE IF NOT EXISTS agent_sandbox_runs (
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_user   ON agent_sandbox_runs(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_active ON agent_sandbox_runs(status)
     WHERE status IN ('queued', 'provisioning', 'running');
+
+-- Per-client API keys (see app/db/auth.py). Only a sha256 hash of the raw
+-- key is ever stored; the raw key is returned once, at mint time, by
+-- POST /admin/api-keys and never persisted or logged. `scope` determines
+-- which master key (ADMIN_API_KEY vs PARTNER_API_KEY) this row stands in for.
+CREATE TABLE IF NOT EXISTS api_keys (
+    id           SERIAL PRIMARY KEY,
+    key_hash     TEXT NOT NULL UNIQUE,
+    owner_email  TEXT NOT NULL,
+    label        TEXT,
+    scope        TEXT NOT NULL DEFAULT 'partner',
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    revoked_at   TIMESTAMPTZ
+);
+
+-- Traceability for every mutating /admin/* action (see app/routes/admin.py's
+-- log_admin_action). `actor` is the identity string verify_admin_key returns
+-- (a master-key sentinel or a per-client key's owner_email), not the raw key.
+CREATE TABLE IF NOT EXISTS admin_actions (
+    id          SERIAL PRIMARY KEY,
+    actor       TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    target      TEXT,
+    detail      TEXT,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON admin_actions(target);
+
+-- Sandbox-mode admission record: a small, manually hand-picked cohort of
+-- agents eligible for (future) sandboxed trial-runs. This table does NOT
+-- mean anything actually executes -- it's the gate an admin can flip, most
+-- notably to force `status = 'disabled'` as a kill switch (see
+-- POST /admin/sandbox/{tracent_id}/disable in app/routes/admin.py).
+CREATE TABLE IF NOT EXISTS sandbox_cohort (
+    tracent_id      TEXT NOT NULL REFERENCES agents(tracent_id),
+    admitted_at     TIMESTAMPTZ DEFAULT NOW(),
+    admitted_by     TEXT NOT NULL,
+    manifest_path   TEXT,
+    status          TEXT NOT NULL DEFAULT 'pending_security_review',
+    PRIMARY KEY (tracent_id)
+);
 """
 
 

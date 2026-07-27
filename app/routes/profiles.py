@@ -1,8 +1,8 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, EmailStr, Field
 
 from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
@@ -283,7 +283,7 @@ async def unfollow_org(source: str, org: str, current_user: dict = Depends(get_c
 # ---------------------------------------------------------------------------
 class ReviewBody(BaseModel):
     rating: int
-    text: Optional[str] = None
+    text: Optional[str] = Field(default=None, max_length=2000)
 
 
 @router.get("/agents/{tracent_id}/reviews")
@@ -328,6 +328,18 @@ async def upsert_agent_review(
             tracent_id, current_user["id"], body.rating, body.text,
         )
     return dict(row)
+
+
+@router.delete("/agents/{tracent_id}/reviews")
+async def delete_agent_review(tracent_id: str, current_user: dict = Depends(get_current_user)):
+    async with get_conn() as conn:
+        deleted = await conn.fetchval(
+            "DELETE FROM reviews WHERE tracent_id = $1 AND user_id = $2 RETURNING id",
+            tracent_id, current_user["id"],
+        )
+    if not deleted:
+        raise HTTPException(404, "You haven't reviewed this agent")
+    return {"status": "deleted"}
 
 
 # ---------------------------------------------------------------------------

@@ -1,9 +1,10 @@
 import logging
 import secrets
 from typing import Optional
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
@@ -11,15 +12,27 @@ from app.services.agent_queries import query_agents
 from app.services.deployment_guide import answer_deployment_question, get_or_generate_deployment_guide
 from app.services.github_signals import get_github_signals_nonblocking
 from app.services.recommender import get_recommendations
+from app.services.verifier import run_auto_verification
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/public", tags=["public"])
 
+_ALLOWED_URL_SCHEMES = {"http", "https"}
+
+
+def _validate_optional_url(value: Optional[str]) -> Optional[str]:
+    if value is None or value.strip() == "":
+        return value
+    scheme = urlparse(value).scheme.lower()
+    if scheme not in _ALLOWED_URL_SCHEMES:
+        raise ValueError(f"URL must start with http:// or https:// (got {value!r})")
+    return value
+
 
 class AgentListingBody(BaseModel):
-    name: str
-    description: str
+    name: str = Field(max_length=200)
+    description: str = Field(max_length=5000)
     image_url: Optional[str] = None
     demo_url: Optional[str] = None
     github_url: Optional[str] = None
@@ -28,7 +41,7 @@ class AgentListingBody(BaseModel):
     producthunt_url: Optional[str] = None
     erc8004_ref: Optional[str] = None
     website_url: Optional[str] = None
-    contact_email: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
     support_channel: Optional[str] = None
     terms_url: Optional[str] = None
     interaction_types: list[str] = []
@@ -39,6 +52,11 @@ class AgentListingBody(BaseModel):
     access_model: Optional[str] = None
     pricing_model: Optional[str] = None
     is_private: bool = False
+
+    _validate_urls = field_validator(
+        "image_url", "demo_url", "github_url", "huggingface_url",
+        "producthunt_url", "website_url", "terms_url",
+    )(_validate_optional_url)
 
 
 def _new_listing_id() -> str:
@@ -134,7 +152,9 @@ async def list_my_agents(current_user: dict = Depends(get_current_user)):
 
 @router.post("/agents")
 async def create_agent_listing(
-    body: AgentListingBody, current_user: dict = Depends(get_current_user)
+    body: AgentListingBody,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
 ):
     if not body.name.strip() or not body.description.strip():
         raise HTTPException(400, "Name and description are required")
@@ -186,6 +206,8 @@ async def create_agent_listing(
             body.is_private,
             current_user["id"],
         )
+
+    background_tasks.add_task(run_auto_verification, tracent_id)
     return dict(row)
 
 

@@ -12,9 +12,9 @@ pip install -r requirements-lock.txt
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env and fill in ALCHEMY_API_KEY, DATABASE_URL, API_KEY
+# Edit .env and fill in ALCHEMY_API_KEY, DATABASE_URL, ADMIN_API_KEY, PARTNER_API_KEY
 
-# 3. Generate an API key
+# 3. Generate an API key (run twice, once per key)
 openssl rand -hex 32
 
 # 4. Start the server
@@ -38,7 +38,9 @@ pip-compile --output-file=requirements-lock.txt requirements.txt
 
 ## API Reference
 
-All routes require `X-API-Key: <your-key>` header.
+`/agents/*`, `/trust/*`, and `/verify/*` (partner reads) require `X-API-Key: <partner-key>`.
+`/admin/*` (destructive/moderation actions) requires `X-API-Key: <admin-key>` — a distinct key,
+never shared with partners. See "Split API keys" below.
 
 ### Health
 
@@ -51,19 +53,19 @@ curl http://localhost:8000/health
 
 ```bash
 # List agents (paginated + filtered)
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   "http://localhost:8000/agents?page=1&page_size=20&verified=true&trust_tier=onchain"
 
 # Get full agent profile by Tracent ID
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   http://localhost:8000/agents/trc_4kX9mNpQ2r
 
 # Lookup by source + source_id
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   http://localhost:8000/agents/source/erc8004/4821
 
 # List flagged agents
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   "http://localhost:8000/agents/flagged?severity=high"
 ```
 
@@ -85,11 +87,11 @@ curl -H "X-API-Key: $API_KEY" \
 
 ```bash
 # Trust signal by Tracent ID
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   http://localhost:8000/trust/trc_4kX9mNpQ2r
 
 # Trust signal by source + source_id
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   http://localhost:8000/trust/source/erc8004/4821
 ```
 
@@ -115,13 +117,13 @@ Response:
 
 ```bash
 # Submit a Tracent-verified request
-curl -X POST -H "X-API-Key: $API_KEY" \
+curl -X POST -H "X-API-Key: $PARTNER_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"tracent_id": "trc_4kX9mNpQ2r", "requester_email": "dev@example.com"}' \
   http://localhost:8000/verify/request
 
 # Check verification status
-curl -H "X-API-Key: $API_KEY" \
+curl -H "X-API-Key: $PARTNER_API_KEY" \
   http://localhost:8000/verify/status/trc_4kX9mNpQ2r
 ```
 
@@ -129,20 +131,39 @@ curl -H "X-API-Key: $API_KEY" \
 
 ```bash
 # Registry stats
-curl -H "X-API-Key: $API_KEY" http://localhost:8000/admin/stats
+curl -H "X-API-Key: $ADMIN_API_KEY" http://localhost:8000/admin/stats
 
 # Manually trigger re-index
-curl -X POST -H "X-API-Key: $API_KEY" http://localhost:8000/admin/index
+curl -X POST -H "X-API-Key: $ADMIN_API_KEY" http://localhost:8000/admin/index
 
-# List pending verification reviews
-curl -H "X-API-Key: $API_KEY" http://localhost:8000/admin/reviews
+# List pending verification requests (previously misnamed /admin/reviews)
+curl -H "X-API-Key: $ADMIN_API_KEY" http://localhost:8000/admin/verification-requests
+
+# List / moderate actual agent reviews
+curl -H "X-API-Key: $ADMIN_API_KEY" http://localhost:8000/admin/reviews
+curl -X DELETE -H "X-API-Key: $ADMIN_API_KEY" http://localhost:8000/admin/reviews/42
 
 # Approve or reject a Tier 2 verification
-curl -X POST -H "X-API-Key: $API_KEY" \
+curl -X POST -H "X-API-Key: $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action": "approve", "reviewer_note": "Manually reviewed — all checks pass"}' \
   http://localhost:8000/admin/verify/trc_4kX9mNpQ2r
 ```
+
+### Split API Keys
+
+`ADMIN_API_KEY` and `PARTNER_API_KEY` are separate master keys (set as separate secrets — see
+Fly.io Deploy below). Additional per-client keys can be minted without redeploying via:
+
+```bash
+curl -X POST -H "X-API-Key: $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"owner_email": "partner@example.com", "label": "Acme Corp", "scope": "partner"}' \
+  http://localhost:8000/admin/api-keys
+# {"api_key": "...", ...}  — shown once; only its hash is stored.
+```
+
+Every mutating `/admin/*` call is recorded in the `admin_actions` table (actor, action, target, timestamp) for traceability.
 
 ---
 
@@ -173,7 +194,8 @@ fly apps create tracent-registry
 # Set secrets
 fly secrets set ALCHEMY_API_KEY=<your-alchemy-key>
 fly secrets set DATABASE_URL=<postgres-connection-string>
-fly secrets set API_KEY=$(openssl rand -hex 32)
+fly secrets set ADMIN_API_KEY=$(openssl rand -hex 32)
+fly secrets set PARTNER_API_KEY=$(openssl rand -hex 32)
 
 # Deploy
 fly deploy

@@ -4,7 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     ALCHEMY_API_KEY: str
     DATABASE_URL: str
-    API_KEY: str
+    ADMIN_API_KEY: str
+    PARTNER_API_KEY: str
     CONTRACT_ADDRESS: str = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
     INDEX_INTERVAL_MINUTES: int = 10
     INITIAL_LOOKBACK_BLOCKS: int = 500
