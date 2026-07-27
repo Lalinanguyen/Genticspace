@@ -409,7 +409,14 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               {form.terms && <span className="text-background text-[11px] font-bold leading-none">✓</span>}
             </div>
             <span className="text-[12.5px] leading-relaxed text-foreground-muted">
-              I agree to the Terms of Service and Privacy Policy
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-cyan font-semibold" onClick={(e) => e.stopPropagation()}>
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="text-cyan font-semibold" onClick={(e) => e.stopPropagation()}>
+                Privacy Policy
+              </Link>
             </span>
           </div>
 

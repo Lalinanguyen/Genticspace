@@ -16,8 +16,12 @@ export function Footer() {
         <Link href="/contribute" className="hover:text-foreground">
           Contribute
         </Link>
-        <span>Privacy</span>
-        <span>Terms</span>
+        <Link href="/privacy" className="hover:text-foreground">
+          Privacy
+        </Link>
+        <Link href="/terms" className="hover:text-foreground">
+          Terms
+        </Link>
       </div>
     </div>
   );

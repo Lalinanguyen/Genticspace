@@ -51,15 +51,16 @@ async def send(chunk: str = "", status: str | None = None, exit_code: int | None
 
 
 def lock_down_network() -> None:
-    """Restricts (but no longer fully cuts) outbound network access once the
-    build step (which legitimately needs to reach GitHub/PyPI/npm) is done.
-    The run step -- executing an unreviewed third-party agent -- gets DNS
-    plus plain HTTP/HTTPS egress, so it can call real external APIs the way
-    a real deployment would, plus the log-ingest host. Everything else
-    (arbitrary TCP/UDP ports -- SMTP relay, DB protocols, port scanning,
-    etc.) stays dropped. This machine is also in its own Fly org, off
-    production's private 6PN network, so even with HTTP(S) egress there's
-    no network path to internal Tracent infra."""
+    """Restricts (but does not fully cut) outbound network access for both
+    the build and run steps -- each executes unreviewed third-party code
+    (a manifest-declared build command, then the agent itself) against a
+    freshly cloned repo. Both get DNS plus plain HTTP/HTTPS egress -- enough
+    to install from PyPI/npm and to call real external APIs the way a real
+    deployment would -- plus the log-ingest host. Everything else (arbitrary
+    TCP/UDP ports -- SMTP relay, DB protocols, port scanning, etc.) stays
+    dropped. This machine is also in its own Fly org, off production's
+    private 6PN network, so even with HTTP(S) egress there's no network
+    path to internal Tracent infra."""
     host = INGEST_URL.split("/")[2].split(":")[0]
     try:
         ingest_ip = socket.gethostbyname(host)
@@ -114,17 +115,20 @@ async def run_step(command: str, timeout_seconds: int, label: str) -> int | None
 
 
 async def clone_repo() -> int:
+    """Clones as the unprivileged `sandbox` user, not root -- the target
+    remote and its response are attacker-influenced input, same category of
+    risk run_step() already avoids for build/run. WORKDIR is created (as
+    root, by main()) and handed to `sandbox` before git ever touches it."""
     await send(chunk=f"Cloning {REPO_URL} @ {SOURCE_REF}...\n", status="running")
+    subprocess.run(["chown", "-R", f"{SANDBOX_USER}:{SANDBOX_USER}", WORKDIR], check=False)
     proc = await asyncio.create_subprocess_exec(
         "git", "clone", "--depth", "1", "--branch", SOURCE_REF, REPO_URL, WORKDIR,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
+        user=SANDBOX_USER,
     )
     await _pump_output(proc)
-    code = await proc.wait()
-    if code == 0:
-        subprocess.run(["chown", "-R", f"{SANDBOX_USER}:{SANDBOX_USER}", WORKDIR], check=False)
-    return code
+    return await proc.wait()
 
 
 async def main() -> None:
@@ -135,6 +139,14 @@ async def main() -> None:
         await send(status="failed", exit_code=clone_code)
         return
 
+    # Build runs a manifest-declared command against a cloned third-party
+    # repo -- arbitrary code execution (setup.py, npm postinstall). Lock
+    # down egress before it runs, not after: previously this ran with full,
+    # unrestricted network. Reuses the same DNS+HTTP(S) ruleset already
+    # proven for the run step; nothing needs a wider allowlist to install
+    # from PyPI/npm since those are plain HTTPS.
+    lock_down_network()
+
     build_code = await run_step(BUILD_COMMAND, BUILD_TIMEOUT_SECONDS, "build")
     if build_code is None:
         await send(status="timeout")
@@ -142,8 +154,6 @@ async def main() -> None:
     if build_code != 0:
         await send(status="failed", exit_code=build_code)
         return
-
-    lock_down_network()
 
     run_code = await run_step(RUN_COMMAND, MAX_RUN_SECONDS, "run")
     if run_code is None:
