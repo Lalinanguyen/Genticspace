@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Raleway } from "next/font/google";
+import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
+  weight: ["500", "600", "700"],
 });
 
-const raleway = Raleway({
-  variable: "--font-raleway",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
   title: "Genticspace: AI agent marketplace",
-  description: "Find an AI agent for the job, in plain English. Search, compare and deploy AI agents by industry, license and deployment type.",
+  description: "Discover, compare, and deploy AI agents by trust tier, protocol and use case.",
 };
 
 export default function RootLayout({
@@ -27,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${raleway.variable}`}>
-      <body className="min-h-screen bg-background text-foreground font-body antialiased">
+    <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
+      <body className="min-h-screen bg-background-page text-foreground font-body antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

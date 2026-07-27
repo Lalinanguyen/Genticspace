@@ -15,34 +15,18 @@ export function Nav() {
   const { user, logout } = useAuth();
 
   return (
-    <div
-      className="sticky top-0 z-20 w-full box-border flex flex-wrap gap-4 items-center justify-between px-[5%] py-3.5 relative overflow-hidden"
-      style={{
-        background: "linear-gradient(120deg, rgba(238,241,234,.5), rgba(238,241,234,.22) 40%, rgba(238,241,234,.45))",
-        backdropFilter: "blur(30px) saturate(1.9) contrast(1.05)",
-        WebkitBackdropFilter: "blur(30px) saturate(1.9) contrast(1.05)",
-        border: "1px solid rgba(255,255,255,.45)",
-        boxShadow:
-          "0 12px 40px rgba(28,38,33,.12), inset 0 1.5px 1px rgba(255,255,255,.75), inset 1.5px 0 1px rgba(255,255,255,.4), inset 0 -1.5px 1px rgba(28,38,33,.07), inset -1.5px 0 1px rgba(28,38,33,.04)",
-      }}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,.35) 44%, rgba(255,255,255,.08) 50%, transparent 62%)",
-        }}
-      />
-      <div className="flex items-center gap-2.5 flex-none relative">
+    <div className="sticky top-0 z-20 w-full box-border grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-[5%] py-[22px] bg-background-page/55 backdrop-blur-[22px] border-b border-border">
+      <div className="flex items-center gap-2.5">
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/logo-g.png" alt="Genticspace" className="w-[30px] h-[30px] object-contain" />
-          <span className="font-display font-normal text-xl text-foreground tracking-tight">
+          <img src="/logo.svg" alt="Genticspace" className="w-[30px] h-[30px] rounded" />
+          <span className="font-display font-bold text-lg text-foreground tracking-tight">
             Genticspace
           </span>
         </Link>
       </div>
 
-      <div className="flex flex-nowrap gap-6 overflow-x-auto no-scrollbar font-semibold text-sm text-foreground-muted whitespace-nowrap min-w-0">
+      <div className="flex flex-nowrap gap-5 overflow-x-auto justify-self-center font-medium text-sm text-foreground-muted whitespace-nowrap">
         {LINKS.map((link) => {
           const active = pathname === link.href;
           return (
@@ -61,36 +45,40 @@ export function Nav() {
         })}
       </div>
 
-      <div className="flex gap-3 items-center flex-none whitespace-nowrap">
+      <div className="flex gap-3 items-center flex-none justify-self-end whitespace-nowrap">
         {user ? (
           <>
             <Link
               href={`/u/${user.id}`}
-              className="font-semibold text-sm text-foreground hover:text-cyan-dark"
+              className="font-medium text-sm text-foreground-muted hover:text-foreground"
             >
               {user.name || user.company_name || user.email}
             </Link>
             <Link
               href="/settings"
-              className="font-semibold text-sm text-foreground hover:text-cyan-dark"
+              className="font-medium text-sm text-foreground-muted hover:text-foreground"
             >
               Settings
             </Link>
             <button
               onClick={logout}
-              className="font-semibold text-sm text-foreground hover:text-cyan-dark"
+              className="font-medium text-sm text-foreground-muted hover:text-foreground"
             >
               Sign out
             </button>
           </>
         ) : (
           <>
-            <Link href="/create-account?mode=login" className="font-semibold text-sm text-foreground">
+            <Link
+              href="/create-account?mode=login"
+              className="font-medium text-sm text-foreground-muted hover:text-foreground"
+            >
               Sign in
             </Link>
             <Link
               href="/create-account"
-              className="px-4 py-[9px] rounded bg-cyan font-bold text-[13.5px] text-[#08302B]"
+              className="px-4 py-2 rounded font-semibold text-sm text-white"
+              style={{ background: "linear-gradient(135deg, var(--color-blue), var(--color-blue-to))" }}
             >
               Sign up
             </Link>
