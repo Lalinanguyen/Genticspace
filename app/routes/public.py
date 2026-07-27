@@ -95,6 +95,15 @@ async def get_public_agent(
             "SELECT * FROM agent_skills WHERE tracent_id = $1", tracent_id
         )
 
+        flags = await conn.fetch(
+            "SELECT flag_type, severity, detail, flagged_at FROM reputation_flags WHERE tracent_id = $1 ORDER BY flagged_at DESC",
+            tracent_id,
+        )
+
+        review_summary = await conn.fetchrow(
+            "SELECT COUNT(*) AS count, AVG(rating) AS average FROM reviews WHERE tracent_id = $1", tracent_id
+        )
+
         is_favorited = False
         if current_user:
             is_favorited = bool(
@@ -106,6 +115,9 @@ async def get_public_agent(
 
     result = dict(agent)
     result["skills"] = [dict(s) for s in skills]
+    result["flags"] = [dict(f) for f in flags]
+    result["review_count"] = review_summary["count"]
+    result["avg_rating"] = float(review_summary["average"]) if review_summary["average"] is not None else None
     result["is_favorited"] = is_favorited
     return result
 

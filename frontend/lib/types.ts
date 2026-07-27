@@ -39,6 +39,9 @@ export interface Agent {
   erc8004_ref?: string | null;
   skills?: AgentSkill[];
   is_favorited?: boolean;
+  flags?: ReputationFlag[];
+  review_count?: number;
+  avg_rating?: number | null;
 }
 
 export interface AgentSkill {
@@ -46,6 +49,13 @@ export interface AgentSkill {
   skill_name: string | null;
   description: string | null;
   tags: string | null;
+}
+
+export interface ReputationFlag {
+  flag_type: string;
+  severity: "high" | "medium" | "low" | string;
+  detail: string | null;
+  flagged_at: string;
 }
 
 export interface DeploymentGuide {
