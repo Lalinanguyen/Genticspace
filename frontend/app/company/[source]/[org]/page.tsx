@@ -99,7 +99,7 @@ export default function OrgProfilePage({
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[1000px] mx-auto px-[5%] py-12 box-border">
+      <main className="flex-1 w-full max-w-[1280px] mx-auto px-[5%] py-12 box-border">
         <div className="flex flex-wrap items-start gap-6 mb-8 pb-8 border-b border-border">
           <div className="w-20 h-20 rounded bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-2xl text-white flex-none">
             {initials(profile.name)}
@@ -139,8 +139,8 @@ export default function OrgProfilePage({
                 className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] cursor-pointer text-center"
                 style={
                   profile.is_following
-                    ? { background: "rgba(244,247,243,.06)", border: "1px solid rgba(244,247,243,.14)", color: "#F4F7F3" }
-                    : { background: "#F4F7F3", color: "#00171F" }
+                    ? { background: "rgba(28,38,33,.06)", border: "1px solid rgba(28,38,33,.14)", color: "#1C2621" }
+                    : { background: "#1C2621", color: "#EEF1EA" }
                 }
               >
                 {profile.is_following ? "Following" : "Follow"}
@@ -154,7 +154,7 @@ export default function OrgProfilePage({
         <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0, 1fr) 320px" }}>
           <div>
             <span className="font-display font-bold text-sm text-foreground block mb-4">Agents</span>
-            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
               {profile.agents.map((a) => <AgentCard key={a.tracent_id} agent={a} />)}
             </div>
           </div>
