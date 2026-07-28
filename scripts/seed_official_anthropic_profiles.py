@@ -4,11 +4,15 @@ Anthropic products, API tools, and Skills (Claude Code, Claude in Chrome,
 the built-in web search/code execution/computer use tools, official
 Skills).
 
-Uses `source = 'anthropic-official'` and `trust_tier = 'official'` — new
-values, no schema change needed (`agents.source`/`agents.trust_tier` are
-plain TEXT). See docs/official-anthropic-profiles.md for why these needed
-a dedicated source/tier rather than reusing `'tracent'` (self-submitted via
-the Contribute page) or `'tracent-hosted'` (Tracent's own hosted agents).
+Uses `source = 'anthropic-official'` and `trust_tier = 'anthropic-product'`
+— new values, no schema change needed (`agents.source`/`agents.trust_tier`
+are plain TEXT). See docs/official-anthropic-profiles.md for why these
+needed a dedicated source/tier rather than reusing `'tracent'`
+(self-submitted via the Contribute page) or `'tracent-hosted'` (Tracent's
+own hosted agents) — and specifically why this tier is NOT called
+'official' and does NOT set `verified = TRUE`: these listings are
+Tracent-curated, not reviewed or endorsed by Anthropic, and must not imply
+otherwise.
 
 Every `web_endpoint` below is either a URL already confirmed elsewhere in
 this app's own operating context (claude.ai/code) or a well-known
@@ -35,9 +39,9 @@ from app.db.database import close_db, get_conn, init_db
 _NOW = datetime.now(timezone.utc)
 _ANTHROPIC_URL = "https://www.anthropic.com"
 
-OFFICIAL_PROFILES = [
+ANTHROPIC_PROFILES = [
     {
-        "tracent_id": "trc_official_claude_code",
+        "tracent_id": "trc_anthropic_claude_code",
         "source_id": "claude-code",
         "name": "Claude Code",
         "description": (
@@ -54,7 +58,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_claude_app",
+        "tracent_id": "trc_anthropic_claude_app",
         "source_id": "claude-app",
         "name": "Claude (desktop & web app)",
         "description": (
@@ -70,7 +74,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_claude_in_chrome",
+        "tracent_id": "trc_anthropic_claude_in_chrome",
         "source_id": "claude-in-chrome",
         "name": "Claude in Chrome",
         "description": (
@@ -88,7 +92,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_web_search_tool",
+        "tracent_id": "trc_anthropic_web_search_tool",
         "source_id": "web-search-tool",
         "name": "Web Search tool",
         "description": (
@@ -105,7 +109,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_code_execution_tool",
+        "tracent_id": "trc_anthropic_code_execution_tool",
         "source_id": "code-execution-tool",
         "name": "Code Execution tool",
         "description": (
@@ -122,7 +126,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_computer_use_tool",
+        "tracent_id": "trc_anthropic_computer_use_tool",
         "source_id": "computer-use-tool",
         "name": "Computer Use tool",
         "description": (
@@ -139,7 +143,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_artifact_design_skill",
+        "tracent_id": "trc_anthropic_artifact_design_skill",
         "source_id": "artifact-design-skill",
         "name": "Artifact Design (official Skill)",
         "description": (
@@ -156,7 +160,7 @@ OFFICIAL_PROFILES = [
         ],
     },
     {
-        "tracent_id": "trc_official_dataviz_skill",
+        "tracent_id": "trc_anthropic_dataviz_skill",
         "source_id": "dataviz-skill",
         "name": "Data Visualization (official Skill)",
         "description": (
@@ -192,7 +196,7 @@ INSERT INTO agents (
     $5, NULL,
     'Anthropic', $6,
     $7,
-    TRUE, 'official', $8,
+    FALSE, 'anthropic-product', $8,
     0.0, FALSE,
     NOW()
 )
@@ -248,10 +252,10 @@ async def seed() -> None:
     await init_db()
     try:
         async with get_conn() as conn:
-            for profile in OFFICIAL_PROFILES:
+            for profile in ANTHROPIC_PROFILES:
                 tracent_id = await _seed_profile(conn, profile)
                 print(f"  seeded {tracent_id} (anthropic-official/{profile['source_id']}) — {profile['name']}")
-        print(f"\nSeeded {len(OFFICIAL_PROFILES)} official Anthropic profiles.")
+        print(f"\nSeeded {len(ANTHROPIC_PROFILES)} Anthropic product listings.")
         print("Cleanup: DELETE FROM agents WHERE source = 'anthropic-official';")
     finally:
         await close_db()

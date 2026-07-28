@@ -1,9 +1,9 @@
-# Official Anthropic profiles
+# Anthropic product listings
 
-`source = 'anthropic-official'` and `trust_tier = 'official'` are
+`source = 'anthropic-official'` and `trust_tier = 'anthropic-product'` are
 Tracent-curated directory listings for first-party Anthropic products, API
 tools, and Skills — Claude Code, Claude in Chrome, the built-in web
-search/code execution/computer use tools, and official Skills like
+search/code execution/computer use tools, and built-in Skills like
 Artifact design and data visualization.
 
 Seeded by [`scripts/seed_official_anthropic_profiles.py`](../scripts/seed_official_anthropic_profiles.py).
@@ -12,6 +12,22 @@ plain `TEXT` columns, same as every other source value
 (`erc8004`, `github`, `huggingface`, `npm`, `futurepedia`, `tracent`,
 `tracent-hosted`, ...).
 
+## Naming: deliberately not "official" / "verified"
+
+An earlier version of this used `trust_tier = 'official'` and
+`verified = TRUE`. Both were wrong: nothing here has been reviewed,
+authorized, or endorsed by Anthropic — these are listings Tracent itself
+put together from public information about Anthropic's products. Calling
+that "Official" or "Verified" on a marketplace card would tell users
+Anthropic stands behind the *listing*, which isn't true and risks a real
+misrepresentation/brand problem. `trust_tier = 'anthropic-product'` (label:
+"Anthropic product") says only what's actually true — the product itself
+is a first-party Anthropic product — without implying any relationship
+between Anthropic and Tracent/Genticspace. `agents.verified` is `FALSE`
+for the same reason: on this schema, `verified = TRUE` means the listing
+went through Tracent's own on-chain or admin verification, which these
+didn't.
+
 ## Why not reuse `'tracent'` or `'tracent-hosted'`
 
 - `source = 'tracent'` / `trust_tier = 'tracent'` means a listing was
@@ -19,14 +35,15 @@ plain `TEXT` columns, same as every other source value
   (`frontend/app/contribute`, `POST /public/agents`), or **manually
   verified by an admin** (`app/services/verifier.py`'s
   `run_verification_review`). Neither describes an Anthropic-authored
-  listing that Tracent itself curated.
+  product that Tracent itself catalogued.
 - `trust_tier = 'tracent-hosted'` means Tracent wrote and runs the agent
   itself. These profiles aren't Tracent's own agents — they're Anthropic's
   products.
 
-So a distinct `anthropic-official` source and `official` trust tier keeps
-those three cases (user-submitted, Tracent-hosted, Anthropic-published)
-each unambiguous.
+So a distinct `anthropic-official` source and `anthropic-product` trust
+tier keeps those three cases (user-submitted, Tracent-hosted,
+Anthropic-made-but-Tracent-catalogued) each unambiguous, without the last
+one overclaiming a relationship with Anthropic.
 
 ## Where the label shows up
 
@@ -40,19 +57,19 @@ places today:
   drives the trust-tier filter dropdown)
 - `frontend/app/marketplace/[tracent_id]/page.tsx` (`TRUST_TIER_LABELS`)
 
-All three now map `official` → `"Official"`, consistent with how
-`onchain` → `"On-chain"` and `tracent` → `"Genticspace-verified"` already
-work. There's no separate badge color per tier on `main` (all trust tags
-render with the same cyan tag styling), so no new color scheme was
-introduced.
+All three now map `anthropic-product` → `"Anthropic product"`, alongside
+`onchain` → `"On-chain"` and `tracent` → `"Genticspace-verified"`. There's
+no separate badge color per tier on `main` (all trust tags render with the
+same cyan tag styling), so no new color scheme was introduced.
 
 ## Data contract
 
 - `agents.source` = `'anthropic-official'`
 - `agents.source_id` = a stable slug (e.g. `claude-code`)
 - `agents.provider_org` = `'Anthropic'`, `agents.provider_url` =
-  `https://www.anthropic.com`
-- `agents.verified` = `true`, `agents.trust_tier` = `'official'`
+  `https://www.anthropic.com` — factual attribution of who makes the
+  product, not a claim about this listing's relationship to Anthropic.
+- `agents.verified` = `false`, `agents.trust_tier` = `'anthropic-product'`
 - `agents.web_endpoint` — only set when a real, confirmed public page
   exists (Claude Code, the Claude app, Claude in Chrome). Left `null` for
   the API tools and Skills, which don't have a standalone public page of
@@ -66,4 +83,7 @@ introduced.
 
 This is Tracent-authored data, not something a scraper keeps in sync.
 Re-run the seed script after editing its profile list; treat "is this
-list still accurate" as a periodic manual check.
+list still accurate" as a periodic manual check. If Anthropic ever does
+formally review or partner on these listings, that's a real, separate
+change (new tier or a `verified` flip) — don't backfill that meaning onto
+`anthropic-product` without it actually being true.

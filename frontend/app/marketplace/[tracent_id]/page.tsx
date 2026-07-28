@@ -10,7 +10,7 @@ import { getAgent, ApiError } from "@/lib/api";
 const TRUST_TIER_LABELS: Record<string, string> = {
   onchain: "On-chain verified",
   tracent: "Genticspace-verified",
-  official: "Official",
+  "anthropic-product": "Anthropic product",
 };
 
 function ListingTag({ children }: { children: React.ReactNode }) {
