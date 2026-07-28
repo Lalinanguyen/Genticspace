@@ -18,7 +18,7 @@ _TIMEOUT = 10.0
 # what actually makes "any repo, best-effort" safe without an admin allowlist
 # gate: only repos that declare their own build/run commands are ever run,
 # nothing is guessed.
-_MANIFEST_PATHS = ["tracent.yaml", "tracent.yml", ".tracent/sandbox.yaml"]
+_MANIFEST_PATHS = ["genticspace.yaml", "genticspace.yml", ".genticspace/sandbox.yaml"]
 
 _VALID_RUNTIMES = {"python", "node"}
 
@@ -152,7 +152,7 @@ async def _save_config(tracent_id: str, manifest: dict | None, ref: str | None, 
 
 
 async def scan_sandbox_manifests() -> None:
-    """Looks for a tracent.yaml manifest in each GitHub-sourced agent's repo
+    """Looks for a genticspace.yaml manifest in each GitHub-sourced agent's repo
     and enables/refreshes sandbox mode for it when one validates. Agents
     without a manifest are recorded too (sandbox_enabled=False, manifest_fetched_at
     set) so they aren't re-checked on every scan pass, same has_material

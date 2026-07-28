@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { DeploymentGuideSection } from "@/components/agent/DeploymentGuideSection";
 import { ReviewForm } from "@/components/agent/ReviewForm";
 import { listAgentReviews, ApiError } from "@/lib/api";
@@ -53,12 +52,6 @@ export function AgentTabs({ agent }: { agent: Agent }) {
             {t.label}
           </div>
         ))}
-        <Link
-          href={`/marketplace/${agent.tracent_id}/try`}
-          className="pb-3 font-semibold text-[13.5px] text-foreground-muted no-underline hover:text-foreground"
-        >
-          Sandbox mode
-        </Link>
       </div>
 
       {tab === "about" && (
@@ -195,7 +188,7 @@ function ReviewsTab({ agent }: { agent: Agent }) {
       {error && <p className="text-[13px] text-error">{error}</p>}
 
       {reviews && reviews.length === 0 && (
-        <p className="text-[13px] text-foreground-faint">No reviews yet — be the first.</p>
+        <p className="text-[13px] text-foreground-faint">No reviews yet - be the first.</p>
       )}
 
       {reviews && reviews.length > 0 && (

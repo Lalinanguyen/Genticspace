@@ -132,8 +132,11 @@ export function RunConsole({ agent }: { agent: Agent }) {
           >
             ← Back to agent page
           </a>
-          <h1 className="font-display font-normal text-[34px] leading-tight text-foreground tracking-tight mt-3 mb-1.5">
+          <h1 className="font-display font-normal text-[34px] leading-tight text-foreground tracking-tight mt-3 mb-1.5 flex items-center gap-3">
             Run console
+            <span className="px-2 py-0.5 rounded-sm font-bold text-[11px] tracking-[1px] text-white align-middle" style={{ background: "#178C7E" }}>
+              BETA
+            </span>
           </h1>
           <p className="m-0 text-sm text-foreground-muted">
             Clones and runs {agent.name || agent.tracent_id}&apos;s real repository in an isolated sandbox, off
@@ -160,7 +163,7 @@ export function RunConsole({ agent }: { agent: Agent }) {
       {!checked ? null : !enabled ? (
         <div className={glassPanel("p-8 text-center")}>
           <p className="m-0 text-[14px] text-foreground-muted">
-            This agent isn&apos;t sandbox-ready yet. Its repo needs a <code>tracent.yaml</code> manifest declaring
+            This agent isn&apos;t sandbox-ready yet. Its repo needs a <code>genticspace.yaml</code> manifest declaring
             build/run commands.
           </p>
         </div>
@@ -271,12 +274,12 @@ export function RunConsole({ agent }: { agent: Agent }) {
                   <div className="flex items-center justify-between py-2 border-b border-border">
                     <span className="text-foreground-muted">Duration</span>
                     <span className="font-semibold text-foreground">
-                      {durationSeconds != null ? `${durationSeconds}s` : "—"}
+                      {durationSeconds != null ? `${durationSeconds}s` : "-"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-border">
                     <span className="text-foreground-muted">Exit code</span>
-                    <span className="font-semibold text-foreground">{run.exit_code ?? "—"}</span>
+                    <span className="font-semibold text-foreground">{run.exit_code ?? "-"}</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
                     <span className="text-foreground-muted">Log size</span>

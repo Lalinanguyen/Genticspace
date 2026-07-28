@@ -388,7 +388,7 @@ CREATE TABLE IF NOT EXISTS job_runs (
 
 -- Sandbox mode: lets a user run an agent's actual open-source repo in an
 -- isolated Fly Machine. sandbox_enabled only ever becomes true once a valid
--- tracent.yaml manifest (build/run commands) has been found in the agent's
+-- genticspace.yaml manifest (build/run commands) has been found in the agent's
 -- repo -- there is no admin allowlist, but there is also no attempt to guess
 -- build steps for repos that don't declare them.
 CREATE TABLE IF NOT EXISTS agent_sandbox_config (

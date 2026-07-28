@@ -16,14 +16,17 @@ export default async function SandboxPage() {
             style={{ background: "radial-gradient(circle, rgba(7,42,200,.4), transparent 70%)" }}
           />
           <div className="relative max-w-[720px]">
-            <h1 className="font-display font-bold text-4xl leading-tight text-foreground tracking-tight mb-2.5">
+            <h1 className="font-display font-bold text-4xl leading-tight text-foreground tracking-tight mb-2.5 flex items-center gap-3">
               Sandbox mode
+              <span className="px-2 py-0.5 rounded-sm font-bold text-[11px] tracking-[1px] text-white align-middle" style={{ background: "#178C7E" }}>
+                BETA
+              </span>
             </h1>
             <p className="text-foreground-muted text-[15px] leading-relaxed mb-2">
               Run an agent&apos;s real open-source code in an isolated environment before you adopt it.
             </p>
             <p className="text-foreground-faint text-[13px] leading-relaxed">
-              Only agents whose repo declares a <code>tracent.yaml</code> manifest show up here.
+              Only agents whose repo declares a <code>genticspace.yaml</code> manifest show up here.
             </p>
           </div>
         </div>
@@ -38,7 +41,7 @@ export default async function SandboxPage() {
           {agents.length === 0 ? (
             <div className="py-16 px-5 text-center text-foreground-muted font-medium text-sm">
               No agents are sandbox-ready yet. Agent authors can enable this by adding a{" "}
-              <code>tracent.yaml</code>{" "}manifest to their repo&apos;s root.
+              <code>genticspace.yaml</code>{" "}manifest to their repo&apos;s root.
             </div>
           ) : (
             <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>

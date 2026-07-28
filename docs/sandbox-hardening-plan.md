@@ -76,7 +76,7 @@ agent's code runs for the first time, live, anywhere.**
 Component (A), on `main`, is already live, already runs real untrusted code
 automatically, and has none of that: `app/services/sandbox_manifest.py`
 scans every GitHub-sourced agent on a 12-hour cycle and flips
-`sandbox_enabled = TRUE` the moment a repo's `tracent.yaml` validates — no
+`sandbox_enabled = TRUE` the moment a repo's `genticspace.yaml` validates — no
 human in the loop, no CVE scan, no legal check, no cohort. Anyone with a
 listed GitHub repo and a valid manifest is in.
 
