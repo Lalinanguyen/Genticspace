@@ -142,12 +142,10 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                     style={{ opacity: i < searchShown ? 1 : 0, transform: i < searchShown ? "none" : "translateY(10px)", transition: "opacity .35s ease,transform .35s ease" }}
                   >
                     {agent.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={agent.image_url}
-                        alt=""
-                        className="w-[26px] h-[26px] flex-none rounded object-cover"
-                      />
+                      <div className="w-[26px] h-[26px] flex-none rounded bg-white p-[3px] box-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={agent.image_url} alt="" className="w-full h-full object-contain" />
+                      </div>
                     ) : (
                       <span
                         className="w-[26px] h-[26px] flex-none rounded font-display font-normal text-[10px] text-white flex items-center justify-center"
@@ -198,13 +196,13 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                 >
                   <div className="h-[70px] relative" style={{ background: `linear-gradient(135deg,${CARD_COLORS[i % CARD_COLORS.length]},${CARD_COLORS[i % CARD_COLORS.length]}55)` }}>
                     {agent.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={agent.image_url}
-                        alt=""
-                        className="absolute left-3.5 -bottom-[18px] w-[42px] h-[42px] rounded object-cover"
+                      <div
+                        className="absolute left-3.5 -bottom-[18px] w-[42px] h-[42px] rounded bg-white p-1 box-border"
                         style={{ border: "3px solid var(--color-background)" }}
-                      />
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={agent.image_url} alt="" className="w-full h-full object-contain" />
+                      </div>
                     ) : (
                       <div
                         className="absolute left-3.5 -bottom-[18px] w-[42px] h-[42px] rounded flex items-center justify-center font-display font-normal text-[13px] text-white"
