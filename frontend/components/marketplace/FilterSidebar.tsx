@@ -14,6 +14,7 @@ const TRUST_TIERS = [
   { value: "", label: "Any tier" },
   { value: "onchain", label: "On-chain" },
   { value: "tracent", label: "Genticspace-verified" },
+  { value: "official", label: "Official" },
 ];
 
 const INDUSTRIES = [

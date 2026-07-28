@@ -7,6 +7,7 @@ const MAX_TAGS = 4;
 const TRUST_TIER_LABELS: Record<string, string> = {
   onchain: "On-chain",
   tracent: "Genticspace-verified",
+  official: "Official",
 };
 
 function shortId(id: string): string {
