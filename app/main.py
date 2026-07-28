@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 
@@ -20,6 +22,7 @@ from app.routes.public import router as public_router
 from app.routes.sandbox import internal_router as sandbox_internal_router
 from app.routes.sandbox import router as sandbox_router
 from app.routes.trust import router as trust_router
+from app.routes.uploads import router as uploads_router
 from app.services.ard_crawler import crawl_ard
 from app.services.deployment_guide import backfill_deployment_guides
 from app.services.description_backfill import (
@@ -165,6 +168,12 @@ app.include_router(public_router)
 app.include_router(profiles_router)
 app.include_router(sandbox_router)
 app.include_router(sandbox_internal_router)
+app.include_router(uploads_router)
+
+# StaticFiles requires the directory to exist at mount time, not just when a
+# file is first written to it.
+os.makedirs(settings.UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_DIR), name="uploads")
 
 
 @app.get("/health", tags=["meta"])

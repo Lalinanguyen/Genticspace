@@ -156,6 +156,25 @@ export function getMyAgents(token: string): Promise<{ agents: Agent[] }> {
   });
 }
 
+// Separate from request(): that helper always sends Content-Type:
+// application/json, but a multipart upload needs the browser to set its
+// own Content-Type with the multipart boundary -- setting it manually
+// here would omit the boundary and the backend couldn't parse the body.
+export async function uploadImage(file: File, token: string): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/public/uploads`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.detail || res.statusText);
+  }
+  return res.json();
+}
+
 export function createAgentListing(
   payload: AgentListingInput,
   token: string

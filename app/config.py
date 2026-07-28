@@ -100,6 +100,13 @@ class Settings(BaseSettings):
     SANDBOX_MANIFEST_SCAN_BATCH_SIZE: int = 200
     SANDBOX_REAP_INTERVAL_MINUTES: int = 5
 
+    # User-uploaded images (agent listing photo/screenshot). Stored on a Fly
+    # volume rather than object storage for now -- see fly.toml's [[mounts]]
+    # and the note there about why this app is pinned to a single machine.
+    UPLOADS_DIR: str = "/data/uploads"
+    UPLOADS_MAX_BYTES: int = 5_000_000
+    UPLOADS_PUBLIC_BASE_URL: str = "http://localhost:8000"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
