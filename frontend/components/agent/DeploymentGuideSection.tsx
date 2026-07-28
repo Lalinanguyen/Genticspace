@@ -10,7 +10,7 @@ interface ChatMessage {
 }
 
 // The deployment guide is AI-generated plain text that uses markdown-style
-// "## Heading" lines to break up sections — rendered as-is it showed the
+// "## Heading" lines to break up sections - rendered as-is it showed the
 // literal "##" instead of a heading, so this splits the text on those lines
 // and renders them as titles instead of raw text.
 function renderGuideContent(text: string) {
@@ -87,27 +87,19 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
         onClick={() => setOpen(true)}
         className="mt-4 flex items-center gap-2 cursor-pointer select-none w-fit"
       >
-        <span
-          className="w-7 h-7 rounded-full flex-none flex items-center justify-center font-display font-bold text-[11px] text-background"
-          style={{ background: "linear-gradient(135deg,#35C0B0,#1F8A7E)" }}
-        >
-          AI
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="" className="w-7 h-7 flex-none object-contain" />
         <span className="font-semibold text-[13px] text-cyan">Ask a question about setting this up</span>
       </div>
     );
   }
 
   return (
-    <div className="mt-4 rounded bg-[rgba(244,247,243,.03)] border border-border overflow-hidden">
+    <div className="mt-4 rounded bg-[rgba(28,38,33,.03)] border border-border overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
-          <span
-            className="w-6 h-6 rounded-full flex-none flex items-center justify-center font-display font-bold text-[10px] text-background"
-            style={{ background: "linear-gradient(135deg,#35C0B0,#1F8A7E)" }}
-          >
-            AI
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" className="w-6 h-6 flex-none object-contain" />
           <span className="font-semibold text-[12.5px] text-foreground">Setup help</span>
         </div>
         <span
@@ -126,8 +118,8 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
               className="max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed whitespace-pre-wrap"
               style={
                 m.role === "user"
-                  ? { alignSelf: "flex-end", background: "rgba(53,192,176,.14)", color: "#F4F7F3" }
-                  : { alignSelf: "flex-start", background: "rgba(244,247,243,.05)", color: "rgba(244,247,243,.85)" }
+                  ? { alignSelf: "flex-end", background: "rgba(53,192,176,.14)", color: "#1C2621" }
+                  : { alignSelf: "flex-start", background: "rgba(28,38,33,.05)", color: "rgba(28,38,33,.85)" }
               }
             >
               {m.content}
@@ -136,7 +128,7 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
           {sending && (
             <div
               className="max-w-[85%] px-3 py-2 rounded text-[12.5px] text-foreground-faint"
-              style={{ alignSelf: "flex-start", background: "rgba(244,247,243,.05)" }}
+              style={{ alignSelf: "flex-start", background: "rgba(28,38,33,.05)" }}
             >
               Thinking…
             </div>
@@ -154,14 +146,14 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
             if (e.key === "Enter") send();
           }}
           placeholder="e.g. What if step 2 fails?"
-          className="flex-1 min-w-0 box-border px-3 py-2 rounded-sm bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-[12.5px] focus:outline-none focus:border-cyan"
+          className="flex-1 min-w-0 box-border px-3 py-2 rounded-sm bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-[12.5px] focus:outline-none focus:border-cyan"
         />
         <div
           onClick={sending ? undefined : send}
           className="flex-none px-3.5 py-2 rounded-sm font-semibold text-[12px] cursor-pointer text-white"
           style={{
-            background: input.trim() && !sending ? "linear-gradient(135deg,#072AC8,#2f4fe0)" : "rgba(244,247,243,.08)",
-            color: input.trim() && !sending ? "#fff" : "rgba(244,247,243,.4)",
+            background: input.trim() && !sending ? "linear-gradient(135deg,#072AC8,#2f4fe0)" : "rgba(28,38,33,.08)",
+            color: input.trim() && !sending ? "#fff" : "rgba(28,38,33,.4)",
           }}
         >
           Ask
@@ -180,7 +172,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
   const [loaded, setLoaded] = useState(false);
 
   // The user's AI experience level is an internal signal from their profile,
-  // not something they pick per-agent — instructions are always tailored to
+  // not something they pick per-agent - instructions are always tailored to
   // it automatically, no manual level switcher.
   useEffect(() => {
     if (authLoading || loaded || loading) return;

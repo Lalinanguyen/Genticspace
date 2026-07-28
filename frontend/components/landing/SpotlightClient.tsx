@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Agent } from "@/lib/types";
 
-const RAIL_LABELS = ["Search your tool", "Browse + list", "Deploy"];
+const RAIL_LABELS = ["Search your tool", "Browse + list", "Setup help"];
 const CARD_COLORS = ["#35C0B0", "#072AC8", "#EF233C", "#E8A33D"];
 const DEMO_QUERY = "reconcile invoices against our ledger";
 
@@ -14,19 +14,15 @@ function initials(name: string | null) {
   return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
 }
 
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="glass-chip px-2.5 py-1 rounded-lg font-medium text-[10.5px]" style={{ fontFamily: "ui-monospace,Menlo,monospace", color: "rgba(28,38,33,.6)" }}>
-      {children}
-    </span>
-  );
-}
-
 export function SpotlightClient({ agents }: { agents: Agent[] }) {
   const [active, setActive] = useState(0);
   const [searchTyped, setSearchTyped] = useState("");
   const [searchShown, setSearchShown] = useState(0);
-  const refs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
+  const refs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +104,7 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                 Search for your tool in plain English
               </h2>
               <p className="m-0 mb-[34px] font-body text-[16.5px] leading-[1.65] text-foreground-muted">
-                Describe the job &mdash; &quot;triage my support inbox&quot;, &quot;reconcile invoices&quot; &mdash; and Genticspace matches agents by capability, not keyword. No engineering brief required.
+                Describe the job - &quot;triage my support inbox&quot;, &quot;reconcile invoices&quot; - and Genticspace matches agents by capability, not keyword. No engineering brief required.
               </p>
             </div>
 
@@ -181,12 +177,12 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                 Browse or add what teams actually deploy
               </h2>
               <p className="m-0 mb-[34px] font-body text-[16.5px] leading-[1.65] text-foreground-muted">
-                Every listing shows its license, deployment options, and verification up front &mdash; nothing buried.
+                Every listing shows its license, deployment options, and verification up front - nothing buried.
               </p>
             </div>
             <div className="flex-1 min-w-[320px] flex gap-4 flex-wrap">
               {browseAgents.length === 0 && (
-                <p className="text-sm text-foreground-faint">No listings yet &mdash; be the first to add one.</p>
+                <p className="text-sm text-foreground-faint">No listings yet - be the first to add one.</p>
               )}
               {browseAgents.map((agent, i) => (
                 <Link
@@ -231,39 +227,50 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
             </div>
           </div>
 
-          {/* SUBSECTION 3: DEPLOY */}
+          {/* SUBSECTION 3: DEPLOYMENT GUIDE + SETUP HELP */}
           <div ref={refs[2]} className="flex gap-14 items-start flex-wrap pt-20 border-t border-border">
             <div className="flex-1 min-w-[300px] max-w-[460px]">
               <span className="font-semibold text-xs tracking-[1.5px]" style={{ fontFamily: "ui-monospace,Menlo,monospace", color: "#178C7E" }}>
-                DEPLOYMENT
+                DEPLOYMENT GUIDE
               </span>
               <h2 className="mt-[18px] mb-[22px] font-display font-normal text-4xl leading-[1.1] text-foreground tracking-[-.5px]" style={{ textWrap: "balance" }}>
-                From sandbox to production
+                Ask how to deploy it, get a real answer
               </h2>
               <p className="m-0 mb-[34px] font-body text-[16.5px] leading-[1.65] text-foreground-muted">
-                Sandboxable agents clone and run their real repository in an isolated Fly Machine, off production's network &mdash; right on the listing, no install required. When it looks right, connect straight to its A2A endpoint, cloud, on-prem or API.
+                Every listing gets AI-generated setup instructions built from its actual repo, tailored to your experience level. Stuck on a step? The built-in chatbot already has the full guide as context.
               </p>
             </div>
             <div className="glass-panel-lg flex-1 min-w-[320px] p-[26px] rounded-2xl box-border">
-              <div className="font-semibold text-base text-foreground mb-3.5">
-                Every sandboxable agent runs for real before you deploy
+              <span className="font-display font-bold text-sm text-foreground block mb-4">Deployment guide</span>
+              <div className="text-[13.5px] leading-relaxed text-foreground-muted mb-5">
+                <div className="font-display font-normal text-[15px] text-foreground mb-1.5">Install and run</div>
+                <p className="m-0">
+                  1. Clone the repo and install dependencies with <code>npm install</code>.<br />
+                  2. Copy <code>.env.example</code> to <code>.env</code> and set your API key.<br />
+                  3. Run <code>npm start</code> and open <code>localhost:3000</code>.
+                </p>
               </div>
-              <div className="flex gap-1.5 flex-wrap mb-6">
-                <Tag>A2A endpoint</Tag>
-                <Tag>Sandbox runs</Tag>
-                <Tag>Cloud or on-prem</Tag>
-              </div>
-              <div className="flex flex-col gap-2.5 mb-6">
-                {[
-                  ["Result", "What happened — success, failure, exit code."],
-                  ["How it worked", "The full clone/build/run log stream."],
-                  ["Analytics", "Real duration and log size for the run."],
-                ].map(([label, desc]) => (
-                  <div key={label} className="glass-chip flex items-center gap-3 px-3.5 py-2.5 rounded-[11px]">
-                    <span className="font-display font-normal text-[13.5px] text-foreground flex-none w-[110px]">{label}</span>
-                    <span className="font-body text-xs text-foreground-faint">{desc}</span>
+
+              <div className="rounded bg-[rgba(28,38,33,.03)] border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo.svg" alt="" className="w-6 h-6 flex-none object-contain" />
+                  <span className="font-semibold text-[12.5px] text-foreground">Setup help</span>
+                </div>
+                <div className="flex flex-col gap-2.5 px-4 py-3">
+                  <div
+                    className="max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed self-end"
+                    style={{ background: "rgba(53,192,176,.14)", color: "#1C2621" }}
+                  >
+                    What if step 2 fails?
                   </div>
-                ))}
+                  <div
+                    className="max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed self-start"
+                    style={{ background: "rgba(28,38,33,.05)", color: "rgba(28,38,33,.85)" }}
+                  >
+                    Double check the key is exported in your current shell - a common miss is setting it in a different terminal tab.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
