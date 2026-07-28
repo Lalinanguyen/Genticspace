@@ -327,7 +327,7 @@ async def top_providers(limit: int = Query(12, ge=1, le=50)):
         rows = await conn.fetch(
             """
             SELECT
-              a.provider_org AS name,
+              MAX(COALESCE(NULLIF(hp.display_name, ''), NULLIF(gp.display_name, ''), a.provider_org)) AS name,
               a.source,
               COUNT(*) AS agent_count,
               MAX(COALESCE(hp.num_followers, gp.followers, 0)) AS followers,
