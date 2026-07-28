@@ -17,6 +17,7 @@ async def query_agents(
     x402_only: bool = False,
     flagged_only: bool = False,
     safe_only: bool = False,
+    with_photo: bool = False,
     industry: Optional[str] = None,
     license: Optional[str] = None,
     deployment: Optional[str] = None,
@@ -47,6 +48,8 @@ async def query_agents(
         conditions.append("x402_support = TRUE")
     if safe_only:
         conditions.append("safe_to_transact = TRUE")
+    if with_photo:
+        conditions.append("image_url IS NOT NULL AND image_url != ''")
     if industry:
         parts = [p.strip() for p in industry.split(",") if p.strip()]
         if parts:

@@ -51,6 +51,7 @@ function filtersToSearchParams(filters: MarketplaceFilters): string {
   if (filters.mcp_only) params.set("mcp_only", "true");
   if (filters.x402_only) params.set("x402_only", "true");
   if (filters.safe_only) params.set("safe_only", "true");
+  if (filters.with_photo) params.set("with_photo", "true");
   if (filters.industry) params.set("industry", filters.industry);
   if (filters.license) params.set("license", filters.license);
   if (filters.deployment) params.set("deployment", filters.deployment);

@@ -251,6 +251,7 @@ export interface MarketplaceFilters {
   mcp_only?: boolean;
   x402_only?: boolean;
   safe_only?: boolean;
+  with_photo?: boolean;
   industry?: string;
   license?: string;
   deployment?: string;
