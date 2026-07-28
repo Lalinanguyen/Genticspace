@@ -164,6 +164,8 @@ export interface Review {
 export interface UserProfile {
   id: number;
   name: string | null;
+  company_name?: string | null;
+  industry?: string | null;
   account_type?: "individual" | "business";
   bio?: string | null;
   purposes?: string[] | null;

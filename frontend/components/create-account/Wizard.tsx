@@ -119,6 +119,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
   const [error, setError] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [createdUserId, setCreatedUserId] = useState<number | null>(null);
 
   const isBusiness = form.accountType === "business";
 
@@ -190,6 +191,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
         connects: form.connects,
       });
       setSession(res.access_token, res.user);
+      setCreatedUserId(res.user.id);
       setStep("confirmation");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create your account");
@@ -612,7 +614,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
           <div className="flex flex-wrap gap-10 items-start">
             <div className="flex-1 min-w-[220px] max-w-[260px] flex flex-col gap-4">
               <div className="w-[120px] h-[120px] rounded bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-bold text-4xl text-white">
-                {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "TC"}
+                {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "GS"}
               </div>
               <div>
                 <div className="font-display font-bold text-[17px] text-foreground mb-0.5">
@@ -680,7 +682,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               : "Your account is ready. Head to the marketplace to find your first agent."}
           </p>
           <div
-            onClick={() => router.push("/marketplace")}
+            onClick={() => router.push(isBusiness && createdUserId ? `/u/${createdUserId}` : "/marketplace")}
             className="inline-flex px-7.5 py-[15px] rounded bg-foreground text-background font-semibold text-[14.5px] cursor-pointer"
           >
             {isBusiness ? "Go to your profile" : "Browse the marketplace"}
