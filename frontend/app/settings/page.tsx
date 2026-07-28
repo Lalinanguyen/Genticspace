@@ -28,7 +28,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
     <div
       onClick={() => onChange(!checked)}
       className="w-10 h-6 rounded-full flex-none cursor-pointer relative transition-colors"
-      style={{ background: checked ? "#35C0B0" : "rgba(244,247,243,.15)" }}
+      style={{ background: checked ? "#35C0B0" : "rgba(28,38,33,.15)" }}
     >
       <div
         className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
@@ -130,7 +130,7 @@ function SettingsForm({ user }: { user: User }) {
               onClick={() => setTab(t)}
               className="px-4 py-2.5 font-semibold text-[13px] cursor-pointer whitespace-nowrap"
               style={{
-                color: tab === t ? "#F4F7F3" : "rgba(244,247,243,.5)",
+                color: tab === t ? "#1C2621" : "rgba(28,38,33,.5)",
                 borderBottom: tab === t ? "2px solid #35C0B0" : "2px solid transparent",
               }}
             >
