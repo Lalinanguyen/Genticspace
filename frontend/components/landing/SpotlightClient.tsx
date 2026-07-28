@@ -141,12 +141,21 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                     className="glass-chip flex items-center gap-2.5 px-3 py-[11px] rounded-[11px] no-underline transition-transform duration-200 hover:scale-[1.02]"
                     style={{ opacity: i < searchShown ? 1 : 0, transform: i < searchShown ? "none" : "translateY(10px)", transition: "opacity .35s ease,transform .35s ease" }}
                   >
-                    <span
-                      className="w-[26px] h-[26px] flex-none rounded font-display font-normal text-[10px] text-white flex items-center justify-center"
-                      style={{ background: CARD_COLORS[i % CARD_COLORS.length] }}
-                    >
-                      {initials(agent.name)}
-                    </span>
+                    {agent.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={agent.image_url}
+                        alt=""
+                        className="w-[26px] h-[26px] flex-none rounded object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="w-[26px] h-[26px] flex-none rounded font-display font-normal text-[10px] text-white flex items-center justify-center"
+                        style={{ background: CARD_COLORS[i % CARD_COLORS.length] }}
+                      >
+                        {initials(agent.name)}
+                      </span>
+                    )}
                     <span className="flex-1 min-w-0">
                       <span className="font-display font-normal text-[13.5px] text-foreground">{agent.name || agent.tracent_id}</span>
                       {agent.industry_tags?.[0] && (
@@ -188,12 +197,22 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
                   className="glass-panel-lg flex-1 min-w-[190px] overflow-hidden rounded-2xl no-underline transition-transform duration-200 hover:scale-[1.05]"
                 >
                   <div className="h-[70px] relative" style={{ background: `linear-gradient(135deg,${CARD_COLORS[i % CARD_COLORS.length]},${CARD_COLORS[i % CARD_COLORS.length]}55)` }}>
-                    <div
-                      className="absolute left-3.5 -bottom-[18px] w-[42px] h-[42px] rounded flex items-center justify-center font-display font-normal text-[13px] text-white"
-                      style={{ border: "3px solid var(--color-background)", background: `linear-gradient(135deg,${CARD_COLORS[i % CARD_COLORS.length]},${CARD_COLORS[i % CARD_COLORS.length]}bb)` }}
-                    >
-                      {initials(agent.name)}
-                    </div>
+                    {agent.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={agent.image_url}
+                        alt=""
+                        className="absolute left-3.5 -bottom-[18px] w-[42px] h-[42px] rounded object-cover"
+                        style={{ border: "3px solid var(--color-background)" }}
+                      />
+                    ) : (
+                      <div
+                        className="absolute left-3.5 -bottom-[18px] w-[42px] h-[42px] rounded flex items-center justify-center font-display font-normal text-[13px] text-white"
+                        style={{ border: "3px solid var(--color-background)", background: `linear-gradient(135deg,${CARD_COLORS[i % CARD_COLORS.length]},${CARD_COLORS[i % CARD_COLORS.length]}bb)` }}
+                      >
+                        {initials(agent.name)}
+                      </div>
+                    )}
                   </div>
                   <div className="pt-[26px] px-3.5 pb-3.5">
                     <div className="flex items-center gap-1.5 mb-1">
