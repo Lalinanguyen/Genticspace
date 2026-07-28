@@ -38,7 +38,7 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
             <Link
               href={`/company/${c.source}/${encodeURIComponent(c.name)}`}
               key={`${c.source}:${c.name}:${i}`}
-              className="flex-none w-[210px] flex items-center gap-3 p-3.5 rounded bg-surface-2 border border-border shadow-[0_10px_28px_rgba(0,0,0,.35)] box-border no-underline hover:border-border-strong transition-colors"
+              className="flex-none w-[210px] flex items-center gap-3 p-3.5 rounded bg-surface-2 border border-border box-border no-underline hover:border-border-strong transition-colors"
             >
               {c.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
