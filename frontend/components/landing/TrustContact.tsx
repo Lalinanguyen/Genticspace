@@ -5,8 +5,8 @@ export function TrustContact() {
     <>
       <div className="px-[5%] pb-[72px] box-border">
         <p className="m-0 max-w-[640px] font-body text-[15px] leading-[1.7] text-foreground-muted">
-          Every listing is checked against public agent registries &mdash; identity, licensing and deployment claims
-          &mdash; so you don&apos;t have to take a builder&apos;s word for it.
+          Every listing is checked against public agent registries - identity, licensing and deployment claims
+          - so you don&apos;t have to take a builder&apos;s word for it.
         </p>
       </div>
 

@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         <div className="flex flex-col gap-6 text-sm leading-relaxed text-foreground-muted">
           <p>
             We collect the account information you give us (email, name or company name, bio, connected-account
-            links) and basic usage data needed to run the platform &mdash; things like sandbox run logs, reviews you
+            links) and basic usage data needed to run the platform - things like sandbox run logs, reviews you
             write, and agents you favorite or follow.
           </p>
           <p>

@@ -19,7 +19,7 @@ export default function TermsPage() {
         <div className="flex flex-col gap-6 text-sm leading-relaxed text-foreground-muted">
           <p>
             By creating an account or using Genticspace, you agree to use the platform lawfully and not to misuse
-            it &mdash; including attempting to disrupt the service, scrape it at abusive volume, or use Sandbox
+            it - including attempting to disrupt the service, scrape it at abusive volume, or use Sandbox
             Mode to run anything other than the agent code you&apos;re trying to evaluate.
           </p>
           <p>
