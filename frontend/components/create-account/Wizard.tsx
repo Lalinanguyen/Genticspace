@@ -88,7 +88,6 @@ interface FormState {
   purposes: string[];
   otherPurpose: string;
   bio: string;
-  connects: { github: string; x: string; linkedin: string; website: string; huggingface: string; other: string };
 }
 
 const INITIAL_FORM: FormState = {
@@ -103,7 +102,6 @@ const INITIAL_FORM: FormState = {
   purposes: [],
   otherPurpose: "",
   bio: "",
-  connects: { github: "", x: "", linkedin: "", website: "", huggingface: "", other: "" },
 };
 
 export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
@@ -188,7 +186,6 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
         use_case: isBusiness ? undefined : form.useCase || undefined,
         purposes: form.purposes,
         bio: form.bio || undefined,
-        connects: form.connects,
       });
       setSession(res.access_token, res.user);
       setCreatedUserId(res.user.id);
@@ -623,24 +620,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                 <div className="font-medium text-[12.5px] font-mono text-foreground-faint">{form.email}</div>
               </div>
 
-              <div className="mt-2">
-                <div className="font-bold text-[11px] text-foreground-faint uppercase tracking-wide mb-2.5">
-                  Connected accounts
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {(["github", "x", "linkedin", "website", "huggingface", "other"] as const).map((key) => (
-                    <input
-                      key={key}
-                      value={form.connects[key]}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, connects: { ...f.connects, [key]: e.target.value } }))
-                      }
-                      placeholder={key === "github" ? "GitHub" : key === "x" ? "X (Twitter)" : key[0].toUpperCase() + key.slice(1)}
-                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(28,38,33,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
-                    />
-                  ))}
-                </div>
-              </div>
+              <p className="text-[12px] leading-relaxed text-foreground-faint">
+                You can link GitHub, X, LinkedIn, and other accounts later from Settings.
+              </p>
             </div>
 
             <div className="flex-[2] min-w-[300px] flex flex-col gap-6">
