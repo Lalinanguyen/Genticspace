@@ -474,9 +474,15 @@ async def init_db() -> None:
         # The startup scrapers/backfills fire off many concurrent DB-touching
         # tasks at once; a small pool here means real user requests can queue
         # behind them indefinitely (pool.acquire() has no default timeout).
-        # 20/machine x 2 machines = 40, well under this RDS instance's
-        # max_connections=79, leaving headroom for local/admin connections.
-        max_size=20,
+        # This app runs on a single machine now (see fly.toml's [[mounts]]
+        # comment -- pinned to 1 machine for the uploads Fly volume), so the
+        # old 20/machine x 2-machine budget collapsed to just 20 total,
+        # which wasn't enough headroom against this RDS instance's
+        # max_connections=79 once background jobs and real traffic overlapped
+        # (confirmed via TimeoutError acquiring a pool connection in prod
+        # logs). Bumped to 40 -- still well under 79 now that only one
+        # machine is drawing from that budget.
+        max_size=40,
     )
     async with pool.acquire() as conn:
         await _migrate_genticspace_to_tracent(conn)
