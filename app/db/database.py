@@ -423,6 +423,16 @@ CREATE INDEX IF NOT EXISTS idx_sandbox_runs_user   ON agent_sandbox_runs(user_id
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_active ON agent_sandbox_runs(status)
     WHERE status IN ('queued', 'provisioning', 'running');
 
+-- AI-driven sandbox lane (Managed Agents), alongside the original
+-- manifest-driven Fly Machine lane above. A run's execution_lane is decided
+-- once at start_run() and stored here so later reads don't need to
+-- re-derive it. ingest_token/fly_machine_id are Fly-lane-only and unused
+-- for 'ai' runs -- the AI lane's ingest_token is never generated (hence
+-- the DROP NOT NULL) and Managed Agents' own session_id is stored instead.
+ALTER TABLE agent_sandbox_runs ALTER COLUMN ingest_token DROP NOT NULL;
+ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS execution_lane TEXT NOT NULL DEFAULT 'manifest';
+ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS session_id TEXT;
+
 -- Per-client API keys (see app/db/auth.py). Only a sha256 hash of the raw
 -- key is ever stored; the raw key is returned once, at mint time, by
 -- POST /admin/api-keys and never persisted or logged. `scope` determines
