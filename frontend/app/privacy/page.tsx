@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             Sandbox Mode runs a listed agent&apos;s own code in an isolated environment when you choose to try it;
-            the run's logs are stored against your account so you can view the result.
+            the run&apos;s logs are stored against your account so you can view the result.
           </p>
           <p>
             We use your email for account verification, password resets, and optional notifications you can turn

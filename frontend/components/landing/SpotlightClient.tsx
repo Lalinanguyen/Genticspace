@@ -18,11 +18,7 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
   const [active, setActive] = useState(0);
   const [searchTyped, setSearchTyped] = useState("");
   const [searchShown, setSearchShown] = useState(0);
-  const refs = [
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-    useRef<HTMLDivElement>(null),
-  ];
+  const sectionEls = useRef<(HTMLDivElement | null)[]>([null, null, null]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,16 +52,15 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const idx = refs.findIndex((r) => r.current === entry.target);
+            const idx = sectionEls.current.findIndex((el) => el === entry.target);
             if (idx !== -1) setActive(idx);
           }
         });
       },
       { rootMargin: "-45% 0px -45% 0px" }
     );
-    refs.forEach((r) => r.current && observer.observe(r.current));
+    sectionEls.current.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const searchResults = agents.slice(0, 3);
@@ -95,7 +90,7 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
 
         <div className="flex-1 min-w-0 flex flex-col">
           {/* SUBSECTION 1: SEARCH */}
-          <div ref={refs[0]} className="flex gap-14 items-start flex-wrap pb-20">
+          <div ref={(el) => { sectionEls.current[0] = el; }} className="flex gap-14 items-start flex-wrap pb-20">
             <div className="flex-1 min-w-[300px] max-w-[460px]">
               <span className="font-semibold text-xs tracking-[1.5px]" style={{ fontFamily: "ui-monospace,Menlo,monospace", color: "#178C7E" }}>
                 SEARCH
@@ -168,7 +163,7 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
           </div>
 
           {/* SUBSECTION 2: BROWSE */}
-          <div ref={refs[1]} className="flex gap-14 items-start flex-wrap py-20 border-t border-border">
+          <div ref={(el) => { sectionEls.current[1] = el; }} className="flex gap-14 items-start flex-wrap py-20 border-t border-border">
             <div className="flex-1 min-w-[300px] max-w-[460px]">
               <span className="font-semibold text-xs tracking-[1.5px]" style={{ fontFamily: "ui-monospace,Menlo,monospace", color: "#178C7E" }}>
                 MARKETPLACE
@@ -228,7 +223,7 @@ export function SpotlightClient({ agents }: { agents: Agent[] }) {
           </div>
 
           {/* SUBSECTION 3: DEPLOYMENT GUIDE + SETUP HELP */}
-          <div ref={refs[2]} className="flex gap-14 items-start flex-wrap pt-20 border-t border-border">
+          <div ref={(el) => { sectionEls.current[2] = el; }} className="flex gap-14 items-start flex-wrap pt-20 border-t border-border">
             <div className="flex-1 min-w-[300px] max-w-[460px]">
               <span className="font-semibold text-xs tracking-[1.5px]" style={{ fontFamily: "ui-monospace,Menlo,monospace", color: "#178C7E" }}>
                 DEPLOYMENT GUIDE
