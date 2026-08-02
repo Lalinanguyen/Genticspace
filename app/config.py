@@ -130,8 +130,9 @@ class Settings(BaseSettings):
     CONSENT_REQUEST_TTL_DAYS: int = 14
 
     # Phase 2: the actual merge run (app/services/managed_agents.py::
-    # start_completion_run) and where its result gets pushed
-    # (app/services/repo_completion_publish.py). COMPLETION_AGENT_ID/VERSION
+    # start_completion_run). The completion agent itself pushes its result
+    # from inside the sandbox (git push using the vault-injected token),
+    # not a separate Python-side publish step. COMPLETION_AGENT_ID/VERSION
     # follow the same one-time-created, reused-by-ID pattern as the sandbox
     # installer agent (see scripts/create_repo_completer_agent.py).
     # COMPLETION_GITHUB_TOKEN needs repo-creation + push scope under
@@ -141,6 +142,11 @@ class Settings(BaseSettings):
     COMPLETION_AGENT_VERSION: int | None = None
     COMPLETION_GITHUB_TOKEN: str | None = None
     COMPLETION_GITHUB_ORG: str | None = None
+    # "user" or "org" -- GitHub's repo-creation REST endpoint differs
+    # (POST /user/repos vs POST /orgs/{org}/repos), and the completion
+    # agent needs to be told which one applies rather than guess from the
+    # owner name alone (both share the same URL namespace).
+    COMPLETION_GITHUB_OWNER_TYPE: str = "user"
     # Created once by scripts/create_repo_completer_agent.py alongside the
     # agent, then reused by ID across every run -- one Vault holding the
     # static push token, not a fresh one per run (that would mean a growing

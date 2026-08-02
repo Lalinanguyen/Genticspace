@@ -125,15 +125,33 @@ def _build_task_hint(target: dict, picks: list[dict], destination_repo: str) -> 
         f"reason it was picked: {p.get('compatibility_reason', 'n/a')})"
         for p in picks
     )
+    owner = settings.COMPLETION_GITHUB_ORG
+    repo_name = destination_repo.split("/", 1)[1]
+    if settings.COMPLETION_GITHUB_OWNER_TYPE == "org":
+        create_instructions = (
+            f"Create it via POST https://api.github.com/orgs/{owner}/repos "
+            f"with JSON body {{\"name\": \"{repo_name}\", \"private\": true}} -- "
+            f"{owner} is a GitHub Organization, not a personal account."
+        )
+    else:
+        create_instructions = (
+            f"Create it via POST https://api.github.com/user/repos "
+            f"with JSON body {{\"name\": \"{repo_name}\", \"private\": true}} -- "
+            f"{owner} is a personal GitHub account, not an Organization, so the "
+            f"org-scoped repo-creation endpoint will not work here."
+        )
     return (
         f"The target repository (incomplete, needs completion) is mounted at "
         f"/workspace/{target['source_id'].split('/')[-1]}.\n\n"
         f"The following candidate repositories are also mounted, each at "
         f"/workspace/<their-repo-name>, all confirmed permissively licensed and "
         f"cleared to adapt code from with attribution:\n{candidate_lines}\n\n"
-        f"When you push your completed result, create and push to "
-        f"https://github.com/{destination_repo} using the COMPLETION_GITHUB_TOKEN "
-        f"credential you were given."
+        f"When you push your completed result: {create_instructions} Authenticate "
+        f"using the COMPLETION_GITHUB_TOKEN credential you were given (as a Bearer "
+        f"token for the creation request, and as the password in the HTTPS git "
+        f"remote URL for the push, e.g. "
+        f"https://x-access-token:${{COMPLETION_GITHUB_TOKEN}}@github.com/{destination_repo}.git). "
+        f"Then push your completed branch to it."
     )
 
 
