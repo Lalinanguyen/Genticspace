@@ -55,6 +55,8 @@ colorama==0.4.6
     #   pytest
 cytoolz==1.1.0
     # via eth-utils
+deprecated==1.3.1
+    # via limits
 distro==1.9.0
     # via anthropic
 dnspython==2.8.0
@@ -97,7 +99,9 @@ eth-utils==6.0.0
     #   rlp
     #   web3
 fastapi==0.140.0
-    # via -r requirements.txt
+    # via
+    #   -r requirements.txt
+    #   sentry-sdk
 frozenlist==1.8.0
     # via
     #   aiohttp
@@ -130,12 +134,16 @@ iniconfig==2.3.0
     # via pytest
 jiter==0.16.0
     # via anthropic
+limits==5.8.0
+    # via slowapi
 multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
 packaging==26.2
-    # via pytest
+    # via
+    #   limits
+    #   pytest
 parsimonious==0.10.0
     # via eth-abi
 pluggy==1.6.0
@@ -182,7 +190,9 @@ pyunormalize==17.0.0
 pywin32==312 ; platform_system == "Windows"
     # via web3
 pyyaml==6.0.3
-    # via uvicorn
+    # via
+    #   -r requirements.txt
+    #   uvicorn
 regex==2026.7.19
     # via parsimonious
 requests==2.34.2
@@ -194,6 +204,8 @@ rlp==4.1.0
     #   eth-account
     #   eth-rlp
 sentry-sdk[fastapi]==2.66.1
+    # via -r requirements.txt
+slowapi==0.1.10
     # via -r requirements.txt
 sniffio==1.3.1
     # via anthropic
@@ -208,6 +220,7 @@ typing-extensions==4.16.0
     #   anthropic
     #   eth-typing
     #   fastapi
+    #   limits
     #   pydantic
     #   pydantic-core
     #   typing-inspection
@@ -236,5 +249,7 @@ websockets==15.0.1
     # via
     #   uvicorn
     #   web3
+wrapt==2.3.0
+    # via deprecated
 yarl==1.24.5
     # via aiohttp
