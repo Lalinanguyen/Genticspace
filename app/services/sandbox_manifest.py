@@ -14,10 +14,13 @@ logger = logging.getLogger(__name__)
 _API_BASE = "https://api.github.com"
 _TIMEOUT = 10.0
 
-# Checked in order; the first one present in the repo wins. A manifest is
-# what actually makes "any repo, best-effort" safe without an admin allowlist
-# gate: only repos that declare their own build/run commands are ever run,
-# nothing is guessed.
+# Checked in order; the first one present in the repo wins. A manifest gets
+# a repo onto the fast, free, deterministic Fly Machine lane, running exactly
+# the literal commands it declares. Repos without one aren't excluded --
+# they fall to the slower Managed Agents lane instead (see
+# scan_sandbox_manifests below), which doesn't need a pre-declared command
+# because it never guesses and runs a literal string; it reads the repo's own
+# docs and figures it out live, sandboxed, the way a person would.
 _MANIFEST_PATHS = ["genticspace.yaml", "genticspace.yml", ".genticspace/sandbox.yaml"]
 
 _VALID_RUNTIMES = {"python", "node"}
@@ -52,7 +55,7 @@ async def _get_candidate_agents() -> list[dict]:
     async with get_conn() as conn:
         rows = await conn.fetch(
             """
-            SELECT a.tracent_id, a.source_id
+            SELECT a.tracent_id, a.source_id, a.readme_text
             FROM agents a
             LEFT JOIN agent_sandbox_config c ON c.tracent_id = a.tracent_id
             WHERE a.source = 'github'
@@ -118,7 +121,13 @@ async def _fetch_manifest(
     return None, None, None
 
 
-async def _save_config(tracent_id: str, manifest: dict | None, ref: str | None, manifest_path: str | None) -> None:
+async def _save_config(
+    tracent_id: str, manifest: dict | None, ref: str | None, manifest_path: str | None, ai_eligible: bool = False
+) -> None:
+    # sandbox_enabled=True with run_command=NULL is the AI-lane signal
+    # (app/services/sandbox_runner.py branches on run_command IS NULL) --
+    # a repo with real README material but no genticspace.yaml, run through
+    # the Managed Agents installer instead of a literal command.
     async with get_conn() as conn:
         await conn.execute(
             """
@@ -140,7 +149,7 @@ async def _save_config(tracent_id: str, manifest: dict | None, ref: str | None, 
                 updated_at          = NOW()
             """,
             tracent_id,
-            manifest is not None,
+            manifest is not None or ai_eligible,
             (manifest or {}).get("runtime"),
             ref,
             (manifest or {}).get("build_command"),
@@ -153,25 +162,32 @@ async def _save_config(tracent_id: str, manifest: dict | None, ref: str | None, 
 
 async def scan_sandbox_manifests() -> None:
     """Looks for a genticspace.yaml manifest in each GitHub-sourced agent's repo
-    and enables/refreshes sandbox mode for it when one validates. Agents
-    without a manifest are recorded too (sandbox_enabled=False, manifest_fetched_at
-    set) so they aren't re-checked on every scan pass, same has_material
-    pattern as deployment_guide.py's placeholder caching."""
+    and enables/refreshes sandbox mode for it when one validates -- the fast,
+    free, deterministic lane (app/services/sandbox_runner.py runs the literal
+    build/run commands via a Fly Machine). Repos without a manifest but with
+    real README material still become sandbox_enabled, for the slower,
+    Managed-Agents-driven AI lane (SANDBOX_AI_ENABLED) that installs/runs the
+    repo the way a person reading its docs would, instead of guessing a
+    command. Agents with neither are recorded too (sandbox_enabled=False,
+    manifest_fetched_at set) so they aren't re-checked on every scan pass,
+    same has_material pattern as deployment_guide.py's placeholder caching."""
     start = time.monotonic()
     agents = await _get_candidate_agents()
-    enabled = 0
+    manifest_enabled = 0
+    ai_enabled = 0
     skipped = 0
     rate_limited = False
 
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=github_headers(), follow_redirects=True) as client:
         for agent in agents:
             full_name = agent["source_id"]
+            has_readme = bool((agent.get("readme_text") or "").strip())
             branch, wait = await _get_default_branch(client, full_name)
             if wait is not None:
                 rate_limited = True
                 break
             if branch is None:
-                await _save_config(agent["tracent_id"], None, None, None)
+                await _save_config(agent["tracent_id"], None, None, None, ai_eligible=False)
                 skipped += 1
                 continue
 
@@ -180,14 +196,16 @@ async def scan_sandbox_manifests() -> None:
                 rate_limited = True
                 break
 
-            await _save_config(agent["tracent_id"], manifest, branch, path)
+            await _save_config(agent["tracent_id"], manifest, branch, path, ai_eligible=has_readme)
             if manifest:
-                enabled += 1
+                manifest_enabled += 1
+            elif has_readme:
+                ai_enabled += 1
             else:
                 skipped += 1
 
     elapsed = time.monotonic() - start
     logger.info(
-        "Sandbox manifest scan complete: %d enabled, %d without a manifest, %.1fs%s",
-        enabled, skipped, elapsed, " [rate limited]" if rate_limited else "",
+        "Sandbox manifest scan complete: %d manifest-enabled, %d AI-lane-enabled, %d skipped, %.1fs%s",
+        manifest_enabled, ai_enabled, skipped, elapsed, " [rate limited]" if rate_limited else "",
     )

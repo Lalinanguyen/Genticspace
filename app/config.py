@@ -100,6 +100,21 @@ class Settings(BaseSettings):
     SANDBOX_MANIFEST_SCAN_BATCH_SIZE: int = 200
     SANDBOX_REAP_INTERVAL_MINUTES: int = 5
 
+    # Sandbox mode, AI-driven lane: runs a repo through a live agent session on
+    # Anthropic's Managed Agents platform instead of a fixed manifest command.
+    # Used when an agent has real README/codebase material but no
+    # genticspace.yaml (see app/services/sandbox_manifest.py). The
+    # manifest-based Fly Machine lane above stays as the free, deterministic
+    # fast path for repos that opt in with a real manifest. Off by default -
+    # real per-run LLM cost, beta platform - flip on deliberately once
+    # SANDBOX_AGENT_ID is set (see scripts/create_sandbox_installer_agent.py).
+    SANDBOX_AI_ENABLED: bool = False
+    SANDBOX_CLAUDE_API_KEY: str | None = None  # falls back to ANTHROPIC_API_KEY if unset
+    SANDBOX_AGENT_ID: str | None = None
+    SANDBOX_AGENT_VERSION: int | None = None
+    SANDBOX_AI_MAX_RUN_SECONDS: int = 480
+    SANDBOX_AI_DAILY_RUNS_PER_USER: int = 5
+
     # User-uploaded images (agent listing photo/screenshot). Stored on a Fly
     # volume rather than object storage for now -- see fly.toml's [[mounts]]
     # and the note there about why this app is pinned to a single machine.

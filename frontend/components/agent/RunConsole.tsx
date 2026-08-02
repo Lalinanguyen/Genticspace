@@ -163,8 +163,9 @@ export function RunConsole({ agent }: { agent: Agent }) {
       {!checked ? null : !enabled ? (
         <div className={glassPanel("p-8 text-center")}>
           <p className="m-0 text-[14px] text-foreground-muted">
-            This agent isn&apos;t sandbox-ready yet. Its repo needs a <code>genticspace.yaml</code> manifest declaring
-            build/run commands.
+            This agent isn&apos;t sandbox-ready yet. It needs either a <code>genticspace.yaml</code> manifest
+            declaring build/run commands, or a real README the sandbox agent can read to figure out installation
+            itself.
           </p>
         </div>
       ) : (
