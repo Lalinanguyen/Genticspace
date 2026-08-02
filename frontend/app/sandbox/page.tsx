@@ -26,7 +26,8 @@ export default async function SandboxPage() {
               Run an agent&apos;s real open-source code in an isolated environment before you adopt it.
             </p>
             <p className="text-foreground-faint text-[13px] leading-relaxed">
-              Only agents whose repo declares a <code>genticspace.yaml</code> manifest show up here.
+              Agents show up here once they have a <code>genticspace.yaml</code> manifest, or a real README the
+              sandbox agent can install from.
             </p>
           </div>
         </div>
@@ -41,7 +42,7 @@ export default async function SandboxPage() {
           {agents.length === 0 ? (
             <div className="py-16 px-5 text-center text-foreground-muted font-medium text-sm">
               No agents are sandbox-ready yet. Agent authors can enable this by adding a{" "}
-              <code>genticspace.yaml</code>{" "}manifest to their repo&apos;s root.
+              <code>genticspace.yaml</code>{" "}manifest, or simply by having a real README in their repo.
             </div>
           ) : (
             <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
