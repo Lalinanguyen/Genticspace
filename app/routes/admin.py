@@ -1,6 +1,7 @@
 import logging
 import secrets
 from typing import Literal, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
@@ -21,8 +22,10 @@ from app.services.huggingface_profile_scraper import scrape_huggingface_profiles
 from app.services.huggingface_scraper import scrape_huggingface
 from app.services.futurepedia_scraper import backfill_futurepedia, scrape_futurepedia
 from app.services.indexer import ingest_agents
+from app.services.license_classifier import classify_license
 from app.services.npm_scraper import backfill_npm, scrape_npm
 from app.services.readme_scraper import scrape_readmes
+from app.services.repo_consent import request_consent, resolve_consent
 from app.services.verifier import run_verification_review
 from app.services.yc_scraper import scrape_ycombinator
 
@@ -552,3 +555,103 @@ async def verification_status(tracent_id: str):
         "latest_request": dict(latest_request) if latest_request else None,
     }
     return result
+
+
+# ---------------------------------------------------------------------------
+# Repo Completion pipeline -- manual-testing tooling for this phase (data
+# model + license classifier + consent state machine, see
+# app/services/license_classifier.py and app/services/repo_consent.py).
+# There is no real candidate-sourcing pipeline yet (GitHub Search +
+# similarity ranking), so these routes stand in for it: seed a candidate
+# source by hand, classify it, and drive its consent record through the
+# state machine, all admin-key-gated like everything else in this file.
+# ---------------------------------------------------------------------------
+
+
+def _owner_repo_from_url(repo_url: str) -> str | None:
+    parsed = urlparse(repo_url)
+    if parsed.netloc.lower() not in ("github.com", "www.github.com"):
+        return None
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 2:
+        return None
+    return f"{parts[0]}/{parts[1]}"
+
+
+class ClassifyLicenseBody(BaseModel):
+    repo_url: str
+
+
+@router.post("/admin/repo-completion/classify", tags=["admin", "repo-completion"])
+async def admin_classify_license(body: ClassifyLicenseBody):
+    owner_repo = _owner_repo_from_url(body.repo_url)
+    if not owner_repo:
+        raise HTTPException(400, "repo_url must be a github.com/{owner}/{repo} URL")
+    result = await classify_license(owner_repo)
+    return {"spdx_id": result.spdx_id, "classification": result.classification, "source": result.source}
+
+
+class CreateSourceBody(BaseModel):
+    tracent_id: str
+    repo_url: str
+
+
+@router.post("/admin/repo-completion/sources", tags=["admin", "repo-completion"])
+async def admin_create_repo_completion_source(body: CreateSourceBody, actor: str = Depends(verify_admin_key)):
+    owner_repo = _owner_repo_from_url(body.repo_url)
+    if not owner_repo:
+        raise HTTPException(400, "repo_url must be a github.com/{owner}/{repo} URL")
+
+    async with get_conn() as conn:
+        agent = await conn.fetchval("SELECT tracent_id FROM agents WHERE tracent_id = $1", body.tracent_id)
+        if not agent:
+            raise HTTPException(404, f"Agent {body.tracent_id} not found")
+
+    result = await classify_license(owner_repo)
+
+    async with get_conn() as conn:
+        request_row = await conn.fetchrow(
+            "INSERT INTO repo_completion_requests (tracent_id, status) VALUES ($1, 'awaiting_consent') RETURNING id",
+            body.tracent_id,
+        )
+        source_row = await conn.fetchrow(
+            """
+            INSERT INTO repo_completion_sources
+                (request_id, repo_url, license_spdx_id, license_classification, license_classified_at)
+            VALUES ($1, $2, $3, $4, NOW())
+            RETURNING *
+            """,
+            request_row["id"], body.repo_url, result.spdx_id, result.classification,
+        )
+        await log_admin_action(conn, actor, "repo_completion_source_created", body.tracent_id, body.repo_url)
+
+    return dict(source_row)
+
+
+class ConsentRequestBody(BaseModel):
+    source_id: int
+    rights_holder_email: str
+    terms: dict
+
+
+@router.post("/admin/repo-completion/consent-requests", tags=["admin", "repo-completion"])
+async def admin_request_consent(body: ConsentRequestBody, actor: str = Depends(verify_admin_key)):
+    record = await request_consent(body.source_id, body.rights_holder_email, body.terms)
+    async with get_conn() as conn:
+        await log_admin_action(conn, actor, "consent_requested", str(body.source_id), body.rights_holder_email)
+    return record
+
+
+class ResolveConsentBody(BaseModel):
+    decision: Literal["consented", "declined"]
+    terms: Optional[dict] = None
+
+
+@router.post("/admin/repo-completion/consent-requests/{record_id}/resolve", tags=["admin", "repo-completion"])
+async def admin_resolve_consent(record_id: int, body: ResolveConsentBody, actor: str = Depends(verify_admin_key)):
+    record = await resolve_consent(record_id, body.decision, body.terms)
+    if not record:
+        raise HTTPException(404, "Consent record not found or already resolved")
+    async with get_conn() as conn:
+        await log_admin_action(conn, actor, f"consent_{body.decision}", str(record_id))
+    return record

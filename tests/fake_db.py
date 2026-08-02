@@ -32,10 +32,12 @@ def _project(row: dict, columns: list[str]) -> dict:
 
 class FakeDB:
     def __init__(self):
-        self._next_id = {"users": 1, "email_otps": 1, "password_reset_tokens": 1}
+        self._next_id = {"users": 1, "email_otps": 1, "password_reset_tokens": 1, "consent_records": 1}
         self.users: list[dict] = []
         self.email_otps: list[dict] = []
         self.password_reset_tokens: list[dict] = []
+        self.repo_completion_sources: dict[int, dict] = {}
+        self.consent_records: dict[int, dict] = {}
 
     def alloc_id(self, table: str) -> int:
         rid = self._next_id[table]
@@ -98,6 +100,20 @@ class FakeConn:
             return
 
         raise NotImplementedError(f"FakeConn.execute unhandled query: {q!r}")
+
+    async def fetch(self, query, *params):
+        q = _norm(query)
+
+        if q.startswith("UPDATE consent_records SET status = 'expired'"):
+            (cutoff,) = params
+            expired = []
+            for row in self.db.consent_records.values():
+                if row["status"] == "pending" and row["outreach_sent_at"] and row["outreach_sent_at"] < cutoff:
+                    row["status"] = "expired"
+                    expired.append({"id": row["id"]})
+            return expired
+
+        raise NotImplementedError(f"FakeConn.fetch unhandled query: {q!r}")
 
     async def fetchval(self, query, *params):
         q = _norm(query)
@@ -171,6 +187,33 @@ class FakeConn:
                 None,
             )
             return {"id": row["id"], "user_id": row["user_id"]} if row else None
+
+        if q.startswith("SELECT repo_url FROM repo_completion_sources"):
+            (source_id,) = params
+            row = self.db.repo_completion_sources.get(source_id)
+            return {"repo_url": row["repo_url"]} if row else None
+
+        if q.startswith("INSERT INTO consent_records"):
+            source_id, rights_holder_email, terms = params
+            row = {
+                "id": self.db.alloc_id("consent_records"),
+                "source_id": source_id, "rights_holder_email": rights_holder_email,
+                "rights_holder_login": None, "status": "pending", "terms": terms,
+                "outreach_sent_at": now, "responded_at": None, "created_at": now,
+            }
+            self.db.consent_records[row["id"]] = row
+            return dict(row)
+
+        if q.startswith("UPDATE consent_records"):
+            record_id, decision, terms = params
+            row = self.db.consent_records.get(record_id)
+            if not row or row["status"] != "pending":
+                return None
+            row["status"] = decision
+            row["responded_at"] = now
+            if terms is not None:
+                row["terms"] = terms
+            return dict(row)
 
         raise NotImplementedError(f"FakeConn.fetchrow unhandled query: {q!r}")
 

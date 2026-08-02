@@ -54,3 +54,21 @@ def send_contact_email(from_email: str, topic: str, message_text: str) -> None:
         f"From: {from_email}\nTopic: {topic or 'General'}\n\n{message_text}",
         f"contact message from {from_email}",
     )
+
+
+def send_outreach_email(email: str, repo_url: str, terms_summary: str) -> None:
+    """Repo Completion consent outreach (app/services/repo_consent.py). Same
+    _send() fallback as every other function here -- with SMTP_HOST unset,
+    this logs instead of sending, which is this pipeline's mock sender for
+    now rather than a separate test-mode flag."""
+    _send(
+        email,
+        "Genticspace would like to use code from your repository",
+        f"Hi,\n\nGenticspace is an AI agent marketplace. A contributor's in-progress "
+        f"project would benefit from code in your repository ({repo_url}), and we'd "
+        f"like your permission to use it.\n\nProposed terms: {terms_summary}\n\n"
+        f"If you're interested, reply to this email and we'll follow up with the "
+        f"details and a consent form to sign. If you're not interested, no action "
+        f"is needed and we won't use your code.",
+        f"outreach email for {repo_url} to {email}: {terms_summary}",
+    )

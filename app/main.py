@@ -41,6 +41,7 @@ from app.services.indexer import ingest_agents
 from app.services.job_scheduling import catch_up_overdue_jobs, run_locked
 from app.services.npm_scraper import backfill_npm, scrape_npm
 from app.services.readme_scraper import scrape_readmes
+from app.services.repo_consent import expire_stale_consent_requests
 from app.services.sandbox_manifest import scan_sandbox_manifests
 from app.services.sandbox_runner import reap_stale_runs
 from app.services.yc_scraper import scrape_ycombinator
@@ -83,6 +84,7 @@ _JOBS: list[tuple[str, object, tuple, float]] = [
     ),
     ("sandbox_manifest_scan", scan_sandbox_manifests, (), settings.SANDBOX_MANIFEST_SCAN_INTERVAL_HOURS),
     ("sandbox_reaper", reap_stale_runs, (), settings.SANDBOX_REAP_INTERVAL_MINUTES / 60),
+    ("expire_consent_requests", expire_stale_consent_requests, (), 24),
 ]
 
 

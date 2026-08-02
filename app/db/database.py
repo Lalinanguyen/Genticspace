@@ -463,6 +463,65 @@ CREATE TABLE IF NOT EXISTS sandbox_cohort (
     status          TEXT NOT NULL DEFAULT 'pending_security_review',
     PRIMARY KEY (tracent_id)
 );
+
+-- Repo Completion pipeline (see app/services/license_classifier.py and
+-- app/services/repo_consent.py). One row per contributor-initiated completion
+-- attempt on a listing -- 1:many so a contributor can retry, mirroring
+-- verification_requests' shape.
+CREATE TABLE IF NOT EXISTS repo_completion_requests (
+    id           SERIAL PRIMARY KEY,
+    tracent_id   TEXT NOT NULL REFERENCES agents(tracent_id),
+    status       TEXT NOT NULL DEFAULT 'queued',
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- One row per candidate source repo found/ranked for a completion request.
+-- License classification lives here as columns (1:1 with the candidate) --
+-- same "enrichment sentinel" pattern as agents.github_enriched_at.
+CREATE TABLE IF NOT EXISTS repo_completion_sources (
+    id                      SERIAL PRIMARY KEY,
+    request_id              INTEGER NOT NULL REFERENCES repo_completion_requests(id),
+    repo_url                TEXT NOT NULL,
+    similarity_score        FLOAT,
+    license_spdx_id         TEXT,
+    license_classification  TEXT,
+    license_classified_at   TIMESTAMPTZ,
+    status                  TEXT NOT NULL DEFAULT 'candidate',
+    created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 1:1 with a source needing consent (only created for
+-- copyleft/unlicensed/unknown candidates).
+CREATE TABLE IF NOT EXISTS consent_records (
+    id                   SERIAL PRIMARY KEY,
+    source_id            INTEGER NOT NULL REFERENCES repo_completion_sources(id),
+    rights_holder_email  TEXT,
+    rights_holder_login  TEXT,
+    status               TEXT NOT NULL DEFAULT 'pending',
+    terms                JSONB,
+    outreach_sent_at     TIMESTAMPTZ,
+    responded_at         TIMESTAMPTZ,
+    created_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Latest manifest per listing (1:1, PK=tracent_id -- same shape as
+-- agent_sandbox_config). User-visible provenance/transparency record.
+CREATE TABLE IF NOT EXISTS provenance_manifests (
+    tracent_id    TEXT PRIMARY KEY REFERENCES agents(tracent_id),
+    manifest      JSONB NOT NULL DEFAULT '[]',
+    generated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Stub only -- schema for forward-compatibility with real Stripe Connect
+-- payout wiring, a later phase. No service code touches this table yet.
+CREATE TABLE IF NOT EXISTS payout_splits (
+    id                 SERIAL PRIMARY KEY,
+    consent_record_id  INTEGER NOT NULL REFERENCES consent_records(id),
+    split_percentage   FLOAT NOT NULL,
+    status             TEXT NOT NULL DEFAULT 'not_configured',
+    created_at         TIMESTAMPTZ DEFAULT NOW()
+);
 """
 
 

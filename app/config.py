@@ -107,6 +107,13 @@ class Settings(BaseSettings):
     UPLOADS_MAX_BYTES: int = 5_000_000
     UPLOADS_PUBLIC_BASE_URL: str = "http://localhost:8000"
 
+    # Repo Completion pipeline (see app/services/license_classifier.py and
+    # app/services/repo_consent.py). Off by default -- this phase is data
+    # model + classifier + a consent state machine only, no real candidate
+    # sourcing or outreach wired into the Contribute flow yet.
+    REPO_COMPLETION_ENABLED: bool = False
+    CONSENT_REQUEST_TTL_DAYS: int = 14
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
