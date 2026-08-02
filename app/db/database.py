@@ -479,11 +479,15 @@ CREATE TABLE IF NOT EXISTS sandbox_cohort (
 -- attempt on a listing -- 1:many so a contributor can retry, mirroring
 -- verification_requests' shape.
 CREATE TABLE IF NOT EXISTS repo_completion_requests (
-    id           SERIAL PRIMARY KEY,
-    tracent_id   TEXT NOT NULL REFERENCES agents(tracent_id),
-    status       TEXT NOT NULL DEFAULT 'queued',
-    created_at   TIMESTAMPTZ DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ DEFAULT NOW()
+    id                  SERIAL PRIMARY KEY,
+    tracent_id          TEXT NOT NULL REFERENCES agents(tracent_id),
+    -- queued|no_permissive_candidate|running|completed_pending_review|published|failed
+    status              TEXT NOT NULL DEFAULT 'queued',
+    session_id          TEXT,
+    environment_id      TEXT,
+    completed_repo_url  TEXT,
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- One row per candidate source repo found/ranked for a completion request.

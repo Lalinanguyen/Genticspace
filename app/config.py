@@ -141,6 +141,12 @@ class Settings(BaseSettings):
     COMPLETION_AGENT_VERSION: int | None = None
     COMPLETION_GITHUB_TOKEN: str | None = None
     COMPLETION_GITHUB_ORG: str | None = None
+    # Created once by scripts/create_repo_completer_agent.py alongside the
+    # agent, then reused by ID across every run -- one Vault holding the
+    # static push token, not a fresh one per run (that would mean a growing
+    # pile of orphaned vaults with no cleanup, the same class of gap
+    # CodeRabbit already flagged for per-run Environments on the sandbox lane).
+    COMPLETION_VAULT_ID: str | None = None
     COMPLETION_MAX_RUN_SECONDS: int = 900
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}

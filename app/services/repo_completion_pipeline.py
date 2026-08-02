@@ -22,6 +22,7 @@ import anthropic
 
 from app.config import settings
 from app.db.database import get_conn
+from app.services.license_classifier import classify_license
 
 logger = logging.getLogger(__name__)
 
@@ -200,3 +201,26 @@ async def judge_compatibility(target: dict, candidates: list[dict]) -> list[dict
         if tid in by_id
     ]
     return picked[:_MAX_PICKED_CANDIDATES]
+
+
+def owner_repo_from_github_url(repo_url: str) -> str:
+    return repo_url.rstrip("/").removeprefix("https://github.com/").removeprefix("http://github.com/")
+
+
+async def license_gate(picks: list[dict]) -> list[dict]:
+    """Classifies each of Claude's picked candidates and keeps only
+    permissive ones -- the hard rule from the plan, no exceptions this
+    pilot (copyleft/unlicensed/unknown still route to the real
+    app/services/repo_consent.py flow, just not fast enough to be part of
+    this pilot). Mutates each pick in place with its classification, so the
+    caller can persist a full picture of what was considered, not just
+    what passed the gate."""
+    gated = []
+    for pick in picks:
+        owner_repo = owner_repo_from_github_url(pick.get("github_url") or f"https://github.com/{pick['source_id']}")
+        result = await classify_license(owner_repo)
+        pick["license_spdx_id"] = result.spdx_id
+        pick["license_classification"] = result.classification
+        if result.classification == "permissive":
+            gated.append(pick)
+    return gated

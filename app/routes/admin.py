@@ -655,3 +655,63 @@ async def admin_resolve_consent(record_id: int, body: ResolveConsentBody, actor:
     async with get_conn() as conn:
         await log_admin_action(conn, actor, f"consent_{body.decision}", str(record_id))
     return record
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 pilot review/publish. scripts/run_repo_completion_pilot.py leaves
+# every completion in 'completed_pending_review' -- nothing it produces
+# reaches the public agents table until an admin explicitly reviews the
+# pushed repo and calls the publish route below. This is the only path that
+# creates a listing from a completion; nothing else in this pipeline does.
+# ---------------------------------------------------------------------------
+
+@router.get("/admin/repo-completion/requests", tags=["admin", "repo-completion"])
+async def admin_list_repo_completion_requests(status: Optional[str] = None):
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT r.*, a.name AS target_name, a.github_url AS target_github_url
+            FROM repo_completion_requests r
+            JOIN agents a ON a.tracent_id = r.tracent_id
+            WHERE ($1::text IS NULL OR r.status = $1)
+            ORDER BY r.created_at DESC
+            """,
+            status,
+        )
+    return {"requests": [dict(r) for r in rows]}
+
+
+@router.post("/admin/repo-completion/requests/{request_id}/publish", tags=["admin", "repo-completion"])
+async def admin_publish_repo_completion(request_id: int, actor: str = Depends(verify_admin_key)):
+    async with get_conn() as conn:
+        request_row = await conn.fetchrow("SELECT * FROM repo_completion_requests WHERE id = $1", request_id)
+        if not request_row:
+            raise HTTPException(404, "Completion request not found")
+        if request_row["status"] != "completed_pending_review":
+            raise HTTPException(400, f"Request is '{request_row['status']}', not ready to publish")
+
+        target = await conn.fetchrow("SELECT * FROM agents WHERE tracent_id = $1", request_row["tracent_id"])
+        completed_url = request_row["completed_repo_url"]
+        owner_repo = _owner_repo_from_url(completed_url)
+        if not owner_repo:
+            raise HTTPException(400, f"completed_repo_url isn't a valid github.com URL: {completed_url}")
+
+        new_tracent_id = "gen_" + secrets.token_urlsafe(8)
+        new_row = await conn.fetchrow(
+            """
+            INSERT INTO agents (tracent_id, source, source_id, name, description, github_url, is_active)
+            VALUES ($1, 'github', $2, $3, $4, $5, TRUE)
+            RETURNING *
+            """,
+            new_tracent_id, owner_repo,
+            f"{target['name'] or target['tracent_id']} (completed)",
+            target["description"],
+            completed_url,
+        )
+        await conn.execute(
+            "UPDATE repo_completion_requests SET status = 'published', updated_at = NOW() WHERE id = $1",
+            request_id,
+        )
+        await log_admin_action(conn, actor, "repo_completion_published", new_tracent_id, completed_url)
+
+    return dict(new_row)
