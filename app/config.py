@@ -114,6 +114,20 @@ class Settings(BaseSettings):
     REPO_COMPLETION_ENABLED: bool = False
     CONSENT_REQUEST_TTL_DAYS: int = 14
 
+    # Phase 2: the actual merge run (app/services/managed_agents.py::
+    # start_completion_run) and where its result gets pushed
+    # (app/services/repo_completion_publish.py). COMPLETION_AGENT_ID/VERSION
+    # follow the same one-time-created, reused-by-ID pattern as the sandbox
+    # installer agent (see scripts/create_repo_completer_agent.py).
+    # COMPLETION_GITHUB_TOKEN needs repo-creation + push scope under
+    # COMPLETION_GITHUB_ORG -- deliberately a separate token from the
+    # read-only GITHUB_TOKEN scraping uses, never the same credential.
+    COMPLETION_AGENT_ID: str | None = None
+    COMPLETION_AGENT_VERSION: int | None = None
+    COMPLETION_GITHUB_TOKEN: str | None = None
+    COMPLETION_GITHUB_ORG: str | None = None
+    COMPLETION_MAX_RUN_SECONDS: int = 900
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
