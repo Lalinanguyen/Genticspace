@@ -49,6 +49,33 @@ async def list_sandbox_ready_agents() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+async def list_my_trials(user_id: int) -> list[dict]:
+    """One row per agent this user has ever run a sandbox trial against,
+    grouped from their real agent_sandbox_runs history -- run_count and
+    last_run_at are real aggregates, latest_status is the most recent run's
+    actual status. No invented fields (no score/expiry/cost -- none of that
+    exists yet, see docs/sandbox-v3-integration-plan.md)."""
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT
+                a.tracent_id, a.name, a.description, a.image_url,
+                COUNT(r.id) AS run_count,
+                MAX(r.created_at) AS last_run_at,
+                (SELECT r2.status FROM agent_sandbox_runs r2
+                 WHERE r2.tracent_id = a.tracent_id AND r2.user_id = $1
+                 ORDER BY r2.created_at DESC LIMIT 1) AS latest_status
+            FROM agent_sandbox_runs r
+            JOIN agents a ON a.tracent_id = r.tracent_id
+            WHERE r.user_id = $1
+            GROUP BY a.tracent_id, a.name, a.description, a.image_url
+            ORDER BY MAX(r.created_at) DESC
+            """,
+            user_id,
+        )
+    return [dict(r) for r in rows]
+
+
 async def get_sandbox_config(tracent_id: str) -> dict:
     agent, config = await _get_agent_and_config(tracent_id)
     if agent is None:

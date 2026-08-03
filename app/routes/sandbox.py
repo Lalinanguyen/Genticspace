@@ -28,6 +28,11 @@ async def sandbox_ready_agents():
     return {"agents": await sandbox_runner.list_sandbox_ready_agents()}
 
 
+@router.get("/sandbox/my-trials")
+async def my_sandbox_trials(current_user: dict = Depends(get_current_user)):
+    return {"trials": await sandbox_runner.list_my_trials(current_user["id"])}
+
+
 @router.get("/agents/{tracent_id}/sandbox/config")
 async def sandbox_config(tracent_id: str):
     try:

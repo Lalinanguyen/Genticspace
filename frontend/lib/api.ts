@@ -315,6 +315,22 @@ export function getSandboxReadyAgents(): Promise<{ agents: Agent[] }> {
   return request("/public/sandbox/agents");
 }
 
+export interface SandboxTrial {
+  tracent_id: string;
+  name: string | null;
+  description: string | null;
+  image_url: string | null;
+  run_count: number;
+  last_run_at: string;
+  latest_status: string;
+}
+
+export function getMySandboxTrials(token: string): Promise<{ trials: SandboxTrial[] }> {
+  return request("/public/sandbox/my-trials", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export function startSandboxRun(tracentId: string, token: string): Promise<{ run_id: number; status: string }> {
   return request(`/public/agents/${tracentId}/sandbox/runs`, {
     method: "POST",
