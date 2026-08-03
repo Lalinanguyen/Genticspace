@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
@@ -11,6 +11,14 @@ import { PublicSandboxListing } from "@/components/sandbox/PublicSandboxListing"
 import { YourSandboxTrials } from "@/components/sandbox/YourSandboxTrials";
 
 export default function SandboxPage() {
+  return (
+    <Suspense fallback={null}>
+      <SandboxPageInner />
+    </Suspense>
+  );
+}
+
+function SandboxPageInner() {
   const { user, token, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const forceBrowse = searchParams.get("browse") === "1";
