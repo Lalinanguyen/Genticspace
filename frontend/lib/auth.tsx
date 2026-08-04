@@ -10,7 +10,7 @@ import {
 import { getMe } from "./api";
 import type { User } from "./types";
 
-const TOKEN_KEY = "tracent_token";
+const TOKEN_KEY = "genticspace_token";
 
 interface AuthContextValue {
   user: User | null;

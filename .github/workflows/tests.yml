@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: tracent_deslop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # No real secrets needed: the suite never makes a network call or
+      # touches a real chain/LLM/GitHub API. app/main.py's `lifespan` (the
+      # only place that would) is deliberately bypassed by tests/conftest.py's
+      # `client` fixture, and ANTHROPIC_API_KEY / GITHUB_TOKEN /
+      # HUGGINGFACE_TOKEN are Optional[str] = None in app/config.py, so
+      # importing the app works fine with them entirely unset — verified
+      # empirically (see docs/testing.md) while building this suite.
+      DATABASE_URL: postgresql://postgres@localhost:5432/tracent_deslop
+      ALCHEMY_API_KEY: ci-dummy-alchemy-key
+      API_KEY: ci-dummy-master-key
+      JWT_SECRET: ci-dummy-jwt-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -v

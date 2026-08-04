@@ -17,62 +17,28 @@ const INDUSTRIES = [
 ];
 
 const TABS = [
-  {
-    key: "profile",
-    label: "Profile",
-    desc: "Info shown on your marketplace listing.",
-    icon: "M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5",
-  },
-  {
-    key: "connections",
-    label: "Connected accounts",
-    desc: "Link socials, code hosts, and your site.",
-    icon: "M9.5 14.5l5-5M8.5 12l-2.2 2.2a3.4 3.4 0 0 0 4.8 4.8L13.3 16.8M15.5 12l2.2-2.2a3.4 3.4 0 0 0-4.8-4.8L10.7 7.2",
-  },
-  {
-    key: "privacy",
-    label: "Privacy",
-    desc: "Control what's visible to the marketplace.",
-    icon: "M12 4l7 2.5v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8v-5L12 4z",
-  },
-  {
-    key: "notifications",
-    label: "Notifications",
-    desc: "Choose what Genticspace emails you about.",
-    icon: "M6.5 16v-5.5a5.5 5.5 0 0 1 11 0V16l1.5 2.5H5L6.5 16zM10 20.5a2 2 0 0 0 4 0",
-  },
-  {
-    key: "security",
-    label: "Security",
-    desc: "Password and account security.",
-    icon: "M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5M6 10.5h12V20H6zM12 14v2.5",
-  },
+  { key: "profile", label: "Profile", desc: "Info shown on your marketplace listing." },
+  { key: "connections", label: "Connected accounts", desc: "Link socials and code hosts to your profile." },
+  { key: "privacy", label: "Privacy", desc: "Control what's visible to the marketplace." },
+  { key: "notifications", label: "Notifications", desc: "Choose what Tracent emails you about." },
+  { key: "security", label: "Security", desc: "Password and account protection." },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
-const CONNECT_FIELDS = [
-  { key: "github", label: "GitHub" },
-  { key: "x", label: "X (Twitter)" },
-  { key: "linkedin", label: "LinkedIn" },
-  { key: "huggingface", label: "Hugging Face" },
-  { key: "website_url", label: "Website" },
-  { key: "other", label: "Other link" },
-] as const;
-
-const panelClass = "glass-panel p-[26px] rounded box-border";
 const inputClass =
   "w-full box-border px-3.5 py-3 rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
 const labelClass = "block mb-1.5 font-semibold text-[12.5px] text-foreground-muted";
-const saveButtonClass =
-  "self-start px-6 py-3 rounded font-semibold text-sm cursor-pointer text-white";
-const saveButtonStyle = { background: "linear-gradient(135deg,#072AC8,#2f4fe0)", boxShadow: "0 10px 30px rgba(7,42,200,.45)" };
+const badgeClass = "px-2.5 py-1 rounded-sm border font-semibold text-[11px] bg-cyan/14 border-cyan/35 text-cyan";
+const ctaClass = "self-start px-6 py-3 rounded font-semibold text-sm cursor-pointer text-white";
+const ctaStyle = { background: "linear-gradient(135deg,#072AC8,#2f4fe0)", boxShadow: "0 10px 30px rgba(7,42,200,.45)" };
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <div
       onClick={() => onChange(!checked)}
-      className="w-10 h-6 rounded-full flex-none cursor-pointer relative transition-colors"
-      style={{ background: checked ? "#35C0B0" : "rgba(28,38,33,.15)" }}
+      role="switch"
+      aria-checked={checked}
+      className={`w-10 h-6 rounded flex-none cursor-pointer relative transition-colors ${checked ? "bg-cyan" : "bg-foreground/15"}`}
     >
       <div
         className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
@@ -82,7 +48,29 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-function ToggleRow({
+function ToggleCard({
+  title,
+  sub,
+  checked,
+  onChange,
+}: {
+  title: string;
+  sub: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="glass-panel rounded px-5 py-5 md:px-[26px] md:py-[22px] flex items-center justify-between gap-4">
+      <div>
+        <div className="font-display font-normal text-sm text-foreground mb-1">{title}</div>
+        <div className="text-[12.5px] leading-relaxed text-foreground-muted">{sub}</div>
+      </div>
+      <Toggle checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
+function NotificationRow({
   label,
   sub,
   checked,
@@ -142,14 +130,6 @@ function SettingsForm({ user }: { user: User }) {
   }));
 
   const isBusiness = user.account_type === "business";
-  const initials = (isBusiness ? form.company_name : form.name)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "?";
 
   async function save(fields: Record<string, unknown>) {
     if (!token) return;
@@ -168,70 +148,57 @@ function SettingsForm({ user }: { user: User }) {
     }
   }
 
+  const CONNECT_META = [
+    { key: "github", label: "GitHub", icon: "/assets/github-mark-clean.svg", invert: false },
+    { key: "x", label: "X (Twitter)", icon: "/assets/x-logo-white.png", invert: true },
+    { key: "linkedin", label: "LinkedIn", icon: "/assets/linkedin-bug-white.png", invert: true },
+    { key: "huggingface", label: "Hugging Face", icon: "/assets/hf-logo.png", invert: false },
+    { key: "other", label: "Other link", icon: null, invert: false },
+  ] as const;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[1200px] mx-auto px-[5%] py-11 box-border">
-        <h1 className="font-display font-normal text-[30px] text-foreground mb-1.5 tracking-tight">Settings</h1>
-        <p className="text-foreground-muted text-sm mb-8">Manage your profile, connected accounts, and security.</p>
+      <main className="flex-1 w-full max-w-[1100px] mx-auto px-[5%] py-11 box-border">
+        <h1 className="font-display font-normal text-[30px] text-foreground mb-1.5">Settings</h1>
+        <p className="text-foreground-muted text-sm mb-8">
+          Manage your profile, connected accounts, and security.
+        </p>
 
         <div className="flex gap-11 items-start flex-wrap">
           {/* SIDEBAR NAV */}
           <div className="flex-none w-[260px] min-w-[220px] flex flex-col gap-0.5">
-            {TABS.map((t) => {
-              const active = tab === t.key;
-              return (
+            {TABS.map((t) => (
+              <div
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`px-4 py-3.5 rounded cursor-pointer border-l-2 transition-colors ${
+                  tab === t.key
+                    ? "bg-surface-2 border-cyan shadow-[0_10px_28px_rgba(28,38,33,.12)]"
+                    : "border-transparent hover:bg-surface"
+                }`}
+              >
                 <div
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className="flex items-start gap-3 px-4 py-3.5 rounded cursor-pointer"
-                  style={{
-                    borderLeft: `2px solid ${active ? "#35C0B0" : "transparent"}`,
-                    background: active ? "rgba(28,38,33,.05)" : "transparent",
-                  }}
+                  className={`font-semibold text-[13.5px] mb-0.5 ${
+                    tab === t.key ? "text-foreground" : "text-foreground-muted"
+                  }`}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? "#1C2621" : "rgba(28,38,33,.6)"} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="flex-none mt-px">
-                    <path d={t.icon} />
-                  </svg>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-[13.5px] mb-0.5" style={{ color: active ? "#1C2621" : "rgba(28,38,33,.6)" }}>
-                      {t.label}
-                    </div>
-                    <div className="text-[12px] leading-snug text-foreground-faint">{t.desc}</div>
-                  </div>
+                  {t.label}
                 </div>
-              );
-            })}
+                <div className="text-[12px] leading-relaxed text-foreground-faint">{t.desc}</div>
+              </div>
+            ))}
           </div>
 
           {/* PANEL */}
           <div className="flex-1 min-w-[300px] flex flex-col gap-8">
             {tab === "profile" && (
-              <div className={`${panelClass} flex flex-col gap-5`}>
+              <div className="glass-panel rounded p-6 md:p-[26px] flex flex-col gap-5">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-[.6px]">Profile</span>
-                  <span
-                    className="font-bold text-[10.5px] px-2.5 py-1 rounded-sm border"
-                    style={
-                      isBusiness
-                        ? { color: "#178C7E", background: "rgba(53,192,176,.14)", borderColor: "rgba(53,192,176,.35)" }
-                        : { color: "#3540c0", background: "rgba(53,64,192,.1)", borderColor: "rgba(53,64,192,.3)" }
-                    }
-                  >
-                    {isBusiness ? "Business account" : "Individual account"}
+                  <span className="font-bold text-[13px] uppercase tracking-wide text-foreground-faint">
+                    Profile
                   </span>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-16 h-16 rounded flex-none flex items-center justify-center font-display font-normal text-2xl text-white"
-                    style={{ background: "linear-gradient(135deg,#072AC8,#2f4fe0)" }}
-                  >
-                    {initials}
-                  </div>
-                  <p className="m-0 text-[12.5px] text-foreground-faint leading-relaxed max-w-[280px]">
-                    Your initials show up here until Genticspace supports profile photos.
-                  </p>
+                  <span className={badgeClass}>{isBusiness ? "Business account" : "Individual account"}</span>
                 </div>
 
                 <div>
@@ -265,6 +232,16 @@ function SettingsForm({ user }: { user: User }) {
                 )}
 
                 <div>
+                  <label className={labelClass}>Website</label>
+                  <input
+                    className={inputClass}
+                    placeholder="https://"
+                    value={form.website_url}
+                    onChange={(e) => setForm((f) => ({ ...f, website_url: e.target.value }))}
+                  />
+                </div>
+
+                <div>
                   <label className={labelClass}>{isBusiness ? "Company bio" : "Bio"}</label>
                   <textarea
                     className={`${inputClass} min-h-[90px] resize-y`}
@@ -287,10 +264,11 @@ function SettingsForm({ user }: { user: User }) {
                             company_name: isBusiness ? form.company_name : undefined,
                             bio: form.bio,
                             industry: isBusiness ? form.industry : undefined,
+                            website_url: form.website_url,
                           })
                   }
-                  className={saveButtonClass}
-                  style={saveButtonStyle}
+                  className={ctaClass}
+                  style={ctaStyle}
                 >
                   {busy ? "Saving…" : "Save changes"}
                 </div>
@@ -298,16 +276,31 @@ function SettingsForm({ user }: { user: User }) {
             )}
 
             {tab === "connections" && (
-              <div className={`${panelClass} flex flex-col gap-1`}>
-                <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-[.6px] mb-4">
+              <div className="glass-panel rounded p-6 md:p-[26px] flex flex-col gap-2">
+                <span className="font-bold text-[13px] uppercase tracking-wide text-foreground-faint mb-2">
                   Connected accounts
                 </span>
 
-                {CONNECT_FIELDS.map(({ key, label }) => (
-                  <div key={key} className="flex items-center gap-4 py-3.5 border-b border-border last:border-b-0">
-                    <span className="w-[110px] flex-none font-semibold text-[13px] text-foreground-muted">{label}</span>
+                {CONNECT_META.map(({ key, label, icon, invert }) => (
+                  <div key={key} className="flex items-center gap-3.5 py-3.5 border-b border-border last:border-b-0">
+                    <div className="w-8 h-8 flex-none rounded bg-surface-2 border border-border flex items-center justify-center overflow-hidden">
+                      {icon ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={icon}
+                          alt=""
+                          className="w-4 h-4 object-contain"
+                          style={invert ? { filter: "brightness(0)" } : undefined}
+                        />
+                      ) : (
+                        <span className="text-foreground-faint text-sm font-bold">+</span>
+                      )}
+                    </div>
+                    <span className="w-[110px] flex-none font-semibold text-[13px] text-foreground-muted">
+                      {label}
+                    </span>
                     <input
-                      className="flex-1 min-w-0 box-border py-2 bg-transparent border-none outline-none text-foreground text-[13.5px]"
+                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-foreground text-[13.5px] py-2 focus:outline-none"
                       placeholder="Not connected"
                       value={form[key]}
                       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
@@ -315,8 +308,8 @@ function SettingsForm({ user }: { user: User }) {
                   </div>
                 ))}
 
-                {error && <p className="text-error text-[12.5px] font-semibold mt-4">{error}</p>}
-                {saved && <p className="text-cyan text-[12.5px] font-semibold mt-4">Saved.</p>}
+                {error && <p className="text-error text-[12.5px] font-semibold mt-2">{error}</p>}
+                {saved && <p className="text-cyan text-[12.5px] font-semibold mt-2">Saved.</p>}
 
                 <div
                   onClick={
@@ -324,7 +317,6 @@ function SettingsForm({ user }: { user: User }) {
                       ? undefined
                       : () =>
                           save({
-                            website_url: form.website_url,
                             connects: {
                               github: form.github,
                               x: form.x,
@@ -334,67 +326,44 @@ function SettingsForm({ user }: { user: User }) {
                             },
                           })
                   }
-                  className={`${saveButtonClass} mt-4`}
-                  style={saveButtonStyle}
+                  className={`${ctaClass} mt-2`}
+                  style={ctaStyle}
                 >
                   {busy ? "Saving…" : "Save changes"}
                 </div>
               </div>
             )}
 
-            {tab === "privacy" && (
-              <div className={`${panelClass} flex flex-col`}>
-                <ToggleRow
-                  label="Private profile"
-                  sub="Hide your contributions, favorites, and reviews from other visitors"
-                  checked={form.is_private}
-                  onChange={(v) => setForm((f) => ({ ...f, is_private: v }))}
-                />
-                <ToggleRow
-                  label="Show follower count"
-                  sub="Display your follower count publicly on your profile"
-                  checked={form.show_follower_count}
-                  onChange={(v) => setForm((f) => ({ ...f, show_follower_count: v }))}
-                />
-
-                {error && <p className="text-error text-[12.5px] font-semibold mt-4">{error}</p>}
-                {saved && <p className="text-cyan text-[12.5px] font-semibold mt-4">Saved.</p>}
-
-                <div
-                  onClick={
-                    busy
-                      ? undefined
-                      : () =>
-                          save({
-                            is_private: form.is_private,
-                            show_follower_count: form.show_follower_count,
-                          })
-                  }
-                  className={`${saveButtonClass} mt-4`}
-                  style={saveButtonStyle}
-                >
-                  {busy ? "Saving…" : "Save changes"}
-                </div>
+            {tab === "security" && (
+              <div className="glass-panel rounded p-6 text-center">
+                <div className="font-display font-normal text-[15px] text-foreground mb-1.5">Coming soon</div>
+                <p className="text-foreground-muted text-[13px] leading-relaxed">
+                  Two-factor authentication, active session management, and recovery codes are on the way.
+                  This section isn&apos;t wired up yet so we don&apos;t show security controls that don&apos;t
+                  actually do anything.
+                </p>
               </div>
             )}
 
             {tab === "notifications" && (
-              <div className={`${panelClass} flex flex-col`}>
-                <ToggleRow
-                  label="New follower"
-                  sub="Get notified when someone follows you"
-                  checked={form.notify_new_follower}
-                  onChange={(v) => setForm((f) => ({ ...f, notify_new_follower: v }))}
-                />
-                <ToggleRow
-                  label="New review"
-                  sub="Get notified when someone reviews your agent"
-                  checked={form.notify_agent_review}
-                  onChange={(v) => setForm((f) => ({ ...f, notify_agent_review: v }))}
-                />
+              <div className="flex flex-col gap-4">
+                <div className="glass-panel rounded p-6 md:p-[26px]">
+                  <NotificationRow
+                    label="New followers"
+                    sub="Someone starts following you"
+                    checked={form.notify_new_follower}
+                    onChange={(v) => setForm((f) => ({ ...f, notify_new_follower: v }))}
+                  />
+                  <NotificationRow
+                    label="New agent reviews"
+                    sub="A buyer leaves a review on one of your agents"
+                    checked={form.notify_agent_review}
+                    onChange={(v) => setForm((f) => ({ ...f, notify_agent_review: v }))}
+                  />
+                </div>
 
-                {error && <p className="text-error text-[12.5px] font-semibold mt-4">{error}</p>}
-                {saved && <p className="text-cyan text-[12.5px] font-semibold mt-4">Saved.</p>}
+                {error && <p className="text-error text-[12.5px] font-semibold">{error}</p>}
+                {saved && <p className="text-cyan text-[12.5px] font-semibold">Saved.</p>}
 
                 <div
                   onClick={
@@ -406,36 +375,50 @@ function SettingsForm({ user }: { user: User }) {
                             notify_agent_review: form.notify_agent_review,
                           })
                   }
-                  className={`${saveButtonClass} mt-4`}
-                  style={saveButtonStyle}
+                  className={ctaClass}
+                  style={ctaStyle}
                 >
                   {busy ? "Saving…" : "Save changes"}
                 </div>
               </div>
             )}
 
-            {tab === "security" && (
-              <div className={`${panelClass} flex flex-col gap-4`}>
-                <div>
-                  <div className="font-display font-normal text-base text-foreground mb-1">Password</div>
-                  <p className="m-0 text-[12.5px] leading-relaxed text-foreground-faint">
-                    Change or reset your password on a dedicated, secure page.
-                  </p>
-                </div>
-                <a
-                  href="/reset-password"
-                  className="self-start px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground no-underline"
-                >
-                  Change password
-                </a>
+            {tab === "privacy" && (
+              <div className="flex flex-col gap-4">
+                <ToggleCard
+                  title={form.is_private ? "Private profile" : "Public profile"}
+                  sub={
+                    form.is_private
+                      ? "Hide your contributions, favorites, and reviews from other visitors."
+                      : "Discoverable to everyone browsing the marketplace."
+                  }
+                  checked={form.is_private}
+                  onChange={(v) => setForm((f) => ({ ...f, is_private: v }))}
+                />
+                <ToggleCard
+                  title="Show follower count"
+                  sub="Display your follower count publicly on your profile."
+                  checked={form.show_follower_count}
+                  onChange={(v) => setForm((f) => ({ ...f, show_follower_count: v }))}
+                />
 
-                <div className="pt-2 border-t border-border">
-                  <div className="font-display font-normal text-base text-foreground mb-1.5 mt-3">Coming soon</div>
-                  <p className="m-0 text-[13px] leading-relaxed text-foreground-muted">
-                    Two-factor authentication, active session management, recovery codes, and a security log are on
-                    the way. This section isn&apos;t wired up yet, so we don&apos;t show controls that don&apos;t
-                    actually do anything.
-                  </p>
+                {error && <p className="text-error text-[12.5px] font-semibold">{error}</p>}
+                {saved && <p className="text-cyan text-[12.5px] font-semibold">Saved.</p>}
+
+                <div
+                  onClick={
+                    busy
+                      ? undefined
+                      : () =>
+                          save({
+                            is_private: form.is_private,
+                            show_follower_count: form.show_follower_count,
+                          })
+                  }
+                  className={ctaClass}
+                  style={ctaStyle}
+                >
+                  {busy ? "Saving…" : "Save changes"}
                 </div>
               </div>
             )}

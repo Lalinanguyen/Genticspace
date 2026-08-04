@@ -7,8 +7,6 @@ import bcrypt
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.config import settings
 from app.db.database import get_conn
@@ -18,6 +16,7 @@ from app.db.jwt_auth import (
     get_current_user,
     revoke_session,
 )
+from app.rate_limit import _real_client_ip, limiter
 from app.services.mailer import send_otp_email, send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -35,11 +34,13 @@ def _hash_code(code: str) -> str:
 
 
 def _rate_limit_key(request: Request) -> str:
+    # Compounds the real client IP (app.rate_limit's Fly-proxy-aware
+    # extraction -- see that module) with the attempted email, so e.g. OTP
+    # brute-forcing one victim's email gets limited even from many source
+    # IPs, on top of the site-wide per-IP default this shares a limiter
+    # instance with.
     email = getattr(request.state, "rate_limit_email", "") or ""
-    return f"{get_remote_address(request)}:{email.strip().lower()}"
-
-
-limiter = Limiter(key_func=_rate_limit_key, headers_enabled=True)
+    return f"{_real_client_ip(request)}:{email.strip().lower()}"
 
 
 async def _capture_email_for_rate_limit(request: Request) -> None:
@@ -99,7 +100,7 @@ def _user_response(row) -> dict:
 
 
 @router.post("/request-otp")
-@limiter.limit(settings.AUTH_RATE_LIMIT)
+@limiter.limit(settings.AUTH_RATE_LIMIT, key_func=_rate_limit_key)
 async def request_otp(
     request: Request,
     response: Response,
@@ -200,7 +201,7 @@ async def signup(body: SignupBody):
 
 
 @router.post("/login")
-@limiter.limit(settings.AUTH_RATE_LIMIT)
+@limiter.limit(settings.AUTH_RATE_LIMIT, key_func=_rate_limit_key)
 async def login(
     request: Request,
     response: Response,
@@ -238,7 +239,7 @@ class ResetPasswordBody(BaseModel):
 
 
 @router.post("/forgot-password")
-@limiter.limit(settings.AUTH_RATE_LIMIT)
+@limiter.limit(settings.AUTH_RATE_LIMIT, key_func=_rate_limit_key)
 async def forgot_password(
     request: Request,
     response: Response,

@@ -126,9 +126,17 @@ async def test_pagination_computes_limit_and_offset():
 
 
 async def test_result_shape_passes_through_total_and_rows():
+    # _row_to_dict (see app/services/agent_queries.py) enriches every row with
+    # trust_summary and sandboxable/sandbox_url -- real, always-on
+    # computations, not something this shape test should strip out.
     conn = RecordingConn(total=42, rows=[{"tracent_id": "abc"}])
     result = await query_agents(conn, page=2, page_size=5)
-    assert result == {"total": 42, "page": 2, "page_size": 5, "agents": [{"tracent_id": "abc"}]}
+    assert result == {
+        "total": 42,
+        "page": 2,
+        "page_size": 5,
+        "agents": [{"tracent_id": "abc", "trust_summary": "unverified", "sandboxable": False, "sandbox_url": None}],
+    }
 
 
 async def test_count_query_uses_same_params_as_fetch_query():

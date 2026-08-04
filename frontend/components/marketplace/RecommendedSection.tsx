@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { getRecommendations, ApiError } from "@/lib/api";
 import type { Recommendation } from "@/lib/types";
+import { agentId } from "@/lib/agent";
 import { AgentCard } from "./AgentCard";
 
 // Experience level is an internal signal from the user's profile (set once
@@ -63,7 +64,7 @@ export function RecommendedSection({ pageSize }: { pageSize: number }) {
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-4">
         <span className="w-1.5 h-1.5 rounded-full bg-cyan flex-none" />
-        <span className="font-display font-bold text-sm text-foreground">
+        <span className="font-display font-normal text-sm text-foreground">
           {hasQuery ? `Best matches for "${task}"` : "Recommended for you"}
         </span>
       </div>
@@ -74,7 +75,7 @@ export function RecommendedSection({ pageSize }: { pageSize: number }) {
       ) : (
         <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
           {recommendations.map((rec) => (
-            <AgentCard key={rec.tracent_id} agent={rec} />
+            <AgentCard key={agentId(rec)} agent={rec} />
           ))}
         </div>
       )}

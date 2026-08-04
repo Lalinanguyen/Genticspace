@@ -42,6 +42,13 @@ DO $$ BEGIN
     ALTER TABLE reviews RENAME COLUMN genticspace_id TO tracent_id;
   END IF;
 END $$;
+-- Backend-internal data values, likewise only meaningful on a pre-existing
+-- database. Wrapped in the same table-existence guard as the column rename
+-- above: on a genuinely fresh database `agents` doesn't exist yet at this
+-- point (bug fixed here — these four UPDATEs previously ran unconditionally,
+-- so `UPDATE agents SET ...` against a not-yet-created table threw
+-- UndefinedTableError and broke init_db() on every fresh database, which is
+-- every test run and any from-scratch deploy).
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='agents') THEN
     UPDATE agents SET trust_tier = 'tracent' WHERE trust_tier = 'genticspace';
@@ -62,7 +69,17 @@ async def _migrate_genticspace_to_tracent(conn: asyncpg.Connection) -> None:
         renamed = await conn.fetchval(
             "SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='tracent_id'"
         )
+        # On a genuinely fresh database, `agents` doesn't exist yet at this
+        # point (_SCHEMA's CREATE TABLE hasn't run) — that's the expected
+        # no-op path, not a failure; _SCHEMA creates it with tracent_id
+        # directly right after this returns.
         if agents_table_existed and not renamed:
+            # Only reachable if the rename ran but the column still isn't
+            # there afterward — a real bug, not the expected no-op path.
+            # Fail loudly here (blocking startup / the deploy's health
+            # check) rather than let the app come up "healthy" and serve
+            # 500s on every agents query, which is what silently swallowing
+            # this would do.
             raise RuntimeError(
                 "genticspace_id -> tracent_id migration did not take effect: "
                 "agents.tracent_id still doesn't exist after running the rename"
@@ -433,6 +450,20 @@ ALTER TABLE agent_sandbox_runs ALTER COLUMN ingest_token DROP NOT NULL;
 ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS execution_lane TEXT NOT NULL DEFAULT 'manifest';
 ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS session_id TEXT;
 
+-- Moderation for the new *anonymous* submission path (POST /agents/submit,
+-- source = 'self-submitted') — distinct from the existing authenticated
+-- Contribute flow (source = 'tracent', submitted_by set), which stays
+-- instant-live and untouched. DEFAULT 'approved' is deliberate: every
+-- pre-existing row across every source (erc8004, ard, github, huggingface,
+-- npm, futurepedia, ycombinator, genticspace) and every future row from any of
+-- those existing pipelines is unaffected and stays publicly visible exactly
+-- as before. Only the new anonymous submit flow explicitly writes 'pending'.
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderation_status TEXT DEFAULT 'approved';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS submitter_email   TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderation_note   TEXT;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS moderated_at      TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_agents_moderation_status ON agents(moderation_status);
+
 -- Per-client API keys (see app/db/auth.py). Only a sha256 hash of the raw
 -- key is ever stored; the raw key is returned once, at mint time, by
 -- POST /admin/api-keys and never persisted or logged. `scope` determines
@@ -461,8 +492,8 @@ CREATE TABLE IF NOT EXISTS admin_actions (
 CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON admin_actions(target);
 
 -- Sandbox-mode admission record: a small, manually hand-picked cohort of
--- agents eligible for (future) sandboxed trial-runs. This table does NOT
--- mean anything actually executes -- it's the gate an admin can flip, most
+-- agents eligible for sandboxed trial-runs. This table does NOT mean
+-- anything actually executes -- it's the gate an admin can flip, most
 -- notably to force `status = 'disabled'` as a kill switch (see
 -- POST /admin/sandbox/{tracent_id}/disable in app/routes/admin.py).
 CREATE TABLE IF NOT EXISTS sandbox_cohort (

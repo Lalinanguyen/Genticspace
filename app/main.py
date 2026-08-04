@@ -7,24 +7,27 @@ import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(dsn=settings.SENTRY_DSN)
 from app.db.database import close_db, cleanup_expired_auth_tokens, init_db
+from app.rate_limit import limiter
 from app.routes.admin import router as admin_router
-from app.routes.agents import router as agents_router
-from app.routes.auth import limiter, router as auth_router
+from app.routes.agents import router as agents_router, submit_router as agents_submit_router
+from app.routes.auth import router as auth_router
 from app.routes.profiles import router as profiles_router
 from app.routes.public import router as public_router
 from app.routes.sandbox import internal_router as sandbox_internal_router
 from app.routes.sandbox import router as sandbox_router
 from app.routes.trust import router as trust_router
 from app.routes.uploads import router as uploads_router
+from app.sources import list_evm_sources
 from app.services.ard_crawler import crawl_ard
 from app.services.deployment_guide import backfill_deployment_guides
 from app.services.description_backfill import (
@@ -59,8 +62,11 @@ logger = logging.getLogger(__name__)
 # advisory lock (so the 2 machines behind this app never double-run the same
 # job) and records last_finished_at in the job_runs table (so "is this job
 # overdue" survives restarts instead of resetting on every redeploy).
+#
+# EVM indexing is multi-chain and opt-in (see app/sources.py::list_evm_sources
+# -- a chain only appears once its *_CONTRACT_ADDRESS env var is set), so
+# those jobs are appended below rather than hardcoded here.
 _JOBS: list[tuple[str, object, tuple, float]] = [
-    ("index_erc8004", ingest_agents, ("erc8004",), settings.INDEX_INTERVAL_MINUTES / 60),
     ("ard_crawler", crawl_ard, (), 24),
     ("huggingface_scraper", scrape_huggingface, (), settings.HF_SCRAPE_INTERVAL_HOURS),
     ("huggingface_profile_scraper", scrape_huggingface_profiles, (), settings.HF_SCRAPE_INTERVAL_HOURS),
@@ -86,6 +92,9 @@ _JOBS: list[tuple[str, object, tuple, float]] = [
     ("sandbox_manifest_scan", scan_sandbox_manifests, (), settings.SANDBOX_MANIFEST_SCAN_INTERVAL_HOURS),
     ("sandbox_reaper", reap_stale_runs, (), settings.SANDBOX_REAP_INTERVAL_MINUTES / 60),
     ("cleanup_expired_auth_tokens", cleanup_expired_auth_tokens, (), settings.AUTH_TOKEN_CLEANUP_INTERVAL_HOURS),
+] + [
+    (f"index_{src.name}", ingest_agents, (src.name,), settings.INDEX_INTERVAL_MINUTES / 60)
+    for src in list_evm_sources()
 ]
 
 
@@ -145,11 +154,11 @@ async def lifespan(app: FastAPI):
 
     scheduler.shutdown(wait=False)
     await close_db()
-    logger.info("Tracent shut down cleanly")
+    logger.info("Genticspace shut down cleanly")
 
 
 app = FastAPI(
-    title="Tracent Registry",
+    title="Genticspace Registry",
     description="Trust and verification registry for AI agents.",
     version="1.0.0",
     lifespan=lifespan,
@@ -163,19 +172,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting (slowapi): 60 req/min/IP default across every route below,
+# with a stricter override on public writes and the auth endpoints (see
+# app/rate_limit.py for the real-client-IP-behind-Fly's-proxy handling, and
+# app/routes/auth.py for the auth-specific per-route overrides).
 app.state.limiter = limiter
-
-
-@app.exception_handler(RateLimitExceeded)
-async def _handle_rate_limit_exceeded(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-    response = JSONResponse(
-        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"detail": "Too many requests. Please try again later."},
-    )
-    return limiter._inject_headers(response, request.state.view_rate_limit)
-
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(agents_router)
+app.include_router(agents_submit_router)
 app.include_router(trust_router)
 app.include_router(admin_router)
 app.include_router(auth_router)

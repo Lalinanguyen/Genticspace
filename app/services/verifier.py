@@ -138,6 +138,6 @@ async def run_verification_review(request_id: int, action: str, note: str) -> No
                 """,
                 now, req["tracent_id"],
             )
-            logger.info("Tracent-verified agent %s (request %d)", req["tracent_id"], request_id)
+            logger.info("Genticspace-verified agent %s (request %d)", req["tracent_id"], request_id)
         else:
             logger.info("Rejected verification request %d for %s", request_id, req["tracent_id"])

@@ -5,10 +5,12 @@ import { useAuth } from "@/lib/auth";
 import {
   ApiError,
   getSandboxConfig,
+  getSandboxGuide,
   getSandboxRun,
   startSandboxRun,
   stopSandboxRun,
 } from "@/lib/api";
+import { agentId } from "@/lib/agent";
 import type { Agent, SandboxRun, SandboxRunStatus } from "@/lib/types";
 
 const POLL_INTERVAL_MS = 1500;
@@ -30,7 +32,145 @@ function glassPanel(extra = "") {
   return `glass-panel rounded box-border ${extra}`;
 }
 
+/**
+ * Two independent, real execution tracks, mutually exclusive per agent:
+ *
+ * - Track A (HF Spaces, agent.sandboxable/sandbox_url -- see
+ *   app/services/agent_queries.py::compute_sandbox_fields): the agent is
+ *   already a live, embeddable web app. TaskGuidancePanel gets real
+ *   AI-generated task guidance (POST .../sandbox/guide) alongside a direct
+ *   iframe embed of the actual agent -- no execution backend needed since
+ *   nothing needs to be run, it's already running.
+ * - Track B (GitHub repos with a genticspace.yaml manifest,
+ *   agent_sandbox_config.sandbox_enabled): FlyRunConsolePanel clones and
+ *   actually runs the agent's real repo in an isolated Fly Machine, polling
+ *   for live status/logs -- see docs/sandbox-hardening-plan.md.
+ *
+ * A given agent qualifies for at most one track today (Spaces don't have a
+ * GitHub manifest; GitHub repos aren't HF Spaces), so this is a branch, not
+ * a combined UI.
+ */
 export function RunConsole({ agent }: { agent: Agent }) {
+  if (agent.sandboxable && agent.sandbox_url) {
+    return <TaskGuidancePanel agent={agent} sandboxUrl={agent.sandbox_url} />;
+  }
+  return <FlyRunConsolePanel agent={agent} />;
+}
+
+function TaskGuidancePanel({ agent, sandboxUrl }: { agent: Agent; sandboxUrl: string }) {
+  const { token } = useAuth();
+  const [task, setTask] = useState("");
+  const [guidance, setGuidance] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+
+  const agentName = agent.name || agentId(agent);
+
+  async function run() {
+    const trimmed = task.trim();
+    if (!trimmed || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getSandboxGuide(agentId(agent), trimmed, token ?? undefined);
+      setGuidance(res.guidance);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't get guidance right now.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex gap-7 items-start flex-wrap">
+      {/* Composer */}
+      <div className="glass-panel flex-1 basis-[380px] min-w-[300px] max-w-[520px] rounded-xl box-border overflow-hidden">
+        <div className="p-[22px] pb-2">
+          <div className="font-display font-normal text-xl text-foreground mb-1">
+            What should {agentName} handle?
+          </div>
+          <p className="text-[13px] leading-relaxed text-foreground-muted mb-4">
+            Describe the task or paste the content, whatever you&apos;d hand a teammate. We&apos;ll suggest how
+            to use it below, then you try it live.
+          </p>
+          <div className="glass-chip rounded-xl overflow-hidden">
+            <textarea
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder="Describe what you need done, or paste the content to work on..."
+              className="w-full min-h-[130px] box-border p-4 bg-transparent border-0 text-foreground text-[14.5px] leading-relaxed resize-y focus:outline-none"
+            />
+            <div className="flex items-center gap-2.5 px-3 py-2.5 border-t border-border">
+              <div
+                onClick={loading ? undefined : run}
+                className="ml-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-[13.5px] cursor-pointer"
+                style={{
+                  background:
+                    task.trim() && !loading ? "linear-gradient(135deg,#072AC8,#2f4fe0)" : "rgba(28,38,33,.08)",
+                  color: task.trim() && !loading ? "#fff" : "rgba(28,38,33,.4)",
+                }}
+              >
+                {loading ? "Thinking…" : `Get task guidance`}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Result panel */}
+      <div className="glass-panel flex-[1.4] basis-[460px] min-w-[320px] rounded-xl box-border overflow-hidden">
+        <div className="border-b border-border px-4 pt-3">
+          <span className="inline-block pb-3 font-semibold text-[13px] text-foreground border-b-2 border-cyan">
+            Live agent
+          </span>
+        </div>
+        <div className="p-[22px] min-h-[340px] box-border">
+          {!guidance && !loading && !error && (
+            <div className="flex flex-col items-center justify-center gap-3.5 min-h-[220px] text-center">
+              <div className="font-display text-[17px] text-foreground-muted">Nothing yet</div>
+              <p className="max-w-[300px] text-[13px] leading-relaxed text-foreground-faint">
+                Describe a task on the left and get guidance, or just try the live agent directly below.
+              </p>
+            </div>
+          )}
+
+          {error && <p className="text-[12.5px] text-error mb-3">{error}</p>}
+
+          {guidance && (
+            <div className="mb-5">
+              <div className="font-semibold text-xs text-foreground-faint mb-1.5">For your task</div>
+              <div className="px-4 py-3 rounded bg-[rgba(53,192,176,.08)] border border-[rgba(53,192,176,.25)] text-[13.5px] leading-relaxed whitespace-pre-wrap text-foreground">
+                {guidance}
+              </div>
+            </div>
+          )}
+
+          <div className="font-semibold text-xs text-foreground-faint mb-1.5">Try it live</div>
+          <div className="rounded-sm overflow-hidden border border-border-strong bg-surface-2" style={{ height: 420 }}>
+            <iframe
+              src={sandboxUrl}
+              title={`${agentName}, live`}
+              className="w-full h-full border-0"
+              onLoad={() => setIframeLoaded(true)}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
+            {!iframeLoaded && (
+              <p className="text-[11.5px] text-foreground-faint">If the embed doesn&apos;t load, open it directly:</p>
+            )}
+            <a href={sandboxUrl} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-cyan">
+              Open in a new tab ↗
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlyRunConsolePanel({ agent }: { agent: Agent }) {
   const { user, token } = useAuth();
   const [enabled, setEnabled] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -123,27 +263,9 @@ export function RunConsole({ agent }: { agent: Agent }) {
             : "In progress...";
 
   return (
-    <div className="w-full max-w-[1440px] mx-auto px-[5%] pb-24 box-border">
-      <div className="flex items-end justify-between gap-4 flex-wrap pt-9 pb-6">
-        <div>
-          <a
-            href={`/marketplace/${agent.tracent_id}`}
-            className="font-semibold text-[12.5px] text-foreground-faint no-underline hover:text-foreground"
-          >
-            ← Back to agent page
-          </a>
-          <h1 className="font-display font-normal text-[34px] leading-tight text-foreground tracking-tight mt-3 mb-1.5 flex items-center gap-3">
-            Run console
-            <span className="px-2 py-0.5 rounded-sm font-bold text-[11px] tracking-[1px] text-white align-middle" style={{ background: "#178C7E" }}>
-              BETA
-            </span>
-          </h1>
-          <p className="m-0 text-sm text-foreground-muted">
-            Clones and runs {agent.name || agent.tracent_id}&apos;s real repository in an isolated sandbox, off
-            production&apos;s network.
-          </p>
-        </div>
-        {run && (
+    <>
+      {run && (
+        <div className="flex justify-end pb-4">
           <span
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded font-mono font-semibold text-xs"
             style={{ background: STATUS_BADGE[run.status].bg, border: `1px solid ${STATUS_BADGE[run.status].border}`, color: STATUS_BADGE[run.status].color }}
@@ -157,8 +279,8 @@ export function RunConsole({ agent }: { agent: Agent }) {
             {STATUS_BADGE[run.status].label}
             {durationSeconds != null && ` · ${durationSeconds}s`}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {!checked ? null : !enabled ? (
         <div className={glassPanel("p-8 text-center")}>
@@ -292,6 +414,6 @@ export function RunConsole({ agent }: { agent: Agent }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

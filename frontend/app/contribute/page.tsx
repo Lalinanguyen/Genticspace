@@ -13,7 +13,7 @@ export default function ContributePage() {
             style={{ background: "radial-gradient(circle, rgba(7,42,200,.4), transparent 70%)" }}
           />
           <div className="relative max-w-[720px]">
-            <h1 className="font-display font-bold text-4xl leading-tight text-foreground tracking-tight mb-2.5">
+            <h1 className="font-display font-normal text-4xl leading-tight text-foreground tracking-tight mb-2.5">
               Create a listing
             </h1>
             <p className="text-foreground-muted text-[15px] leading-relaxed">

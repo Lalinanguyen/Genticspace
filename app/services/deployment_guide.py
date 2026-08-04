@@ -42,7 +42,7 @@ _HTML_ENTITIES = {
     "&nbsp;": " ", "&rsquo;": "'", "&lsquo;": "'", "&rdquo;": '"', "&ldquo;": '"', "&mdash;": ",",
 }
 
-_SYSTEM_PROMPT = """You are a technical writer for Tracent, an AI agent marketplace. You are given whatever real source material is available for an AI agent (a GitHub/Hugging Face README, and/or text scraped from its website), along with the user's stated AI experience level. Write clear installation and deployment instructions based ONLY on what is actually present in that material — never invent commands, prerequisites, pricing, or steps that aren't there. Different sources may cover different things (e.g. the README has install commands, the website has pricing/signup info) — synthesize across whatever is given rather than picking just one. If the material doesn't contain enough information to actually deploy or start using the agent, say so plainly rather than guessing or padding with generic advice.
+_SYSTEM_PROMPT = """You are a technical writer for Genticspace, an AI agent marketplace. You are given whatever real source material is available for an AI agent (a GitHub/Hugging Face README, and/or text scraped from its website), along with the user's stated AI experience level. Write clear installation and deployment instructions based ONLY on what is actually present in that material — never invent commands, prerequisites, pricing, or steps that aren't there. Different sources may cover different things (e.g. the README has install commands, the website has pricing/signup info) — synthesize across whatever is given rather than picking just one. If the material doesn't contain enough information to actually deploy or start using the agent, say so plainly rather than guessing or padding with generic advice.
 
 You are producing an installation walkthrough, not a reformatted copy of the README. Never lightly paraphrase the source material's own section structure or prose. Extract the actual sequence of actions a person needs to perform and present ONLY that sequence, as numbered steps (1, 2, 3, ...), regardless of experience level. Each numbered step is exactly one discrete, concrete action: run this command, edit this file, set this value, create this account. Never bundle multiple actions into one step, and never write a step as a descriptive paragraph — if the README explains something in prose, convert it into the concrete action(s) that prose implies. Skip anything from the source that isn't an actionable step (marketing copy, feature lists, badges, etc.).
 
@@ -76,7 +76,7 @@ async def _fetch_website_text(url: str | None) -> str | None:
         return None
     try:
         async with httpx.AsyncClient(timeout=_WEBSITE_FETCH_TIMEOUT, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "TracentBot/1.0 (+https://genticspace.com)"})
+            resp = await client.get(url, headers={"User-Agent": "GenticspaceBot/1.0 (+https://genticspace.com)"})
         if resp.status_code != 200 or "text/html" not in resp.headers.get("content-type", ""):
             return None
         text = _html_to_text(resp.text)
@@ -286,7 +286,7 @@ async def get_or_generate_deployment_guide(
     }
 
 
-_CHAT_SYSTEM_PROMPT = """You are a quick help assistant embedded on an AI agent's deployment guide page on Tracent, an AI agent marketplace. You're given the same real source material the guide was generated from (a GitHub/Hugging Face README and/or scraped website text) plus the deployment guide already shown to the user. Answer their follow-up question using ONLY that material — never invent commands, error causes, pricing, or capabilities that aren't actually stated. If the material doesn't answer the question, say so plainly and suggest checking the agent's own site or repo directly, rather than guessing.
+_CHAT_SYSTEM_PROMPT = """You are a quick help assistant embedded on an AI agent's deployment guide page on Genticspace, an AI agent marketplace. You're given the same real source material the guide was generated from (a GitHub/Hugging Face README and/or scraped website text) plus the deployment guide already shown to the user. Answer their follow-up question using ONLY that material — never invent commands, error causes, pricing, or capabilities that aren't actually stated. If the material doesn't answer the question, say so plainly and suggest checking the agent's own site or repo directly, rather than guessing.
 
 Keep answers short (2-5 sentences, or a short code block if a command is being asked for). No preamble like "Based on the README". Never use em dashes (—); use a comma, period, or colon instead."""
 

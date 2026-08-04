@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Optional
 
-from app.services.agent_queries import query_agents
+from app.services.agent_queries import compute_sandbox_fields, query_agents
 from app.services.search_assist import resolve_ambiguous_query, semantic_rerank
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,7 @@ def score_agent(
     if experience == "beginner":
         if agent.get("verified"):
             score += 4
-            reasons.append("Tracent-verified, good fit for your experience level")
+            reasons.append("Genticspace-verified, good fit for your experience level")
         if agent.get("trust_tier") == "onchain":
             score += 2
         if (agent.get("risk_score") or 0) >= 0.5:
@@ -117,7 +117,7 @@ def score_agent(
     elif experience == "intermediate":
         if agent.get("verified"):
             score += 2
-            reasons.append("Tracent-verified")
+            reasons.append("Genticspace-verified")
     # advanced: no skill-level boost, ranked purely on protocol/task match
 
     if agent.get("safe_to_transact"):
@@ -290,4 +290,13 @@ async def get_recommendations(
                     a["reasons"] = [f"Strong match: {reason}"] + a["reasons"]
             scored.sort(key=lambda a: a["score"], reverse=True)
 
+    # Recommendations bypass agent_queries.py's _row_to_dict (this module
+    # builds its own candidate rows via _fetch_task_candidates/query_agents),
+    # so sandboxable/sandbox_url never got computed here — added so Sandbox
+    # Mode's badge shows up on task-based recommendation results too, not
+    # just plain marketplace browsing.
+    for agent in scored:
+        compute_sandbox_fields(agent)
+
+    scored.sort(key=lambda a: a["score"], reverse=True)
     return scored[:limit]

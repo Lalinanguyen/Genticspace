@@ -3,13 +3,13 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 import { forgotPassword, resetPassword, ApiError } from "@/lib/api";
 
-const cardClass =
-  "p-9 rounded bg-surface border border-border-strong glass-card box-border w-full max-w-[420px] text-center";
+const cardClass = "glass-panel p-9 rounded box-border w-full max-w-[420px] text-center";
 const inputClass =
-  "w-full box-border px-3.5 py-3 rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-sm text-left focus:outline-none focus:border-cyan";
+  "w-full box-border px-3.5 py-3 rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-sm text-left focus:outline-none focus:border-cyan";
 const labelClass = "block mb-1.5 font-semibold text-[12.5px] text-foreground-muted text-left";
 const continueClass = "mt-6 w-full text-center px-7 py-[15px] rounded font-semibold text-[15px] cursor-pointer select-none";
 
@@ -28,7 +28,7 @@ function ContinueButton({
       className={continueClass}
       style={
         disabled
-          ? { background: "rgba(244,247,243,.08)", color: "rgba(244,247,243,.4)", cursor: "default" }
+          ? { background: "rgba(28,38,33,.08)", color: "rgba(28,38,33,.4)", cursor: "default" }
           : {
               background: "linear-gradient(135deg,#072AC8,#2f4fe0)",
               color: "#fff",
@@ -44,13 +44,7 @@ function ContinueButton({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="sticky top-0 z-20 w-full box-border flex items-center px-[5%] py-[22px] bg-[rgba(0,23,31,.55)] backdrop-blur-[22px] border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Genticspace" className="w-[30px] h-[30px] rounded" />
-          <span className="font-display font-bold text-lg text-foreground tracking-tight">Genticspace</span>
-        </Link>
-      </div>
+      <Nav />
       <main className="flex-1 flex items-center justify-center px-[5%] py-14 box-border">{children}</main>
       <Footer />
     </div>
@@ -110,7 +104,7 @@ function ResetPasswordInner() {
             <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center rounded-full border-2 border-cyan text-cyan text-2xl">
               ✓
             </div>
-            <h1 className="font-display font-bold text-2xl text-foreground mb-2">Password updated</h1>
+            <h1 className="font-display font-normal text-2xl text-foreground mb-2">Password updated</h1>
             <p className="text-foreground-muted text-sm leading-relaxed mb-6">
               Your password has been changed. You can sign in with your new password now.
             </p>
@@ -125,7 +119,7 @@ function ResetPasswordInner() {
     return (
       <Shell>
         <div className={cardClass}>
-          <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">
+          <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-1.5">
             Choose a new password
           </h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
@@ -170,7 +164,10 @@ function ResetPasswordInner() {
     return (
       <Shell>
         <div className={cardClass}>
-          <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-2">Check your email</h1>
+          <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center rounded-full border-2 border-cyan text-cyan text-2xl">
+            ✓
+          </div>
+          <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-2">Check your email</h1>
           <p className="text-foreground-muted text-sm leading-relaxed mb-6">
             If an account exists for {email}, we&apos;ve sent a link to reset your password. It expires in 30
             minutes.
@@ -186,7 +183,7 @@ function ResetPasswordInner() {
   return (
     <Shell>
       <div className={cardClass}>
-        <h1 className="font-display font-bold text-2xl leading-tight text-foreground mb-1.5">
+        <h1 className="font-display font-normal text-2xl leading-tight text-foreground mb-1.5">
           Reset your password
         </h1>
         <p className="text-foreground-muted text-sm leading-relaxed mb-6">

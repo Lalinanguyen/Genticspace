@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { createAgentListing, getMyAgents, uploadImage, ApiError } from "@/lib/api";
+import { createAgentListing, getMyAgents, ApiError } from "@/lib/api";
 import type { Agent, AgentListingInput } from "@/lib/types";
+import { agentId } from "@/lib/agent";
 import { AgentCard } from "@/components/marketplace/AgentCard";
 
 const INTERACTION_TYPES = ["A2A", "B2B", "B2C"];
@@ -147,22 +148,26 @@ function AddOtherPill({
   );
 }
 
-function IconLabel({ icon, text }: { icon: string; text: string }) {
+function IconLabel({ icon, text, iconScale }: { icon: string; text: string; iconScale?: number }) {
   return (
     <label className="flex items-center gap-1.5 mb-[7px] font-semibold text-[12.5px] text-foreground-muted">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={icon} alt="" className="w-4 h-4 object-contain flex-none" />
+      <span className="w-4 h-4 flex-none inline-flex items-center justify-center overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={icon}
+          alt=""
+          className="object-contain"
+          style={{ width: iconScale ? `${iconScale * 100}%` : "100%", height: iconScale ? `${iconScale * 100}%` : "100%" }}
+        />
+      </span>
       {text} <span className="text-foreground-faint font-normal">(optional)</span>
     </label>
   );
 }
 
-const _ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif";
-const _MAX_UPLOAD_BYTES = 5_000_000;
-
-// Real file upload (POST /public/uploads), with pasting a link kept as a
-// fallback for anyone who already has an image hosted elsewhere -- click
-// the slot to pick a file, or use the small "paste a link instead" toggle.
+// No file upload infra exists yet, so these are URL-based rather than true
+// drag-and-drop uploads (the design's image-slot widgets are decorative
+// placeholders in the prototype itself, not a working upload either).
 function ImageUrlSlot({
   value,
   onChange,
@@ -176,32 +181,8 @@ function ImageUrlSlot({
   height: number;
   placeholder: string;
 }) {
-  const { token } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  async function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !token) return;
-    if (file.size > _MAX_UPLOAD_BYTES) {
-      setError("Image must be under 5MB");
-      return;
-    }
-    setError(null);
-    setUploading(true);
-    try {
-      const { url } = await uploadImage(file, token);
-      onChange(url);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Upload failed, try again");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   if (editing) {
     return (
@@ -226,56 +207,35 @@ function ImageUrlSlot({
             onChange(draft.trim());
             setEditing(false);
           }}
-          className="w-full box-border px-2 py-1.5 rounded-sm bg-[rgba(244,247,243,.06)] border border-border text-foreground text-[11.5px] focus:outline-none focus:border-cyan"
+          className="w-full box-border px-2 py-1.5 rounded-sm bg-[rgba(28,38,33,.06)] border border-border text-foreground text-[11.5px] focus:outline-none focus:border-cyan"
         />
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col gap-1.5" style={{ width }}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={_ACCEPTED_IMAGE_TYPES}
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-      {value ? (
-        <div
-          onClick={() => !uploading && fileInputRef.current?.click()}
-          className="rounded flex-none overflow-hidden bg-surface border border-border-strong cursor-pointer relative group"
-          style={{ width, height }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <span className="text-[11.5px] font-semibold text-white">
-              {uploading ? "Uploading…" : "Click to replace"}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div
-          onClick={() => !uploading && fileInputRef.current?.click()}
-          className="rounded flex-none bg-[rgba(244,247,243,.06)] border border-border-strong cursor-pointer flex items-center justify-center text-center px-3"
-          style={{ width, height }}
-        >
-          <span className="text-[12px] font-semibold text-foreground-faint">
-            {uploading ? "Uploading…" : placeholder}
-          </span>
-        </div>
-      )}
-      {error && <span className="text-[11px] font-semibold text-error">{error}</span>}
-      <span
+  if (value) {
+    return (
+      <div
         onClick={() => {
-          setDraft(value || "");
+          setDraft(value);
           setEditing(true);
         }}
-        className="text-[11px] font-semibold text-foreground-faint cursor-pointer self-start hover:text-cyan"
+        className="rounded flex-none overflow-hidden bg-surface border border-border-strong cursor-pointer relative group"
+        style={{ width, height }}
       >
-        or paste a link instead
-      </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={value} alt="" className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => setEditing(true)}
+      className="rounded flex-none bg-[rgba(28,38,33,.06)] border border-border-strong cursor-pointer flex items-center justify-center text-center px-3"
+      style={{ width, height }}
+    >
+      <span className="text-[12px] font-semibold text-foreground-faint">{placeholder}</span>
     </div>
   );
 }
@@ -368,14 +328,14 @@ export function ListingForm() {
   if (created) {
     return (
       <div className="max-w-[520px] mx-auto text-center py-20 px-6">
-        <h2 className="font-display font-bold text-2xl text-foreground mb-3">
+        <h2 className="font-display font-normal text-2xl text-foreground mb-3">
           Listing {created.is_private ? "saved" : "published"}
         </h2>
         <p className="text-foreground-muted text-[15px] mb-2">
           <span className="font-semibold text-foreground">{created.name}</span> is now{" "}
           {created.is_private ? "saved as private." : "live in the marketplace."}
         </p>
-        <p className="text-foreground-faint text-[13px] font-mono mb-7">{created.tracent_id}</p>
+        <p className="text-foreground-faint text-[13px] font-mono mb-7">{agentId(created)}</p>
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setCreated(null)}
@@ -402,7 +362,7 @@ export function ListingForm() {
       {/* FORM */}
       <div className="flex-1 flex flex-col gap-8" style={{ flexBasis: 520, minWidth: 300 }}>
         {/* BASICS */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border flex flex-col gap-[18px] box-border">
+        <div className="p-[26px] rounded glass-panel flex flex-col gap-[18px] box-border">
           <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-wide">
             Basics
           </span>
@@ -422,7 +382,6 @@ export function ListingForm() {
                 placeholder="e.g. Atlas Vision"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                maxLength={200}
                 className={textInputClass()}
               />
             </div>
@@ -464,7 +423,7 @@ export function ListingForm() {
 
           <div className="flex gap-4 flex-wrap">
             <div style={{ flex: "1 1 200px", minWidth: 180 }}>
-              <IconLabel icon="/assets/google-icon-transparent.png" text="Google ARD" />
+              <IconLabel icon="/assets/google-icon-transparent.png" text="Google ARD" iconScale={1.35} />
               <input
                 type="text"
                 placeholder="Registry ID"
@@ -623,12 +582,11 @@ export function ListingForm() {
               placeholder="What does this agent do, in one or two plain-English sentences?"
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
-              maxLength={5000}
               className="w-full box-border min-h-[84px] px-3.5 py-3 rounded bg-surface border border-border-strong text-foreground text-[14px] leading-relaxed placeholder:text-foreground-faint resize-y"
             />
             {showAiSuggestion && (
               <div className="mt-2.5 p-3.5 rounded flex gap-3 items-start" style={{ background: "rgba(53,192,176,.07)", border: "1px solid rgba(53,192,176,.25)" }}>
-                <div className="w-[22px] h-[22px] flex-none rounded flex items-center justify-center font-display font-bold text-[11px] text-background" style={{ background: "linear-gradient(135deg,#35C0B0,#1F8A7E)" }}>
+                <div className="w-[22px] h-[22px] flex-none rounded flex items-center justify-center font-display font-normal text-[11px] text-foreground" style={{ background: "linear-gradient(135deg,#35C0B0,#1F8A7E)" }}>
                   AI
                 </div>
                 <div className="flex-1 min-w-0">
@@ -649,9 +607,9 @@ export function ListingForm() {
         </div>
 
         {/* VISIBILITY */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border flex items-center justify-between gap-4 flex-wrap box-border">
+        <div className="p-[26px] rounded glass-panel flex items-center justify-between gap-4 flex-wrap box-border">
           <div>
-            <div className="font-display font-bold text-sm text-foreground mb-1">
+            <div className="font-display font-normal text-sm text-foreground mb-1">
               {form.is_private ? "Private listing" : "Public listing"}
             </div>
             <div className="text-[12.5px] leading-relaxed text-foreground-muted">
@@ -663,7 +621,7 @@ export function ListingForm() {
           <button
             onClick={() => set("is_private", !form.is_private)}
             className="w-11 h-6 rounded-sm flex-none relative"
-            style={{ background: form.is_private ? "rgba(244,247,243,.15)" : "#35C0B0" }}
+            style={{ background: form.is_private ? "rgba(28,38,33,.15)" : "#35C0B0" }}
           >
             <span
               className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
@@ -673,7 +631,7 @@ export function ListingForm() {
         </div>
 
         {/* LICENSING & DEPLOYMENT */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border flex flex-col gap-[18px] box-border">
+        <div className="p-[26px] rounded glass-panel flex flex-col gap-[18px] box-border">
           <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-wide">
             Licensing &amp; deployment
           </span>
@@ -747,10 +705,10 @@ export function ListingForm() {
 
         {myAgents.length > 0 && (
           <div className="flex flex-col gap-4">
-            <span className="font-display font-bold text-sm text-foreground">Your listings</span>
+            <span className="font-display font-normal text-sm text-foreground">Your listings</span>
             <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
               {myAgents.map((agent) => (
-                <AgentCard key={agent.tracent_id} agent={agent} />
+                <AgentCard key={agentId(agent)} agent={agent} />
               ))}
             </div>
           </div>
@@ -763,14 +721,14 @@ export function ListingForm() {
           Listing preview
         </div>
 
-        <div className="p-[22px] rounded bg-surface-2 border border-border flex flex-col gap-3.5 box-border">
+        <div className="p-[22px] rounded glass-panel flex flex-col gap-3.5 box-border">
           <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[15px] text-white">
+            <div className="w-12 h-12 rounded flex-none bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-normal text-[15px] text-white">
               {initials}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-display font-bold text-base text-foreground">{previewName}</span>
+                <span className="font-display font-normal text-base text-foreground">{previewName}</span>
                 {form.is_private && (
                   <span className="text-[10.5px] font-semibold text-foreground-muted px-2 py-0.5 rounded-sm bg-surface border border-border">
                     Private
@@ -788,15 +746,15 @@ export function ListingForm() {
           </p>
 
           <div className="flex gap-1.5 flex-wrap">
-            <span className="px-2.5 py-1 rounded-sm bg-[rgba(244,247,243,.06)] border border-border font-semibold text-[11px] text-foreground-muted">
+            <span className="px-2.5 py-1 rounded-sm bg-[rgba(28,38,33,.06)] border border-border font-semibold text-[11px] text-foreground-muted">
               {form.license}
             </span>
             {form.deployment_types.map((dep) => (
-              <span key={dep} className="px-2.5 py-1 rounded-sm bg-[rgba(244,247,243,.06)] border border-border font-semibold text-[11px] text-foreground-muted">
+              <span key={dep} className="px-2.5 py-1 rounded-sm bg-[rgba(28,38,33,.06)] border border-border font-semibold text-[11px] text-foreground-muted">
                 {dep}
               </span>
             ))}
-            <span className="px-2.5 py-1 rounded-sm bg-[rgba(244,247,243,.06)] border border-border font-semibold text-[11px] text-foreground-muted">
+            <span className="px-2.5 py-1 rounded-sm bg-[rgba(28,38,33,.06)] border border-border font-semibold text-[11px] text-foreground-muted">
               {form.access_model}
             </span>
             <span className="px-2.5 py-1 rounded-sm bg-[rgba(53,192,176,.1)] border border-[rgba(53,192,176,.3)] font-semibold text-[11px] text-cyan">

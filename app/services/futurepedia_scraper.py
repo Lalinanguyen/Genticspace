@@ -18,7 +18,7 @@ _TIMEOUT = 15.0
 _MAX_RETRIES = 3
 # Identifies us honestly to the site we're reading, per robots.txt (which
 # permits User-agent: * on /tool/*) rather than spoofing a browser UA.
-_USER_AGENT = "TracentBot/1.0 (+https://genticspace.com; AI agent registry)"
+_USER_AGENT = "GenticspaceBot/1.0 (+https://genticspace.com; AI agent registry)"
 
 _LOC_RE = re.compile(r"<loc>(.*?)</loc>\s*<lastmod>(.*?)</lastmod>", re.DOTALL)
 _H1_RE = re.compile(r"<h1[^>]*>([^<]*)</h1>")

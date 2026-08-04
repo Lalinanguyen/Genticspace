@@ -25,6 +25,7 @@ from app.services.npm_scraper import backfill_npm, scrape_npm
 from app.services.readme_scraper import scrape_readmes
 from app.services.verifier import run_verification_review
 from app.services.yc_scraper import scrape_ycombinator
+from app.sources import PLANNED_SOURCES, get_evm_source, list_evm_sources
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,33 @@ async def admin_stats():
 async def admin_trigger_index(background_tasks: BackgroundTasks):
     background_tasks.add_task(ingest_agents, "erc8004")
     return {"status": "indexing started", "source": "erc8004"}
+
+
+@router.get("/admin/sources", tags=["admin"])
+async def admin_list_sources():
+    return {
+        "evm": [
+            {"name": cfg.name, "alchemy_subdomain": cfg.alchemy_subdomain, "start_block": cfg.start_block}
+            for cfg in list_evm_sources()
+        ],
+        "planned": PLANNED_SOURCES,
+    }
+
+
+@router.post("/admin/index/{source}", tags=["admin"])
+async def admin_trigger_index_by_source(source: str, background_tasks: BackgroundTasks):
+    # Additive alongside POST /admin/index above (which stays hardcoded to
+    # erc8004 for backward compatibility) — this is the way to trigger
+    # base/arbitrum once configured.
+    if get_evm_source(source) is None:
+        if source in PLANNED_SOURCES:
+            raise HTTPException(501, f"Source '{source}' is on the roadmap but not implemented.")
+        configured = [cfg.name for cfg in list_evm_sources()]
+        raise HTTPException(
+            404, f"Unknown or unconfigured source '{source}'. Configured EVM sources: {configured}"
+        )
+    background_tasks.add_task(ingest_agents, source)
+    return {"status": "indexing started", "source": source}
 
 
 @router.post("/admin/crawl-ard", tags=["admin"])
@@ -493,6 +521,66 @@ async def admin_create_api_key(body: ApiKeyCreateBody, actor: str = Depends(veri
         "created_at": row["created_at"],
         "note": "Store this key now — it will not be shown again. Only its hash is stored server-side.",
     }
+
+
+# ---------------------------------------------------------------------------
+# Self-submitted agent moderation (anonymous POST /agents/submit intake, in
+# app/routes/agents.py's submit_router). Modeled on the verification_requests
+# review pattern above: admin_list_submissions mirrors admin_list_reviews,
+# admin_review_submission mirrors admin_verify. Does NOT touch or gate the
+# existing authenticated Contribute flow (POST /public/agents,
+# source='tracent'), which stays instant-live as before.
+# ---------------------------------------------------------------------------
+
+@router.get("/admin/submissions", tags=["admin"])
+async def admin_list_submissions():
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT tracent_id, name, description, web_endpoint, submitter_email,
+                   moderation_status, first_seen
+            FROM agents
+            WHERE source = 'self-submitted' AND moderation_status = 'pending'
+            ORDER BY first_seen ASC
+            """
+        )
+    return {"submissions": [dict(r) for r in rows]}
+
+
+class SubmissionReviewBody(BaseModel):
+    action: Literal["approve", "reject"]
+    note: Optional[str] = None
+
+
+@router.post("/admin/submissions/{tracent_id}/review", tags=["admin"])
+async def admin_review_submission(tracent_id: str, body: SubmissionReviewBody):
+    async with get_conn() as conn:
+        agent = await conn.fetchrow(
+            """
+            SELECT tracent_id, moderation_status FROM agents
+            WHERE tracent_id = $1 AND source = 'self-submitted'
+            """,
+            tracent_id,
+        )
+        if not agent:
+            raise HTTPException(404, f"Self-submitted agent {tracent_id} not found")
+        if agent["moderation_status"] != "pending":
+            raise HTTPException(
+                400, f"Submission {tracent_id} has already been {agent['moderation_status']}"
+            )
+
+        new_status = "approved" if body.action == "approve" else "rejected"
+        await conn.execute(
+            """
+            UPDATE agents
+            SET moderation_status = $1, moderation_note = $2, moderated_at = NOW()
+            WHERE tracent_id = $3
+            """,
+            new_status, body.note, tracent_id,
+        )
+
+    logger.info("Submission %s %s by admin", tracent_id, new_status)
+    return {"tracent_id": tracent_id, "action": body.action, "moderation_status": new_status}
 
 
 # ---------------------------------------------------------------------------

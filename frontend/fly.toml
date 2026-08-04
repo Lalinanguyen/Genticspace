@@ -1,5 +1,8 @@
 # fly.toml — Genticspace Frontend
 # Deploy: fly deploy --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.genticspace.com
+#
+# NOTE: app name below is unchanged (still "tracent-app") — the Fly app
+# rename is a separate, later infra-cutover step, not part of this change.
 
 app = "tracent-app"
 primary_region = "iad"
@@ -8,6 +11,9 @@ primary_region = "iad"
   dockerfile = "Dockerfile"
 
   [build.args]
+    # Backend still accepts requests from both tracent.me and genticspace.com
+    # (see fly.toml's CORS_ORIGINS) — this just picks the new domain as the
+    # frontend's own build-time API target now that its cert is issued.
     NEXT_PUBLIC_API_BASE_URL = "https://api.genticspace.com"
 
 [http_service]

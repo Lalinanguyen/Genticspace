@@ -35,7 +35,7 @@ export function Nav() {
       <div className="flex items-center gap-2.5 flex-none relative">
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Genticspace" className="w-[30px] h-[30px] object-contain" />
+          <img src="/assets/logo-g.png" alt="Genticspace" className="w-[30px] h-[30px] object-contain" />
           <span className="font-display font-normal text-xl text-foreground tracking-tight">
             Genticspace
           </span>

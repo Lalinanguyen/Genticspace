@@ -1,11 +1,10 @@
-// Same palette as the homepage spotlight (SpotlightClient.tsx) so agent
-// cards read consistently across the site.
-export const CARD_COLORS = ["#35C0B0", "#072AC8", "#EF233C", "#E8A33D"];
+const PALETTE = ["#072AC8", "#35C0B0", "#EF233C"];
 
-export function agentColor(id: string): string {
+/** Deterministic per-agent accent color so the same agent always renders the same banner/avatar tint. */
+export function agentColor(seed: string): string {
   let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
   }
-  return CARD_COLORS[hash % CARD_COLORS.length];
+  return PALETTE[Math.abs(hash) % PALETTE.length];
 }

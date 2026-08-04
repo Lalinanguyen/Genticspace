@@ -221,6 +221,7 @@ Every mutating `/admin/*` call is recorded in the `admin_actions` table (actor, 
 | Unverified | `null` | Agent is indexed but not checked |
 | On-chain verified | `"onchain"` | Auto-assigned: exists on ERC-8004, endpoints live, zero ownership transfers, valid agent card |
 | Genticspace-verified | `"tracent"` | Human-reviewed by the Genticspace team (paid) |
+| Genticspace-hosted | `"tracent-hosted"` | Genticspace wrote and runs this agent itself — see [`docs/hosting-architecture.md`](docs/hosting-architecture.md) |
 
 **Risk score** (0.0 = clean, 1.0 = high risk):
 - +0.4 if any ownership transfer detected

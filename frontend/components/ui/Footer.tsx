@@ -5,7 +5,7 @@ export function Footer() {
     <div className="border-t border-border px-[5%] py-9 box-border flex items-center justify-between flex-wrap gap-5">
       <div className="flex items-center gap-2.5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Genticspace" className="w-[26px] h-[26px] object-contain" />
+        <img src="/assets/logo-g.png" alt="Genticspace" className="w-[26px] h-[26px] object-contain" />
         <span className="font-display font-normal text-lg text-foreground">Genticspace</span>
       </div>
       <span className="font-medium text-[12.5px] text-foreground-faint">© 2026 Genticspace. All rights reserved.</span>

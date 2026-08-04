@@ -1,17 +1,21 @@
 import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
-import { Hero } from "@/components/landing/Hero";
-import { SpotlightSection } from "@/components/landing/SpotlightSection";
-import { TrustContact } from "@/components/landing/TrustContact";
+import { HomeV3 } from "@/components/landing/HomeV3";
+import { CtaBand } from "@/components/landing/CtaBand";
+import { listAgents } from "@/lib/api";
 
-export default function LandingPage() {
+const EXAMPLE_QUERY = "customer support";
+
+export default async function LandingPage() {
+  const matchesRes = await listAgents({ q: EXAMPLE_QUERY, page: 1, page_size: 3, with_photo: true }).catch(() => ({ agents: [] }));
+  const matches = matchesRes.agents;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
-      <main className="flex-1 w-full max-w-[1440px] mx-auto bg-background-page box-border overflow-x-clip">
-        <Hero />
-        <SpotlightSection />
-        <TrustContact />
+      <main className="flex-1 w-full bg-background box-border">
+        <HomeV3 matches={matches} />
+        <CtaBand />
       </main>
       <Footer />
     </div>

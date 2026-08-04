@@ -8,10 +8,12 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.db.database import get_conn
 from app.db.jwt_auth import get_current_user, get_current_user_optional
-from app.services.agent_queries import query_agents
+from app.services.agent_queries import compute_sandbox_fields, list_skill_categories, query_agents
 from app.services.deployment_guide import answer_deployment_question, get_or_generate_deployment_guide
 from app.services.github_signals import get_github_signals_nonblocking
 from app.services.recommender import get_recommendations
+from app.services.sandbox_guide import get_sandbox_task_guidance
+from app.services.trust_summary import compute_trust_summary
 from app.services.verifier import run_auto_verification
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,7 @@ async def list_public_agents(
     flagged_only: bool = False,
     safe_only: bool = False,
     with_photo: bool = False,
+    sandboxable_only: bool = False,
     industry: Optional[str] = None,
     license: Optional[str] = None,
     deployment: Optional[str] = None,
@@ -94,12 +97,21 @@ async def list_public_agents(
             flagged_only=flagged_only,
             safe_only=safe_only,
             with_photo=with_photo,
+            sandboxable_only=sandboxable_only,
             industry=industry,
             license=license,
             deployment=deployment,
             page=page,
             page_size=page_size,
         )
+
+
+@router.get("/agents/categories")
+async def public_list_categories():
+    # Must stay declared before GET /agents/{tracent_id} below — otherwise
+    # FastAPI would match "categories" against the {tracent_id} path param.
+    async with get_conn() as conn:
+        return {"categories": await list_skill_categories(conn)}
 
 
 @router.get("/agents/{tracent_id}")
@@ -113,6 +125,9 @@ async def get_public_agent(
 
         skills = await conn.fetch(
             "SELECT * FROM agent_skills WHERE tracent_id = $1", tracent_id
+        )
+        flags = await conn.fetch(
+            "SELECT severity FROM reputation_flags WHERE tracent_id = $1", tracent_id
         )
 
         flags = await conn.fetch(
@@ -134,11 +149,19 @@ async def get_public_agent(
             )
 
     result = dict(agent)
+    result.pop("submitter_email", None)
+    result.pop("moderation_note", None)
     result["skills"] = [dict(s) for s in skills]
     result["flags"] = [dict(f) for f in flags]
     result["review_count"] = review_summary["count"]
     result["avg_rating"] = float(review_summary["average"]) if review_summary["average"] is not None else None
     result["is_favorited"] = is_favorited
+    result["trust_summary"] = compute_trust_summary(
+        trust_tier=result.get("trust_tier"),
+        verified=bool(result.get("verified", False)),
+        has_high_severity_flag=any(f["severity"] == "high" for f in flags),
+    )
+    compute_sandbox_fields(result)
     return result
 
 
@@ -285,6 +308,33 @@ async def agent_deployment_guide(
         return await get_or_generate_deployment_guide(tracent_id, level, force=force)
     except LookupError as exc:
         raise HTTPException(404, str(exc))
+
+
+class SandboxGuideBody(BaseModel):
+    task: str
+
+
+@router.post("/agents/{tracent_id}/sandbox/guide")
+async def agent_sandbox_guide(
+    tracent_id: str,
+    body: SandboxGuideBody,
+    current_user: Optional[dict] = Depends(get_current_user_optional),
+):
+    # current_user unused today (guidance isn't personalized by experience
+    # level) — kept for symmetry with the other agent routes and in case
+    # personalization is added later, and so this route's auth story matches
+    # the rest of Sandbox Mode (anonymous-callable, like deployment-guide/ask).
+    if not body.task.strip():
+        raise HTTPException(400, "task is required")
+    try:
+        blurb = await get_sandbox_task_guidance(tracent_id, body.task)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc))
+    return {"guidance": blurb}
 
 
 class DeploymentGuideChatTurn(BaseModel):

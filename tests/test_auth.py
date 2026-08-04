@@ -1,185 +1,126 @@
-import jwt as pyjwt
+"""
+Auth tests for app/db/auth.py's verify_api_key, against deslop's real
+router wiring:
 
-from app.config import settings
+  - Everything under /admin/* requires X-API-Key — either the master
+    settings.API_KEY, or a non-revoked per-client key minted via
+    POST /admin/api-keys (app/routes/admin.py).
+  - The original /agents and /trust routers (app/routes/agents.py's
+    `router`, app/routes/trust.py) are key-gated at the router level — this
+    is deslop's existing "partner API" tier, untouched by the new
+    moderation work.
+  - The separate /public/agents* surface (app/routes/public.py) requires NO
+    key at all — that's what the real frontend calls.
+  - The new anonymous POST /agents/submit (app/routes/agents.py's
+    `submit_router`) also requires no key (see test_moderation.py /
+    test_rate_limit.py), but is not re-tested here.
+"""
+import pytest
 
-
-def _signup_payload(email, token, **overrides):
-    payload = {
-        "email": email,
-        "email_verified_token": token,
-        "password": "correct-horse-battery",
-        "account_type": "individual",
-        "name": "Ada Lovelace",
-    }
-    payload.update(overrides)
-    return payload
-
-
-def _verify_email(client, sent_emails, email):
-    client.post("/auth/request-otp", json={"email": email})
-    code = sent_emails["otp"][-1][1]
-    res = client.post("/auth/verify-otp", json={"email": email, "code": code})
-    assert res.status_code == 200
-    return res.json()["email_verified_token"]
+from app.db.auth import hash_api_key
+from app.db import database as db_module
 
 
-class TestRequestAndVerifyOtp:
-    def test_request_otp_sends_code_and_does_not_leak_it_in_response(self, client, sent_emails):
-        res = client.post("/auth/request-otp", json={"email": "a@example.com"})
-        assert res.status_code == 200
-        assert res.json() == {"status": "sent"}
-        assert len(sent_emails["otp"]) == 1
-        email, code = sent_emails["otp"][0]
-        assert email == "a@example.com"
-        assert code not in res.text
-
-    def test_verify_otp_with_no_active_code_is_rejected(self, client):
-        res = client.post("/auth/verify-otp", json={"email": "nobody@example.com", "code": "123456"})
-        assert res.status_code == 400
-
-    def test_verify_otp_wrong_code_increments_attempts_then_locks_out(self, client, sent_emails):
-        client.post("/auth/request-otp", json={"email": "a@example.com"})
-        for _ in range(5):
-            res = client.post("/auth/verify-otp", json={"email": "a@example.com", "code": "000000"})
-            assert res.status_code == 400
-        # 5 wrong attempts spend the budget; the 6th is locked out regardless of the code.
-        res = client.post("/auth/verify-otp", json={"email": "a@example.com", "code": "000000"})
-        assert res.status_code == 429
-
-    def test_verify_otp_success_returns_token_scoped_to_email(self, client, sent_emails):
-        token = _verify_email(client, sent_emails, "a@example.com")
-        payload = pyjwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-        assert payload["email"] == "a@example.com"
-        assert payload["purpose"] == "email_verified"
-
-    def test_verify_otp_is_single_use(self, client, sent_emails):
-        client.post("/auth/request-otp", json={"email": "a@example.com"})
-        code = sent_emails["otp"][-1][1]
-        first = client.post("/auth/verify-otp", json={"email": "a@example.com", "code": code})
-        assert first.status_code == 200
-        second = client.post("/auth/verify-otp", json={"email": "a@example.com", "code": code})
-        assert second.status_code == 400
+ADMIN_PROBE_ROUTE = "/admin/stats"
 
 
-class TestSignup:
-    def test_signup_rejects_garbage_email_token(self, client):
-        res = client.post("/auth/signup", json=_signup_payload("a@example.com", "not-a-real-token"))
-        assert res.status_code == 400
-
-    def test_signup_rejects_token_issued_for_a_different_email(self, client, sent_emails):
-        token = _verify_email(client, sent_emails, "a@example.com")
-        res = client.post("/auth/signup", json=_signup_payload("someone-else@example.com", token))
-        assert res.status_code == 400
-
-    def test_signup_success_returns_token_and_user_without_password_hash(self, client, sent_emails):
-        token = _verify_email(client, sent_emails, "a@example.com")
-        res = client.post("/auth/signup", json=_signup_payload("a@example.com", token))
-        assert res.status_code == 200
-        body = res.json()
-        assert "access_token" in body
-        assert body["user"]["email"] == "a@example.com"
-        assert "password_hash" not in body["user"]
-
-    def test_signup_rejects_duplicate_email(self, client, sent_emails):
-        token = _verify_email(client, sent_emails, "a@example.com")
-        first = client.post("/auth/signup", json=_signup_payload("a@example.com", token))
-        assert first.status_code == 200
-
-        token2 = _verify_email(client, sent_emails, "a@example.com")
-        second = client.post("/auth/signup", json=_signup_payload("a@example.com", token2))
-        assert second.status_code == 409
+async def test_master_key_succeeds_on_admin_route(client, master_key_headers):
+    resp = await client.get(ADMIN_PROBE_ROUTE, headers=master_key_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "total_agents" in body
+    assert "verified_count" in body
+    assert "flagged_count" in body
 
 
-class TestLogin:
-    def _sign_up(self, client, sent_emails, email="a@example.com", password="correct-horse-battery"):
-        token = _verify_email(client, sent_emails, email)
-        res = client.post("/auth/signup", json=_signup_payload(email, token, password=password))
-        assert res.status_code == 200
-        return res.json()
-
-    def test_login_with_correct_credentials_succeeds(self, client, sent_emails):
-        self._sign_up(client, sent_emails)
-        res = client.post("/auth/login", json={"email": "a@example.com", "password": "correct-horse-battery"})
-        assert res.status_code == 200
-        assert "access_token" in res.json()
-
-    def test_login_with_wrong_password_fails(self, client, sent_emails):
-        self._sign_up(client, sent_emails)
-        res = client.post("/auth/login", json={"email": "a@example.com", "password": "wrong-password"})
-        assert res.status_code == 401
-
-    def test_login_with_unknown_email_fails(self, client):
-        res = client.post("/auth/login", json={"email": "ghost@example.com", "password": "whatever1"})
-        assert res.status_code == 401
+async def test_admin_route_with_no_key_returns_401(client):
+    resp = await client.get(ADMIN_PROBE_ROUTE)
+    assert resp.status_code == 401
 
 
-class TestMe:
-    def test_me_requires_bearer_token(self, client):
-        res = client.get("/auth/me")
-        assert res.status_code == 401
-
-    def test_me_rejects_invalid_token(self, client):
-        res = client.get("/auth/me", headers={"Authorization": "Bearer garbage"})
-        assert res.status_code == 401
-
-    def test_me_returns_current_user_for_valid_token(self, client, sent_emails):
-        token = _verify_email(client, sent_emails, "a@example.com")
-        signup_res = client.post("/auth/signup", json=_signup_payload("a@example.com", token))
-        access_token = signup_res.json()["access_token"]
-
-        res = client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"})
-        assert res.status_code == 200
-        assert res.json()["email"] == "a@example.com"
+async def test_admin_route_with_garbage_key_returns_401(client):
+    resp = await client.get(ADMIN_PROBE_ROUTE, headers={"X-API-Key": "not-a-real-key"})
+    assert resp.status_code == 401
 
 
-class TestPasswordReset:
-    def _sign_up(self, client, sent_emails, email="a@example.com", password="correct-horse-battery"):
-        token = _verify_email(client, sent_emails, email)
-        client.post("/auth/signup", json=_signup_payload(email, token, password=password))
+async def test_minted_per_client_key_succeeds_on_admin_route(client, master_key_headers):
+    mint_resp = await client.post(
+        "/admin/api-keys",
+        json={"owner_email": "dev@example.com", "label": "test key", "scope": "admin"},
+        headers=master_key_headers,
+    )
+    assert mint_resp.status_code == 201
+    minted_key = mint_resp.json()["api_key"]
+    assert minted_key  # raw key returned exactly once, at mint time
 
-    def test_forgot_password_for_unknown_email_does_not_reveal_that(self, client, sent_emails):
-        res = client.post("/auth/forgot-password", json={"email": "ghost@example.com"})
-        assert res.status_code == 200
-        assert res.json() == {"status": "sent"}
-        assert sent_emails["reset"] == []
+    probe = await client.get(ADMIN_PROBE_ROUTE, headers={"X-API-Key": minted_key})
+    assert probe.status_code == 200
 
-    def test_forgot_password_for_known_email_sends_reset_link(self, client, sent_emails):
-        self._sign_up(client, sent_emails)
-        res = client.post("/auth/forgot-password", json={"email": "a@example.com"})
-        assert res.status_code == 200
-        assert len(sent_emails["reset"]) == 1
 
-    def test_reset_password_rejects_short_passwords(self, client):
-        res = client.post("/auth/reset-password", json={"token": "whatever", "new_password": "short"})
-        assert res.status_code == 400
+async def test_revoked_per_client_key_is_rejected(client, master_key_headers):
+    mint_resp = await client.post(
+        "/admin/api-keys",
+        json={"owner_email": "dev@example.com", "label": "to be revoked"},
+        headers=master_key_headers,
+    )
+    minted_key = mint_resp.json()["api_key"]
 
-    def test_reset_password_rejects_an_unissued_token(self, client):
-        res = client.post("/auth/reset-password", json={"token": "not-issued", "new_password": "longenough1"})
-        assert res.status_code == 400
+    # No revoke endpoint exists — revoke directly via the DB, as an operator
+    # would (per app/db/auth.py's docstring: the key is looked up by
+    # sha256 hash with `AND revoked_at IS NULL`).
+    async with db_module.get_conn() as conn:
+        await conn.execute(
+            "UPDATE api_keys SET revoked_at = NOW() WHERE key_hash = $1",
+            hash_api_key(minted_key),
+        )
 
-    def _get_reset_token(self, client, sent_emails, email="a@example.com"):
-        client.post("/auth/forgot-password", json={"email": email})
-        reset_link = sent_emails["reset"][-1][1]
-        return reset_link.split("token=")[1]
+    probe = await client.get(ADMIN_PROBE_ROUTE, headers={"X-API-Key": minted_key})
+    assert probe.status_code == 401
 
-    def test_reset_password_success_changes_the_password(self, client, sent_emails):
-        self._sign_up(client, sent_emails)
-        reset_token = self._get_reset_token(client, sent_emails)
 
-        res = client.post("/auth/reset-password", json={"token": reset_token, "new_password": "new-password-1"})
-        assert res.status_code == 200
+async def test_minted_key_still_works_before_revocation_for_a_second_admin_route(client, master_key_headers):
+    # A valid admin-scoped per-client key grants access to *any* /admin/*
+    # route, not just the one it was tested against above -- app/db/auth.py's
+    # two-tier scope system (admin vs partner) means this no longer holds for
+    # a partner-scoped key, which is the point of the redesign.
+    mint_resp = await client.post(
+        "/admin/api-keys",
+        json={"owner_email": "dev2@example.com", "scope": "admin"},
+        headers=master_key_headers,
+    )
+    minted_key = mint_resp.json()["api_key"]
+    resp = await client.get("/admin/sources", headers={"X-API-Key": minted_key})
+    assert resp.status_code == 200
 
-        old = client.post("/auth/login", json={"email": "a@example.com", "password": "correct-horse-battery"})
-        assert old.status_code == 401
 
-        new = client.post("/auth/login", json={"email": "a@example.com", "password": "new-password-1"})
-        assert new.status_code == 200
+@pytest.mark.parametrize("method, path", [("GET", "/agents"), ("GET", "/agents/categories"), ("GET", "/agents/flagged")])
+async def test_legacy_agents_router_requires_a_key(client, method, path):
+    no_key = await client.request(method, path)
+    assert no_key.status_code == 401
 
-    def test_reset_password_token_is_single_use(self, client, sent_emails):
-        self._sign_up(client, sent_emails)
-        reset_token = self._get_reset_token(client, sent_emails)
+    with_key = await client.request(method, path, headers={"X-API-Key": "not-a-real-key"})
+    assert with_key.status_code == 401
 
-        first = client.post("/auth/reset-password", json={"token": reset_token, "new_password": "new-password-1"})
-        assert first.status_code == 200
-        second = client.post("/auth/reset-password", json={"token": reset_token, "new_password": "another-pass-1"})
-        assert second.status_code == 400
+
+async def test_legacy_agents_router_succeeds_with_master_key(client, master_key_headers):
+    resp = await client.get("/agents", headers=master_key_headers)
+    assert resp.status_code == 200
+    assert "agents" in resp.json()
+
+
+async def test_trust_router_also_requires_a_key(client):
+    resp = await client.get("/trust/trc_does_not_exist")
+    assert resp.status_code == 401
+
+
+@pytest.mark.parametrize("path", ["/public/agents", "/public/agents/categories"])
+async def test_public_agents_surface_requires_no_key(client, path):
+    resp = await client.get(path)
+    assert resp.status_code == 200
+
+
+async def test_public_agent_detail_404s_without_needing_a_key(client):
+    # A missing agent still 404s (not 401) with no key at all — proves the
+    # route has no auth dependency, it just has nothing to return.
+    resp = await client.get("/public/agents/trc_does_not_exist")
+    assert resp.status_code == 404

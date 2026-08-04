@@ -10,7 +10,7 @@ interface ChatMessage {
 }
 
 // The deployment guide is AI-generated plain text that uses markdown-style
-// "## Heading" lines to break up sections - rendered as-is it showed the
+// "## Heading" lines to break up sections — rendered as-is it showed the
 // literal "##" instead of a heading, so this splits the text on those lines
 // and renders them as titles instead of raw text.
 function renderGuideContent(text: string) {
@@ -51,7 +51,7 @@ function renderGuideContent(text: string) {
   );
 }
 
-function HelpBot({ tracentId, token }: { tracentId: string; token: string | null }) {
+function HelpBot({ genticspaceId, token }: { genticspaceId: string; token: string | null }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -72,7 +72,7 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
     setMessages(nextMessages);
     setSending(true);
     try {
-      const res = await askDeploymentGuide(tracentId, question, messages, token ?? undefined);
+      const res = await askDeploymentGuide(genticspaceId, question, messages, token ?? undefined);
       setMessages([...nextMessages, { role: "assistant", content: res.answer }]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't get an answer right now.");
@@ -87,19 +87,21 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
         onClick={() => setOpen(true)}
         className="mt-4 flex items-center gap-2 cursor-pointer select-none w-fit"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="" className="w-7 h-7 flex-none object-contain" />
+        <span className="w-7 h-7 rounded-full flex-none flex items-center justify-center font-display font-normal text-[11px] text-background bg-gradient-to-br from-cyan to-cyan-deep">
+          AI
+        </span>
         <span className="font-semibold text-[13px] text-cyan">Ask a question about setting this up</span>
       </div>
     );
   }
 
   return (
-    <div className="mt-4 rounded bg-[rgba(28,38,33,.03)] border border-border overflow-hidden">
+    <div className="glass-panel mt-4 rounded overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="" className="w-6 h-6 flex-none object-contain" />
+          <span className="w-6 h-6 rounded-full flex-none flex items-center justify-center font-display font-normal text-[10px] text-background bg-gradient-to-br from-cyan to-cyan-deep">
+            AI
+          </span>
           <span className="font-semibold text-[12.5px] text-foreground">Setup help</span>
         </div>
         <span
@@ -115,21 +117,15 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
           {messages.map((m, i) => (
             <div
               key={i}
-              className="max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed whitespace-pre-wrap"
-              style={
-                m.role === "user"
-                  ? { alignSelf: "flex-end", background: "rgba(53,192,176,.14)", color: "#1C2621" }
-                  : { alignSelf: "flex-start", background: "rgba(28,38,33,.05)", color: "rgba(28,38,33,.85)" }
-              }
+              className={`max-w-[85%] px-3 py-2 rounded text-[12.5px] leading-relaxed whitespace-pre-wrap ${
+                m.role === "user" ? "self-end bg-cyan/16 text-foreground" : "self-start bg-surface-2 text-foreground/85"
+              }`}
             >
               {m.content}
             </div>
           ))}
           {sending && (
-            <div
-              className="max-w-[85%] px-3 py-2 rounded text-[12.5px] text-foreground-faint"
-              style={{ alignSelf: "flex-start", background: "rgba(28,38,33,.05)" }}
-            >
+            <div className="self-start max-w-[85%] px-3 py-2 rounded text-[12.5px] text-foreground-faint bg-surface-2">
               Thinking…
             </div>
           )}
@@ -146,7 +142,7 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
             if (e.key === "Enter") send();
           }}
           placeholder="e.g. What if step 2 fails?"
-          className="flex-1 min-w-0 box-border px-3 py-2 rounded-sm bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-[12.5px] focus:outline-none focus:border-cyan"
+          className="glass-chip flex-1 min-w-0 box-border px-3 py-2 rounded-sm text-foreground text-[12.5px] focus:outline-none focus:border-cyan"
         />
         <div
           onClick={sending ? undefined : send}
@@ -163,7 +159,7 @@ function HelpBot({ tracentId, token }: { tracentId: string; token: string | null
   );
 }
 
-export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
+export function DeploymentGuideSection({ genticspaceId }: { genticspaceId: string }) {
   const { user, token, loading: authLoading } = useAuth();
   const [instructions, setInstructions] = useState<string | null>(null);
   const [hasReadme, setHasReadme] = useState(true);
@@ -172,7 +168,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
   const [loaded, setLoaded] = useState(false);
 
   // The user's AI experience level is an internal signal from their profile,
-  // not something they pick per-agent - instructions are always tailored to
+  // not something they pick per-agent — instructions are always tailored to
   // it automatically, no manual level switcher.
   useEffect(() => {
     if (authLoading || loaded || loading) return;
@@ -180,7 +176,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount, guarded above
     setLoading(true);
     setError(null);
-    getDeploymentGuide(tracentId, level, token ?? undefined)
+    getDeploymentGuide(genticspaceId, level, token ?? undefined)
       .then((guide) => {
         setInstructions(guide.instructions);
         setHasReadme(guide.has_readme);
@@ -191,11 +187,11 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, tracentId, token]);
+  }, [authLoading, genticspaceId, token]);
 
   return (
-    <div className="p-[26px] rounded bg-surface-2 border border-border box-border">
-      <span className="font-display font-bold text-sm text-foreground block mb-4">Deployment guide</span>
+    <div className="glass-panel p-[26px] rounded box-border">
+      <span className="font-display font-normal text-sm text-foreground block mb-4">Deployment guide</span>
 
       {loading && <p className="text-[13.5px] text-foreground-muted">Generating instructions...</p>}
 
@@ -212,7 +208,7 @@ export function DeploymentGuideSection({ tracentId }: { tracentId: string }) {
             {instructions && renderGuideContent(instructions)}
           </div>
 
-          {hasReadme && <HelpBot tracentId={tracentId} token={token} />}
+          {hasReadme && <HelpBot genticspaceId={genticspaceId} token={token} />}
         </>
       )}
     </div>

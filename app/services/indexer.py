@@ -8,6 +8,7 @@ import httpx
 
 from app.config import settings
 from app.db.database import get_conn
+from app.sources import EvmSource, get_evm_source
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +18,14 @@ _TOKEN_URI_SELECTOR = "0xc87b56dd"
 _OWNER_OF_SELECTOR = "0x6352211e"
 
 
-def _alchemy_url() -> str:
-    return f"https://eth-mainnet.g.alchemy.com/v2/{settings.ALCHEMY_API_KEY}"
+def _alchemy_url(cfg: EvmSource) -> str:
+    return f"https://{cfg.alchemy_subdomain}.g.alchemy.com/v2/{settings.ALCHEMY_API_KEY}"
 
 
-async def _rpc(method: str, params: list) -> Any:
+async def _rpc(cfg: EvmSource, method: str, params: list) -> Any:
     payload = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
     async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(_alchemy_url(), json=payload)
+        resp = await client.post(_alchemy_url(cfg), json=payload)
         resp.raise_for_status()
         data = resp.json()
     if "error" in data:
@@ -32,32 +33,32 @@ async def _rpc(method: str, params: list) -> Any:
     return data["result"]
 
 
-async def _get_latest_block() -> int:
-    result = await _rpc("eth_blockNumber", [])
+async def _get_latest_block(cfg: EvmSource) -> int:
+    result = await _rpc(cfg, "eth_blockNumber", [])
     return int(result, 16)
 
 
-async def _get_logs_chunk(from_block: int, to_block: int) -> list[dict]:
+async def _get_logs_chunk(cfg: EvmSource, from_block: int, to_block: int) -> list[dict]:
     params = [{
         "fromBlock": hex(from_block),
         "toBlock": hex(to_block),
-        "address": settings.CONTRACT_ADDRESS,
+        "address": cfg.contract_address,
         "topics": [_TRANSFER_TOPIC],
     }]
     try:
-        return await _rpc("eth_getLogs", params)
+        return await _rpc(cfg, "eth_getLogs", params)
     except Exception as exc:
         logger.warning("eth_getLogs %d-%d failed: %s", from_block, to_block, exc)
         return []
 
 
-async def _find_contract_deploy_block() -> int:
-    latest = await _get_latest_block()
+async def _find_contract_deploy_block(cfg: EvmSource) -> int:
+    latest = await _get_latest_block(cfg)
     lo, hi = 0, latest
     while lo < hi:
         mid = (lo + hi) // 2
         try:
-            result = await _rpc("eth_getCode", [settings.CONTRACT_ADDRESS, hex(mid)])
+            result = await _rpc(cfg, "eth_getCode", [cfg.contract_address, hex(mid)])
             if result and result != "0x":
                 hi = mid
             else:
@@ -67,12 +68,12 @@ async def _find_contract_deploy_block() -> int:
     return lo
 
 
-async def _get_token_uri(token_id: int) -> str | None:
+async def _get_token_uri(cfg: EvmSource, token_id: int) -> str | None:
     padded = hex(token_id)[2:].zfill(64)
     data = _TOKEN_URI_SELECTOR + padded
-    params = [{"to": settings.CONTRACT_ADDRESS, "data": data}, "latest"]
+    params = [{"to": cfg.contract_address, "data": data}, "latest"]
     try:
-        result = await _rpc("eth_call", params)
+        result = await _rpc(cfg, "eth_call", params)
         if not result or result == "0x":
             return None
         raw = bytes.fromhex(result[2:])
@@ -139,21 +140,26 @@ async def _set_last_indexed_block(source: str, block: int) -> None:
 
 
 async def ingest_agents(source: str = "erc8004") -> None:
+    cfg = get_evm_source(source)
+    if cfg is None:
+        logger.error("ingest_agents called for unconfigured/unknown source=%s", source)
+        return
+
     logger.info("Starting ingest for source=%s", source)
 
     try:
-        latest_block = await _get_latest_block()
+        latest_block = await _get_latest_block(cfg)
     except Exception as exc:
         logger.error("Failed to fetch latest block: %s", exc)
         return
 
     last_indexed = await _get_last_indexed_block(source)
     if last_indexed is None:
-        if settings.CONTRACT_START_BLOCK > 0:
-            from_block = settings.CONTRACT_START_BLOCK
+        if cfg.start_block > 0:
+            from_block = cfg.start_block
         else:
             logger.info("Finding contract deployment block via binary search...")
-            from_block = await _find_contract_deploy_block()
+            from_block = await _find_contract_deploy_block(cfg)
             logger.info("Contract deployed at block %d", from_block)
         await _set_last_indexed_block(source, from_block - 1)
     else:
@@ -173,7 +179,7 @@ async def ingest_agents(source: str = "erc8004") -> None:
 
     for chunk_start in range(from_block, latest_block + 1, chunk_size):
         chunk_end = min(chunk_start + chunk_size - 1, latest_block)
-        logs = await _get_logs_chunk(chunk_start, chunk_end)
+        logs = await _get_logs_chunk(cfg, chunk_start, chunk_end)
         all_logs.extend(logs)
         chunks_done += 1
         if chunks_done % checkpoint_every == 0:
@@ -192,7 +198,7 @@ async def ingest_agents(source: str = "erc8004") -> None:
 
     for token_id, events in token_events.items():
         try:
-            await _process_token(source, token_id, events)
+            await _process_token(cfg, token_id, events)
             await asyncio.sleep(0.1)
         except Exception as exc:
             logger.error("Error processing token %d: %s", token_id, exc)
@@ -201,9 +207,10 @@ async def ingest_agents(source: str = "erc8004") -> None:
     logger.info("Ingest complete for source=%s, checkpoint block=%d", source, latest_block)
 
 
-async def _process_token(source: str, token_id: int, events: list[dict]) -> None:
+async def _process_token(cfg: EvmSource, token_id: int, events: list[dict]) -> None:
     from app.services.verifier import run_auto_verification
 
+    source = cfg.name
     source_id = str(token_id)
 
     async with get_conn() as conn:
@@ -249,7 +256,7 @@ async def _process_token(source: str, token_id: int, events: list[dict]) -> None
                 tracent_id, source, from_addr, to_addr, block_number, tx_hash, is_mint, transfer_type,
             )
 
-    uri = await _get_token_uri(token_id)
+    uri = await _get_token_uri(cfg, token_id)
     metadata = await _fetch_metadata(uri) if uri else None
 
     owner_address = mint_event["to"] if mint_event else None

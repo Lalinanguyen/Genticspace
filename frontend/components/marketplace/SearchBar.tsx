@@ -33,11 +33,10 @@ export function SearchBar() {
   }
 
   return (
-    <div className="flex items-center gap-2.5 px-[18px] py-[15px] rounded bg-[rgba(244,247,243,.06)] border border-border">
-      <svg width="17" height="17" viewBox="0 0 24 24" className="flex-none text-foreground-faint">
-        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
-        <line x1="21" y1="21" x2="15" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+    <div className="glass-panel flex items-center gap-3 px-5 py-[15px] rounded max-w-[640px]">
+      <div className="relative w-[18px] h-[18px] border-2 border-foreground/45 rounded-full flex-none">
+        <div className="absolute -bottom-[7px] -right-[7px] w-2 h-0.5 bg-foreground/45 rotate-45" />
+      </div>
       <input
         value={value}
         onChange={(e) => handleChange(e.target.value)}

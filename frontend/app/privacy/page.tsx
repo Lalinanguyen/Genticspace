@@ -1,6 +1,10 @@
 import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 
+export const metadata = {
+  title: "Privacy Policy — Genticspace",
+};
+
 export default function PrivacyPage() {
   return (
     <div className="flex flex-col min-h-screen">

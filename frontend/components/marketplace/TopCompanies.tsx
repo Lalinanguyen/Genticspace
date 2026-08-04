@@ -16,9 +16,9 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
   const loop = [...providers, ...providers];
 
   return (
-    <div className="px-[5%] pb-10 box-border">
+    <div className="mb-11">
       <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
-        <span className="font-display font-bold text-sm text-foreground">Top companies</span>
+        <h2 className="font-display font-normal text-[22px] text-foreground tracking-[-.3px] m-0">Top tools</h2>
         <span className="font-medium text-[12.5px] text-foreground-faint">
           Verified builders shipping the most-followed agents
         </span>
@@ -38,7 +38,7 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
             <Link
               href={`/company/${c.source}/${encodeURIComponent(c.name)}`}
               key={`${c.source}:${c.name}:${i}`}
-              className="flex-none w-[210px] flex items-center gap-3 p-3.5 rounded bg-surface-2 border border-border box-border no-underline hover:border-border-strong transition-colors"
+              className="glass-panel-lg flex-none w-[210px] flex items-center gap-3 p-3.5 rounded-xl box-border no-underline hover:border-white transition-colors"
             >
               {c.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -48,11 +48,11 @@ export function TopCompanies({ providers }: { providers: TopProvider[] }) {
                   className="w-[38px] h-[38px] rounded flex-none object-cover bg-surface border border-border"
                 />
               ) : (
-                <div className="w-[38px] h-[38px] rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[13px] text-white">
+                <div className="w-[38px] h-[38px] rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-normal text-sm text-white">
                   {initials(c.name)}
                 </div>
               )}
-              <span className="font-display font-bold text-[13.5px] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+              <span className="font-display font-normal text-sm text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                 {c.name}
               </span>
             </Link>
