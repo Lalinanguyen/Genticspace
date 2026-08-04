@@ -51,6 +51,7 @@ function filtersToSearchParams(filters: MarketplaceFilters): string {
   if (filters.mcp_only) params.set("mcp_only", "true");
   if (filters.x402_only) params.set("x402_only", "true");
   if (filters.safe_only) params.set("safe_only", "true");
+  if (filters.with_photo) params.set("with_photo", "true");
   if (filters.industry) params.set("industry", filters.industry);
   if (filters.license) params.set("license", filters.license);
   if (filters.deployment) params.set("deployment", filters.deployment);
@@ -312,6 +313,22 @@ export function getSandboxConfig(tracentId: string): Promise<SandboxConfig> {
 
 export function getSandboxReadyAgents(): Promise<{ agents: Agent[] }> {
   return request("/public/sandbox/agents");
+}
+
+export interface SandboxTrial {
+  tracent_id: string;
+  name: string | null;
+  description: string | null;
+  image_url: string | null;
+  run_count: number;
+  last_run_at: string;
+  latest_status: string;
+}
+
+export function getMySandboxTrials(token: string): Promise<{ trials: SandboxTrial[] }> {
+  return request("/public/sandbox/my-trials", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export function startSandboxRun(tracentId: string, token: string): Promise<{ run_id: number; status: string }> {

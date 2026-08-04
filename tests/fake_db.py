@@ -36,6 +36,7 @@ class FakeDB:
         self.users: list[dict] = []
         self.email_otps: list[dict] = []
         self.password_reset_tokens: list[dict] = []
+        self.sessions: dict[str, dict] = {}
 
     def alloc_id(self, table: str) -> int:
         rid = self._next_id[table]
@@ -95,6 +96,18 @@ class FakeConn:
             for row in self.db.password_reset_tokens:
                 if row["id"] == token_id:
                     row["consumed"] = True
+            return
+
+        if q.startswith("INSERT INTO sessions"):
+            session_id, user_id = params
+            self.db.sessions[session_id] = {"user_id": user_id, "revoked_at": None}
+            return
+
+        if q.startswith("UPDATE sessions SET revoked_at"):
+            (session_id,) = params
+            row = self.db.sessions.get(session_id)
+            if row and row["revoked_at"] is None:
+                row["revoked_at"] = datetime.now(timezone.utc)
             return
 
         raise NotImplementedError(f"FakeConn.execute unhandled query: {q!r}")
@@ -171,6 +184,11 @@ class FakeConn:
                 None,
             )
             return {"id": row["id"], "user_id": row["user_id"]} if row else None
+
+        if q.startswith("SELECT revoked_at FROM sessions"):
+            (session_id,) = params
+            row = self.db.sessions.get(session_id)
+            return {"revoked_at": row["revoked_at"]} if row else None
 
         raise NotImplementedError(f"FakeConn.fetchrow unhandled query: {q!r}")
 

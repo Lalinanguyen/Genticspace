@@ -2,7 +2,7 @@
 
 Reads the run spec from env (populated by app/services/sandbox_runner.py),
 clones the target repo, runs its declared build/run commands (from its
-tracent.yaml manifest), streams output back to the ingest endpoint, and exits.
+genticspace.yaml manifest), streams output back to the ingest endpoint, and exits.
 The Fly Machine this runs in is single-purpose and auto_destroy'd by the
 platform once the process exits, so there is no cleanup step here beyond
 reporting a terminal status.

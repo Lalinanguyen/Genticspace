@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const PROTOCOL_OPTIONS = [
@@ -114,12 +113,6 @@ export function FilterSidebar() {
   return (
     <div className="w-full flex flex-col gap-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <Link href="/sandbox" className={`${chipActive} no-underline inline-block`}>
-          🧪 Sandbox mode
-        </Link>
-
-        <span className="w-px h-5 bg-border mx-0.5 flex-none" />
-
         <Chip active={verifiedOnly} onClick={() => toggleBool("verified")}>
           {verifiedOnly ? "✓ Verified" : "Verified"}
         </Chip>

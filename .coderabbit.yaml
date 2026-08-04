@@ -38,6 +38,32 @@ reviews:
         sensitive: flag anything that widens network/filesystem access
         beyond what's explicitly intended, or that could let the supervisor
         process itself be influenced by the untrusted repo it clones.
+    - path: "app/services/managed_agents.py"
+      instructions: >
+        Wraps Anthropic's Managed Agents beta API to run untrusted
+        third-party repos inside a live agent session. Treat as security-
+        sensitive: flag anything that would put a real credential (API
+        keys, GITHUB_TOKEN) into the sandboxed process's own environment
+        instead of routed through a Vault; flag any Environment config
+        that doesn't keep networking.type "limited" with an explicit
+        allowed_hosts/allow_package_managers policy; flag missing handling
+        for a session that never reaches a terminal status (could leave a
+        run stuck "running" forever and burning cost).
+    - path: "app/services/sandbox_runner.py"
+      instructions: >
+        Dispatches sandbox runs across two lanes: manifest (Fly Machines,
+        deterministic, free) and AI (Managed Agents, live agent, real LLM
+        cost). Flag any logic that could route a run to the wrong lane,
+        bypass the SANDBOX_AI_ENABLED gate, or apply the manifest lane's
+        rate limit/TTL to an AI-lane run or vice versa.
+    - path: "scripts/create_sandbox_installer_agent.py"
+      instructions: >
+        One-time script that creates/versions the production installer
+        Agent used by the sandbox AI lane. Flag any tool enabled beyond
+        bash/read/write/edit/glob/grep -- web_fetch/web_search must stay
+        disabled since they bypass the Environment's own network
+        allowlist -- and any permission_policy looser than explicit
+        review for a tool that could escape the repo's working directory.
     - path: "frontend/**/*.tsx"
       instructions: >
         Next.js App Router with Tailwind v4 CSS-first tokens. Flag hardcoded

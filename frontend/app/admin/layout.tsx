@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!getStoredAdminKey()) {
-      setChecking(false);
+      Promise.resolve().then(() => setChecking(false));
       return;
     }
     getAdminStats()

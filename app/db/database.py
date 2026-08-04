@@ -388,7 +388,7 @@ CREATE TABLE IF NOT EXISTS job_runs (
 
 -- Sandbox mode: lets a user run an agent's actual open-source repo in an
 -- isolated Fly Machine. sandbox_enabled only ever becomes true once a valid
--- tracent.yaml manifest (build/run commands) has been found in the agent's
+-- genticspace.yaml manifest (build/run commands) has been found in the agent's
 -- repo -- there is no admin allowlist, but there is also no attempt to guess
 -- build steps for repos that don't declare them.
 CREATE TABLE IF NOT EXISTS agent_sandbox_config (
@@ -422,6 +422,16 @@ CREATE TABLE IF NOT EXISTS agent_sandbox_runs (
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_user   ON agent_sandbox_runs(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_active ON agent_sandbox_runs(status)
     WHERE status IN ('queued', 'provisioning', 'running');
+
+-- AI-driven sandbox lane (Managed Agents), alongside the original
+-- manifest-driven Fly Machine lane above. A run's execution_lane is decided
+-- once at start_run() and stored here so later reads don't need to
+-- re-derive it. ingest_token/fly_machine_id are Fly-lane-only and unused
+-- for 'ai' runs -- the AI lane's ingest_token is never generated (hence
+-- the DROP NOT NULL) and Managed Agents' own session_id is stored instead.
+ALTER TABLE agent_sandbox_runs ALTER COLUMN ingest_token DROP NOT NULL;
+ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS execution_lane TEXT NOT NULL DEFAULT 'manifest';
+ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS session_id TEXT;
 
 -- Per-client API keys (see app/db/auth.py). Only a sha256 hash of the raw
 -- key is ever stored; the raw key is returned once, at mint time, by
@@ -463,6 +473,16 @@ CREATE TABLE IF NOT EXISTS sandbox_cohort (
     status          TEXT NOT NULL DEFAULT 'pending_security_review',
     PRIMARY KEY (tracent_id)
 );
+
+-- Server-side session record backing each issued JWT (embedded as the "sid"
+-- claim), so a token can be invalidated before its exp by setting revoked_at.
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id  TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    issued_at   TIMESTAMPTZ DEFAULT NOW(),
+    revoked_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 """
 
 
@@ -474,9 +494,15 @@ async def init_db() -> None:
         # The startup scrapers/backfills fire off many concurrent DB-touching
         # tasks at once; a small pool here means real user requests can queue
         # behind them indefinitely (pool.acquire() has no default timeout).
-        # 20/machine x 2 machines = 40, well under this RDS instance's
-        # max_connections=79, leaving headroom for local/admin connections.
-        max_size=20,
+        # This app runs on a single machine now (see fly.toml's [[mounts]]
+        # comment -- pinned to 1 machine for the uploads Fly volume), so the
+        # old 20/machine x 2-machine budget collapsed to just 20 total,
+        # which wasn't enough headroom against this RDS instance's
+        # max_connections=79 once background jobs and real traffic overlapped
+        # (confirmed via TimeoutError acquiring a pool connection in prod
+        # logs). Bumped to 40 -- still well under 79 now that only one
+        # machine is drawing from that budget.
+        max_size=40,
     )
     async with pool.acquire() as conn:
         await _migrate_genticspace_to_tracent(conn)
@@ -499,3 +525,19 @@ _ACQUIRE_TIMEOUT_SECONDS = 10.0
 async def get_conn():
     async with pool.acquire(timeout=_ACQUIRE_TIMEOUT_SECONDS) as conn:
         yield conn
+
+
+async def cleanup_expired_auth_tokens() -> None:
+    async with get_conn() as conn:
+        otps_deleted = await conn.execute(
+            "DELETE FROM email_otps WHERE expires_at < NOW() - make_interval(days => $1)",
+            settings.AUTH_TOKEN_RETENTION_DAYS,
+        )
+        reset_tokens_deleted = await conn.execute(
+            "DELETE FROM password_reset_tokens WHERE expires_at < NOW() - make_interval(days => $1)",
+            settings.AUTH_TOKEN_RETENTION_DAYS,
+        )
+    logger.info(
+        "Auth token cleanup: %s, %s",
+        otps_deleted, reset_tokens_deleted,
+    )

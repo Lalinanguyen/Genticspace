@@ -5,18 +5,20 @@ from contextlib import asynccontextmanager
 
 import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(dsn=settings.SENTRY_DSN)
-from app.db.database import close_db, init_db
+from app.db.database import close_db, cleanup_expired_auth_tokens, init_db
 from app.routes.admin import router as admin_router
 from app.routes.agents import router as agents_router
-from app.routes.auth import router as auth_router
+from app.routes.auth import limiter, router as auth_router
 from app.routes.profiles import router as profiles_router
 from app.routes.public import router as public_router
 from app.routes.sandbox import internal_router as sandbox_internal_router
@@ -83,6 +85,7 @@ _JOBS: list[tuple[str, object, tuple, float]] = [
     ),
     ("sandbox_manifest_scan", scan_sandbox_manifests, (), settings.SANDBOX_MANIFEST_SCAN_INTERVAL_HOURS),
     ("sandbox_reaper", reap_stale_runs, (), settings.SANDBOX_REAP_INTERVAL_MINUTES / 60),
+    ("cleanup_expired_auth_tokens", cleanup_expired_auth_tokens, (), settings.AUTH_TOKEN_CLEANUP_INTERVAL_HOURS),
 ]
 
 
@@ -159,6 +162,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _handle_rate_limit_exceeded(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    response = JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"detail": "Too many requests. Please try again later."},
+    )
+    return limiter._inject_headers(response, request.state.view_rate_limit)
+
 
 app.include_router(agents_router)
 app.include_router(trust_router)

@@ -23,7 +23,7 @@ async def get_user_profile(user_id: int, current_user: Optional[dict] = Depends(
     async with get_conn() as conn:
         user = await conn.fetchrow(
             """
-            SELECT id, name, account_type, bio, purposes, experience_level,
+            SELECT id, name, company_name, industry, account_type, bio, purposes, experience_level,
                    github_username, x_handle, linkedin_handle, website_url,
                    huggingface_handle, other_link, is_private, show_follower_count,
                    created_at
@@ -59,6 +59,8 @@ async def get_user_profile(user_id: int, current_user: Optional[dict] = Depends(
             return {
                 "id": profile["id"],
                 "name": profile["name"],
+                "company_name": profile["company_name"],
+                "account_type": profile["account_type"],
                 "is_private": True,
                 "is_owner": False,
                 "follower_count": profile["follower_count"],

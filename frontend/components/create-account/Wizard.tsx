@@ -88,7 +88,6 @@ interface FormState {
   purposes: string[];
   otherPurpose: string;
   bio: string;
-  connects: { github: string; x: string; linkedin: string; website: string; huggingface: string; other: string };
 }
 
 const INITIAL_FORM: FormState = {
@@ -103,7 +102,6 @@ const INITIAL_FORM: FormState = {
   purposes: [],
   otherPurpose: "",
   bio: "",
-  connects: { github: "", x: "", linkedin: "", website: "", huggingface: "", other: "" },
 };
 
 export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
@@ -119,6 +117,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
   const [error, setError] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [createdUserId, setCreatedUserId] = useState<number | null>(null);
 
   const isBusiness = form.accountType === "business";
 
@@ -187,9 +186,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
         use_case: isBusiness ? undefined : form.useCase || undefined,
         purposes: form.purposes,
         bio: form.bio || undefined,
-        connects: form.connects,
       });
       setSession(res.access_token, res.user);
+      setCreatedUserId(res.user.id);
       setStep("confirmation");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create your account");
@@ -612,7 +611,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
           <div className="flex flex-wrap gap-10 items-start">
             <div className="flex-1 min-w-[220px] max-w-[260px] flex flex-col gap-4">
               <div className="w-[120px] h-[120px] rounded bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-bold text-4xl text-white">
-                {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "TC"}
+                {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "GS"}
               </div>
               <div>
                 <div className="font-display font-bold text-[17px] text-foreground mb-0.5">
@@ -621,24 +620,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                 <div className="font-medium text-[12.5px] font-mono text-foreground-faint">{form.email}</div>
               </div>
 
-              <div className="mt-2">
-                <div className="font-bold text-[11px] text-foreground-faint uppercase tracking-wide mb-2.5">
-                  Connected accounts
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {(["github", "x", "linkedin", "website", "huggingface", "other"] as const).map((key) => (
-                    <input
-                      key={key}
-                      value={form.connects[key]}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, connects: { ...f.connects, [key]: e.target.value } }))
-                      }
-                      placeholder={key === "github" ? "GitHub" : key === "x" ? "X (Twitter)" : key[0].toUpperCase() + key.slice(1)}
-                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(28,38,33,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
-                    />
-                  ))}
-                </div>
-              </div>
+              <p className="text-[12px] leading-relaxed text-foreground-faint">
+                You can link GitHub, X, LinkedIn, and other accounts later from Settings.
+              </p>
             </div>
 
             <div className="flex-[2] min-w-[300px] flex flex-col gap-6">
@@ -680,7 +664,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               : "Your account is ready. Head to the marketplace to find your first agent."}
           </p>
           <div
-            onClick={() => router.push("/marketplace")}
+            onClick={() => router.push(isBusiness && createdUserId ? `/u/${createdUserId}` : "/marketplace")}
             className="inline-flex px-7.5 py-[15px] rounded bg-foreground text-background font-semibold text-[14.5px] cursor-pointer"
           >
             {isBusiness ? "Go to your profile" : "Browse the marketplace"}

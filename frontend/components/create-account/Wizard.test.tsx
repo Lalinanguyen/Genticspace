@@ -51,7 +51,16 @@ beforeEach(() => {
 });
 
 function clickTerms() {
-  const row = screen.getByText("I agree to the Terms of Service and Privacy Policy").parentElement!;
+  // The label text is split across two <Link> elements (Terms of Service,
+  // Privacy Policy), so an exact-string matcher can't find a single text
+  // node -- match on the containing <span>'s full textContent instead.
+  const row = screen
+    .getByText(
+      (_, element) =>
+        element?.tagName.toLowerCase() === "span" &&
+        element.textContent === "I agree to the Terms of Service and Privacy Policy"
+    )
+    .parentElement!;
   fireEvent.click(row.querySelector(".cursor-pointer")!);
 }
 
@@ -99,7 +108,7 @@ describe("Wizard step progression", () => {
 
     fillOtp("123456");
     fireEvent.click(screen.getByText("Verify & continue"));
-    expect(await screen.findByText(/use Tracent for/)).toBeInTheDocument();
+    expect(await screen.findByText(/use Genticspace for/)).toBeInTheDocument();
     expect(verifyOtpMock).toHaveBeenCalledWith("ada@example.com", "123456");
 
     fireEvent.click(screen.getByText("Software Engineering"));

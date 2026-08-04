@@ -14,6 +14,19 @@ from fastapi.testclient import TestClient
 from tests.fake_db import FakeDB, make_fake_get_conn
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    # app.routes.auth.limiter is a module-level singleton whose in-memory
+    # storage otherwise persists across every test in the session, so tests
+    # reusing the same email (e.g. "a@example.com") trip AUTH_RATE_LIMIT
+    # after a handful of unrelated tests rather than testing anything real.
+    from app.routes.auth import limiter
+
+    limiter.reset()
+    yield
+    limiter.reset()
+
+
 @pytest.fixture
 def fake_db():
     return FakeDB()

@@ -395,7 +395,7 @@ async def admin_delete_listing(tracent_id: str, actor: str = Depends(verify_admi
 # ---------------------------------------------------------------------------
 # Sandbox mode admin kill switch. The real eligibility gate is
 # agent_sandbox_config.sandbox_enabled, set automatically by
-# sandbox_manifest.py's periodic tracent.yaml scan -- sandbox_cohort is an
+# sandbox_manifest.py's periodic genticspace.yaml scan -- sandbox_cohort is an
 # admin *override* on top of that, not a competing gate: a 'disabled' row
 # here blocks app/services/sandbox_runner.py's start_run() regardless of
 # sandbox_enabled (see _admin_disabled there); no row, or any other status,

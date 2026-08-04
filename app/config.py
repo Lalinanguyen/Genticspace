@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:3000"
     FRONTEND_URL: str = "http://localhost:3000"
 
+    AUTH_RATE_LIMIT: str = "5/minute"
+    AUTH_TOKEN_RETENTION_DAYS: int = 7
+    AUTH_TOKEN_CLEANUP_INTERVAL_HOURS: int = 24
+
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None
@@ -45,8 +49,14 @@ class Settings(BaseSettings):
     GITHUB_SCRAPE_MAX_CANDIDATES: int = 1500
     GITHUB_SCRAPE_CONCURRENCY: int = 4
 
-    README_SCRAPE_INTERVAL_HOURS: int = 24
-    README_SCRAPE_BATCH_SIZE: int = 300
+    # Bumped from 24h/300 -- README fetches are free (no LLM cost, just a
+    # GitHub API call), and 300/day was leaving most of the catalog's real
+    # rate-limit headroom (5000/hour) unused while a genuine backlog sat
+    # unprocessed (confirmed: 1749 github agents, only 662 had a README
+    # before this was raised). 12h/1500 clears that backlog in ~1-2 runs
+    # instead of ~6 days.
+    README_SCRAPE_INTERVAL_HOURS: int = 12
+    README_SCRAPE_BATCH_SIZE: int = 1500
 
     ANTHROPIC_API_KEY: str | None = None
 
@@ -99,6 +109,21 @@ class Settings(BaseSettings):
     SANDBOX_MANIFEST_SCAN_INTERVAL_HOURS: int = 12
     SANDBOX_MANIFEST_SCAN_BATCH_SIZE: int = 200
     SANDBOX_REAP_INTERVAL_MINUTES: int = 5
+
+    # Sandbox mode, AI-driven lane: runs a repo through a live agent session on
+    # Anthropic's Managed Agents platform instead of a fixed manifest command.
+    # Used when an agent has real README/codebase material but no
+    # genticspace.yaml (see app/services/sandbox_manifest.py). The
+    # manifest-based Fly Machine lane above stays as the free, deterministic
+    # fast path for repos that opt in with a real manifest. Off by default -
+    # real per-run LLM cost, beta platform - flip on deliberately once
+    # SANDBOX_AGENT_ID is set (see scripts/create_sandbox_installer_agent.py).
+    SANDBOX_AI_ENABLED: bool = False
+    SANDBOX_CLAUDE_API_KEY: str | None = None  # falls back to ANTHROPIC_API_KEY if unset
+    SANDBOX_AGENT_ID: str | None = None
+    SANDBOX_AGENT_VERSION: int | None = None
+    SANDBOX_AI_MAX_RUN_SECONDS: int = 480
+    SANDBOX_AI_DAILY_RUNS_PER_USER: int = 5
 
     # User-uploaded images (agent listing photo/screenshot). Stored on a Fly
     # volume rather than object storage for now -- see fly.toml's [[mounts]]
