@@ -26,7 +26,7 @@ export function HeroV3({ typedText }: { typedText: string }) {
 
   return (
     <div className="relative z-[1] max-w-[1280px] mx-auto px-8 pt-24 box-border flex flex-col items-center text-center">
-      <h1 className="relative z-[1] font-display font-normal text-[44px] md:text-[76px] leading-[1.02] tracking-[-1.8px] text-foreground max-w-[900px] mb-6 text-balance">
+      <h1 className="hero-heading relative z-[1] font-display font-normal text-[44px] md:text-[76px] leading-[1.02] tracking-[-1.8px] text-foreground max-w-[900px] mb-6 text-balance">
         Where teams find, test, and deploy AI agents
       </h1>
       <p className="relative z-[1] text-lg leading-relaxed text-foreground-muted max-w-[620px] mb-10 text-pretty">

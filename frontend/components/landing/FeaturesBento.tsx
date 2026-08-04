@@ -68,7 +68,7 @@ export function FeaturesBento({ typedText, matches }: { typedText: string; match
   return (
     <div className="relative z-[1] max-w-[1280px] mx-auto px-8 pt-24 pb-16 box-border">
       <span className="font-mono font-semibold text-xs tracking-[1.5px] text-cyan-dark">FOR TEAMS SEARCHING</span>
-      <h2 className="font-display font-normal text-[48px] leading-[1.08] tracking-[-.8px] max-w-[640px] mt-4 mb-12 text-balance">
+      <h2 className="hero-heading font-display font-normal text-[48px] leading-[1.08] tracking-[-.8px] max-w-[640px] mt-4 mb-12 text-balance">
         The shortest path from &quot;we need this&quot; to deployed
       </h2>
 

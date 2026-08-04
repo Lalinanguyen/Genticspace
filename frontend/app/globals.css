@@ -28,15 +28,41 @@
   --radius-lg: 8px;
   --radius-xl: 10px;
 
-  --font-display: var(--font-instrument-serif), serif;
-  --font-body: var(--font-raleway), system-ui, sans-serif;
+  --font-display: var(--font-alte-haas-grotesk), "Arial Black", sans-serif;
+  --font-body: var(--font-alte-haas-grotesk), system-ui, sans-serif;
+  --font-remingtoned: var(--font-remingtoned-type), "Courier New", monospace;
+  /* font-mono is the site's existing convention for meta/label text (landing
+     page eyebrows, trace/tag labels, agent IDs) — point it at the same
+     typewriter-style face as the landing page's .hero-heading instead of
+     Tailwind's generic system monospace stack. */
+  --font-mono: var(--font-remingtoned-type), "Courier New", monospace;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-body);
+  letter-spacing: -.01em;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Deliberately outside any @layer so these win over Tailwind's layered
+   .font-display/.font-normal/.font-medium utilities regardless of
+   className order (see .hero-heading below for the same pattern). */
+.font-display {
+  font-weight: 700;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+}
+
+/* Scoped to the 3 large landing-page headers only (HeroV3 h1, FeaturesBento
+   h2, ForDevelopers h2) — everything else on the page keeps Alte Haas
+   Grotesk via .font-display above. */
+.hero-heading {
+  font-family: var(--font-remingtoned);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: uppercase;
 }
 
 ::selection {

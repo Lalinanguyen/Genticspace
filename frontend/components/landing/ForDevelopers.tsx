@@ -83,7 +83,7 @@ export function ForDevelopers() {
   return (
     <div className="relative z-[1] max-w-[1280px] mx-auto px-8 pt-8 pb-24 box-border">
       <span className="font-mono font-semibold text-xs tracking-[1.5px] text-cyan-dark">FOR DEVELOPERS</span>
-      <h2 className="font-display font-normal text-[48px] leading-[1.08] tracking-[-.8px] max-w-[680px] mt-4 mb-5 text-balance">
+      <h2 className="hero-heading font-display font-normal text-[48px] leading-[1.08] tracking-[-.8px] max-w-[680px] mt-4 mb-5 text-balance">
         Ship the repo. The marketplace does the rest.
       </h2>
       <p className="text-[16.5px] leading-relaxed text-foreground-muted max-w-[600px] mb-14 text-pretty">

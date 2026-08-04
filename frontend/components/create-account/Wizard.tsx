@@ -211,11 +211,11 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
           <div className="flex flex-col gap-3 mb-2">
             {(["individual", "business"] as const).map((type) => {
               const active = form.accountType === type;
-              // Per design README: Individual's selected state uses the cyan-selected
-              // (#22D3EE) variant; Business's selected state uses the standard cyan (#35C0B0).
-              const accent = type === "individual" ? "#22D3EE" : "#35C0B0";
-              const tintBg = type === "individual" ? "rgba(34,211,238,.1)" : "rgba(53,192,176,.1)";
-              const tintBorder = type === "individual" ? "rgba(34,211,238,.35)" : "rgba(53,192,176,.35)";
+              // Individual's selected state uses the standard blue accent (#072AC8);
+              // Business's selected state uses the standard cyan (#35C0B0).
+              const accent = type === "individual" ? "#072AC8" : "#35C0B0";
+              const tintBg = type === "individual" ? "rgba(7,42,200,.1)" : "rgba(53,192,176,.1)";
+              const tintBorder = type === "individual" ? "rgba(7,42,200,.35)" : "rgba(53,192,176,.35)";
               return (
                 <div
                   key={type}
@@ -420,9 +420,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   onClick={() => setForm((f) => ({ ...f, experienceLevel: opt.level }))}
                   className="cursor-pointer px-4.5 py-4 rounded font-semibold text-[14.5px]"
                   style={{
-                    background: active ? "rgba(34,211,238,.14)" : "rgba(28,38,33,.05)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.5)" : "rgba(28,38,33,.14)"}`,
-                    color: active ? "#22D3EE" : "#1C2621",
+                    background: active ? "rgba(7,42,200,.1)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(7,42,200,.35)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#072AC8" : "#1C2621",
                   }}
                 >
                   <div className="mb-0.5">{opt.level}</div>
