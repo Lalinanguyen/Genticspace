@@ -32,7 +32,7 @@ const EXPERIENCE_LEVELS = [
 const cardClass =
   "p-9 rounded bg-surface border border-border-strong glass-card box-border w-full max-w-[480px]";
 const inputClass =
-  "w-full box-border px-3.5 py-3 rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
+  "w-full box-border px-3.5 py-3 rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
 const labelClass = "block mb-1.5 font-semibold text-[12.5px] text-foreground-muted";
 const continueClass =
   "mt-6 text-center px-7 py-[15px] rounded font-semibold text-[15px] cursor-pointer select-none";
@@ -52,7 +52,7 @@ function ContinueButton({
       className={continueClass}
       style={
         disabled
-          ? { background: "rgba(244,247,243,.08)", color: "rgba(244,247,243,.4)", cursor: "default" }
+          ? { background: "rgba(28,38,33,.08)", color: "rgba(28,38,33,.4)", cursor: "default" }
           : {
               background: "linear-gradient(135deg,#072AC8,#2f4fe0)",
               color: "#fff",
@@ -88,7 +88,6 @@ interface FormState {
   purposes: string[];
   otherPurpose: string;
   bio: string;
-  connects: { github: string; x: string; linkedin: string; website: string; huggingface: string; other: string };
 }
 
 const INITIAL_FORM: FormState = {
@@ -103,7 +102,6 @@ const INITIAL_FORM: FormState = {
   purposes: [],
   otherPurpose: "",
   bio: "",
-  connects: { github: "", x: "", linkedin: "", website: "", huggingface: "", other: "" },
 };
 
 export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
@@ -119,6 +117,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
   const [error, setError] = useState<string | null>(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [createdUserId, setCreatedUserId] = useState<number | null>(null);
 
   const isBusiness = form.accountType === "business";
 
@@ -187,9 +186,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
         use_case: isBusiness ? undefined : form.useCase || undefined,
         purposes: form.purposes,
         bio: form.bio || undefined,
-        connects: form.connects,
       });
       setSession(res.access_token, res.user);
+      setCreatedUserId(res.user.id);
       setStep("confirmation");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create your account");
@@ -218,13 +217,13 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   onClick={() => setForm((f) => ({ ...f, accountType: type }))}
                   className="cursor-pointer flex items-center gap-4 p-4.5 rounded"
                   style={{
-                    background: active ? "rgba(34,211,238,.1)" : "rgba(244,247,243,.03)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.35)" : "rgba(244,247,243,.1)"}`,
+                    background: active ? "rgba(53,192,176,.1)" : "rgba(28,38,33,.03)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.35)" : "rgba(28,38,33,.1)"}`,
                   }}
                 >
                   <div
                     className="w-9 h-[42px] flex-none flex items-center justify-center"
-                    style={{ color: active ? "#22D3EE" : "rgba(244,247,243,.55)" }}
+                    style={{ color: active ? "#35C0B0" : "rgba(28,38,33,.55)" }}
                   >
                     {type === "individual" ? (
                       <svg width="28" height="28" viewBox="0 0 24 24">
@@ -276,8 +275,8 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   <div
                     className="w-[18px] h-[18px] rounded-full flex-none"
                     style={{
-                      border: `2px solid ${active ? "#22D3EE" : "rgba(244,247,243,.3)"}`,
-                      background: active ? "#22D3EE" : "transparent",
+                      border: `2px solid ${active ? "#35C0B0" : "rgba(28,38,33,.3)"}`,
+                      background: active ? "#35C0B0" : "transparent",
                     }}
                   />
                 </div>
@@ -402,14 +401,21 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               onClick={() => setForm((f) => ({ ...f, terms: !f.terms }))}
               className="cursor-pointer flex-none w-[17px] h-[17px] mt-0.5 rounded-sm flex items-center justify-center"
               style={{
-                border: `1px solid ${form.terms ? "#35C0B0" : "rgba(244,247,243,.3)"}`,
+                border: `1px solid ${form.terms ? "#35C0B0" : "rgba(28,38,33,.3)"}`,
                 background: form.terms ? "#35C0B0" : "transparent",
               }}
             >
               {form.terms && <span className="text-background text-[11px] font-bold leading-none">✓</span>}
             </div>
             <span className="text-[12.5px] leading-relaxed text-foreground-muted">
-              I agree to the Terms of Service and Privacy Policy
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-cyan font-semibold" onClick={(e) => e.stopPropagation()}>
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="text-cyan font-semibold" onClick={(e) => e.stopPropagation()}>
+                Privacy Policy
+              </Link>
             </span>
           </div>
 
@@ -443,9 +449,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   onClick={() => setForm((f) => ({ ...f, experienceLevel: opt.level }))}
                   className="cursor-pointer px-4.5 py-4 rounded font-semibold text-[14.5px]"
                   style={{
-                    background: active ? "rgba(34,211,238,.14)" : "rgba(244,247,243,.05)",
-                    border: `1px solid ${active ? "rgba(34,211,238,.5)" : "rgba(244,247,243,.14)"}`,
-                    color: active ? "#22D3EE" : "#F4F7F3",
+                    background: active ? "rgba(53,192,176,.14)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.5)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#35C0B0" : "#1C2621",
                   }}
                 >
                   <div className="mb-0.5">{opt.level}</div>
@@ -515,7 +521,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                     e.target.nextElementSibling.focus();
                   }
                 }}
-                className="w-11 h-[52px] text-center rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground font-display font-bold text-xl focus:outline-none focus:border-cyan"
+                className="w-11 h-[52px] text-center rounded bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground font-display font-bold text-xl focus:outline-none focus:border-cyan"
               />
             ))}
           </div>
@@ -558,9 +564,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                   }
                   className="cursor-pointer px-3.5 py-2 rounded-sm font-semibold text-[12.5px]"
                   style={{
-                    background: active ? "rgba(53,192,176,.14)" : "rgba(244,247,243,.05)",
-                    border: `1px solid ${active ? "rgba(53,192,176,.4)" : "rgba(244,247,243,.14)"}`,
-                    color: active ? "#35C0B0" : "rgba(244,247,243,.7)",
+                    background: active ? "rgba(53,192,176,.14)" : "rgba(28,38,33,.05)",
+                    border: `1px solid ${active ? "rgba(53,192,176,.4)" : "rgba(28,38,33,.14)"}`,
+                    color: active ? "#35C0B0" : "rgba(28,38,33,.7)",
                   }}
                 >
                   {p.label}
@@ -605,7 +611,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
           <div className="flex flex-wrap gap-10 items-start">
             <div className="flex-1 min-w-[220px] max-w-[260px] flex flex-col gap-4">
               <div className="w-[120px] h-[120px] rounded bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-bold text-4xl text-white">
-                {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "TC"}
+                {(isBusiness ? form.companyName : form.name).trim().slice(0, 2).toUpperCase() || "GS"}
               </div>
               <div>
                 <div className="font-display font-bold text-[17px] text-foreground mb-0.5">
@@ -614,24 +620,9 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
                 <div className="font-medium text-[12.5px] font-mono text-foreground-faint">{form.email}</div>
               </div>
 
-              <div className="mt-2">
-                <div className="font-bold text-[11px] text-foreground-faint uppercase tracking-wide mb-2.5">
-                  Connected accounts
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {(["github", "x", "linkedin", "website", "huggingface", "other"] as const).map((key) => (
-                    <input
-                      key={key}
-                      value={form.connects[key]}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, connects: { ...f.connects, [key]: e.target.value } }))
-                      }
-                      placeholder={key === "github" ? "GitHub" : key === "x" ? "X (Twitter)" : key[0].toUpperCase() + key.slice(1)}
-                      className="w-full box-border px-2.5 py-1.5 rounded-sm bg-[rgba(244,247,243,.05)] border border-transparent focus:border-border-strong text-foreground text-xs focus:outline-none"
-                    />
-                  ))}
-                </div>
-              </div>
+              <p className="text-[12px] leading-relaxed text-foreground-faint">
+                You can link GitHub, X, LinkedIn, and other accounts later from Settings.
+              </p>
             </div>
 
             <div className="flex-[2] min-w-[300px] flex flex-col gap-6">
@@ -673,7 +664,7 @@ export function Wizard({ initialStep = "role" }: { initialStep?: WizardStep }) {
               : "Your account is ready. Head to the marketplace to find your first agent."}
           </p>
           <div
-            onClick={() => router.push("/marketplace")}
+            onClick={() => router.push(isBusiness && createdUserId ? `/u/${createdUserId}` : "/marketplace")}
             className="inline-flex px-7.5 py-[15px] rounded bg-foreground text-background font-semibold text-[14.5px] cursor-pointer"
           >
             {isBusiness ? "Go to your profile" : "Browse the marketplace"}

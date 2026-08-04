@@ -4,7 +4,16 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     ALCHEMY_API_KEY: str
     DATABASE_URL: str
-    API_KEY: str
+    # ADMIN_API_KEY/PARTNER_API_KEY replace the old single API_KEY (two-tier
+    # admin/partner key scopes -- see app/db/auth.py). All three are optional
+    # here; the fallback below fills in ADMIN_API_KEY/PARTNER_API_KEY from
+    # the legacy API_KEY if either new var isn't set, so this rename doesn't
+    # require rotating secrets before it's safe to deploy. Set distinct
+    # ADMIN_API_KEY/PARTNER_API_KEY values whenever you're ready to actually
+    # separate the two scopes -- no code change needed then.
+    API_KEY: str | None = None
+    ADMIN_API_KEY: str | None = None
+    PARTNER_API_KEY: str | None = None
     CONTRACT_ADDRESS: str = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
     INDEX_INTERVAL_MINUTES: int = 10
     INITIAL_LOOKBACK_BLOCKS: int = 500
@@ -40,10 +49,18 @@ class Settings(BaseSettings):
     GITHUB_SCRAPE_MAX_CANDIDATES: int = 1500
     GITHUB_SCRAPE_CONCURRENCY: int = 4
 
-    README_SCRAPE_INTERVAL_HOURS: int = 24
-    README_SCRAPE_BATCH_SIZE: int = 300
+    # Bumped from 24h/300 -- README fetches are free (no LLM cost, just a
+    # GitHub API call), and 300/day was leaving most of the catalog's real
+    # rate-limit headroom (5000/hour) unused while a genuine backlog sat
+    # unprocessed (confirmed: 1749 github agents, only 662 had a README
+    # before this was raised). 12h/1500 clears that backlog in ~1-2 runs
+    # instead of ~6 days.
+    README_SCRAPE_INTERVAL_HOURS: int = 12
+    README_SCRAPE_BATCH_SIZE: int = 1500
 
     ANTHROPIC_API_KEY: str | None = None
+
+    SENTRY_DSN: str | None = None
 
     GITHUB_ENRICH_INTERVAL_HOURS: int = 24
     GITHUB_ENRICH_BATCH_SIZE: int = 300
@@ -93,7 +110,38 @@ class Settings(BaseSettings):
     SANDBOX_MANIFEST_SCAN_BATCH_SIZE: int = 200
     SANDBOX_REAP_INTERVAL_MINUTES: int = 5
 
+    # Sandbox mode, AI-driven lane: runs a repo through a live agent session on
+    # Anthropic's Managed Agents platform instead of a fixed manifest command.
+    # Used when an agent has real README/codebase material but no
+    # genticspace.yaml (see app/services/sandbox_manifest.py). The
+    # manifest-based Fly Machine lane above stays as the free, deterministic
+    # fast path for repos that opt in with a real manifest. Off by default -
+    # real per-run LLM cost, beta platform - flip on deliberately once
+    # SANDBOX_AGENT_ID is set (see scripts/create_sandbox_installer_agent.py).
+    SANDBOX_AI_ENABLED: bool = False
+    SANDBOX_CLAUDE_API_KEY: str | None = None  # falls back to ANTHROPIC_API_KEY if unset
+    SANDBOX_AGENT_ID: str | None = None
+    SANDBOX_AGENT_VERSION: int | None = None
+    SANDBOX_AI_MAX_RUN_SECONDS: int = 480
+    SANDBOX_AI_DAILY_RUNS_PER_USER: int = 5
+
+    # User-uploaded images (agent listing photo/screenshot). Stored on a Fly
+    # volume rather than object storage for now -- see fly.toml's [[mounts]]
+    # and the note there about why this app is pinned to a single machine.
+    UPLOADS_DIR: str = "/data/uploads"
+    UPLOADS_MAX_BYTES: int = 5_000_000
+    UPLOADS_PUBLIC_BASE_URL: str = "http://localhost:8000"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
 settings = Settings()
+
+if not settings.ADMIN_API_KEY or not settings.PARTNER_API_KEY:
+    if not settings.API_KEY:
+        raise RuntimeError(
+            "Set ADMIN_API_KEY and PARTNER_API_KEY (or the legacy API_KEY as a "
+            "shared fallback for both) before starting the app."
+        )
+    settings.ADMIN_API_KEY = settings.ADMIN_API_KEY or settings.API_KEY
+    settings.PARTNER_API_KEY = settings.PARTNER_API_KEY or settings.API_KEY

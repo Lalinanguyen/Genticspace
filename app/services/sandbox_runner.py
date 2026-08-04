@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 
 from app.config import settings
 from app.db.database import get_conn
-from app.services import fly_machines
+from app.services import fly_machines, managed_agents
+from app.services.deployment_guide import get_or_generate_deployment_guide
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,33 @@ async def list_sandbox_ready_agents() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+async def list_my_trials(user_id: int) -> list[dict]:
+    """One row per agent this user has ever run a sandbox trial against,
+    grouped from their real agent_sandbox_runs history -- run_count and
+    last_run_at are real aggregates, latest_status is the most recent run's
+    actual status. No invented fields (no score/expiry/cost -- none of that
+    exists yet, see docs/sandbox-v3-integration-plan.md)."""
+    async with get_conn() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT
+                a.tracent_id, a.name, a.description, a.image_url,
+                COUNT(r.id) AS run_count,
+                MAX(r.created_at) AS last_run_at,
+                (SELECT r2.status FROM agent_sandbox_runs r2
+                 WHERE r2.tracent_id = a.tracent_id AND r2.user_id = $1
+                 ORDER BY r2.created_at DESC LIMIT 1) AS latest_status
+            FROM agent_sandbox_runs r
+            JOIN agents a ON a.tracent_id = r.tracent_id
+            WHERE r.user_id = $1
+            GROUP BY a.tracent_id, a.name, a.description, a.image_url
+            ORDER BY MAX(r.created_at) DESC
+            """,
+            user_id,
+        )
+    return [dict(r) for r in rows]
+
+
 async def get_sandbox_config(tracent_id: str) -> dict:
     agent, config = await _get_agent_and_config(tracent_id)
     if agent is None:
@@ -82,32 +110,62 @@ def _repo_url(agent: dict) -> str:
     return agent.get("github_url") or f"https://github.com/{agent['source_id']}"
 
 
+async def _admin_disabled(tracent_id: str) -> bool:
+    """The real kill switch behind /admin/sandbox/{tracent_id}/disable
+    (app/routes/admin.py). sandbox_cohort is otherwise just an admin-facing
+    view over the same sandbox_enabled agents -- this is the one place a
+    'disabled' row there actually has to change execution behavior, not
+    just what the admin dashboard displays."""
+    async with get_conn() as conn:
+        status = await conn.fetchval(
+            "SELECT status FROM sandbox_cohort WHERE tracent_id = $1", tracent_id
+        )
+    return status == "disabled"
+
+
 async def start_run(tracent_id: str, user: dict) -> dict:
     agent, config = await _get_agent_and_config(tracent_id)
     if agent is None:
         raise SandboxError("Agent not found", 404)
     if not config or not config["sandbox_enabled"]:
         raise SandboxError("This agent hasn't been made sandbox-ready yet", 400)
+    if await _admin_disabled(tracent_id):
+        raise SandboxError("Sandbox access for this agent has been disabled by an admin", 403)
+
+    # run_command is only ever set for repos with a valid genticspace.yaml
+    # (app/services/sandbox_manifest.py); everything else that's
+    # sandbox_enabled got there via real README/codebase material instead,
+    # and runs through the Managed Agents AI lane.
+    lane = "manifest" if config["run_command"] else "ai"
+    if lane == "ai" and not settings.SANDBOX_AI_ENABLED:
+        raise SandboxError("This agent's sandbox trial isn't available yet", 400)
 
     user_id = user["id"]
+    daily_limit = settings.SANDBOX_AI_DAILY_RUNS_PER_USER if lane == "ai" else settings.SANDBOX_DAILY_RUNS_PER_USER
     async with get_conn() as conn:
         if await _active_run_count(conn, user_id) >= settings.SANDBOX_MAX_CONCURRENT_PER_USER:
             raise SandboxError("You already have a sandbox run in progress", 429)
         if await _global_active_run_count(conn) >= settings.SANDBOX_GLOBAL_MAX_CONCURRENT:
             raise SandboxError("Sandbox is at capacity right now, try again shortly", 429)
-        if await _daily_run_count(conn, user_id) >= settings.SANDBOX_DAILY_RUNS_PER_USER:
+        if await _daily_run_count(conn, user_id) >= daily_limit:
             raise SandboxError("Daily sandbox run limit reached", 429)
 
-        ingest_token = secrets.token_urlsafe(32)
+        ingest_token = secrets.token_urlsafe(32) if lane == "manifest" else None
         run_id = await conn.fetchval(
             """
-            INSERT INTO agent_sandbox_runs (tracent_id, user_id, status, ingest_token, started_at)
-            VALUES ($1, $2, 'provisioning', $3, NOW())
+            INSERT INTO agent_sandbox_runs (tracent_id, user_id, status, ingest_token, execution_lane, started_at)
+            VALUES ($1, $2, 'provisioning', $3, $4, NOW())
             RETURNING id
             """,
-            tracent_id, user_id, ingest_token,
+            tracent_id, user_id, ingest_token, lane,
         )
 
+    if lane == "ai":
+        return await _start_ai_run(run_id, tracent_id, agent, config)
+    return await _start_manifest_run(run_id, agent, config, ingest_token)
+
+
+async def _start_manifest_run(run_id: int, agent: dict, config: dict, ingest_token: str) -> dict:
     env = {
         "REPO_URL": _repo_url(agent),
         "SOURCE_REF": config["source_ref"] or "main",
@@ -141,11 +199,55 @@ async def start_run(tracent_id: str, user: dict) -> dict:
     return {"run_id": run_id, "status": "provisioning"}
 
 
+async def _start_ai_run(run_id: int, tracent_id: str, agent: dict, config: dict) -> dict:
+    try:
+        guide = await get_or_generate_deployment_guide(tracent_id, "Advanced")
+    except Exception as exc:
+        logger.warning("Could not generate a deployment-guide hint for sandbox run %s: %s", run_id, exc)
+        guide = None
+
+    hint = (
+        (guide or {}).get("instructions")
+        or "No pre-generated notes are available. Read the repository's own README and files to figure out how to install and run it."
+    )
+    task = (
+        f"A repository is mounted in your working directory. Here are some notes on installing "
+        f"it (verify against the repo itself, they may be stale or wrong):\n\n{hint}\n\n"
+        f"Install and run it now, then report back per your instructions."
+    )
+
+    try:
+        session_id, _env_id = await managed_agents.start_ai_run(
+            run_id=run_id,
+            repo_url=_repo_url(agent),
+            source_ref=config["source_ref"],
+            task_hint=task,
+        )
+    except Exception as exc:
+        logger.warning("Failed to start Managed Agents session for run %s: %s", run_id, exc)
+        async with get_conn() as conn:
+            await conn.execute(
+                "UPDATE agent_sandbox_runs SET status = 'failed', finished_at = NOW() WHERE id = $1", run_id
+            )
+        raise SandboxError("Couldn't start the sandbox trial, try again shortly", 503)
+
+    async with get_conn() as conn:
+        await conn.execute(
+            "UPDATE agent_sandbox_runs SET session_id = $1, status = 'running' WHERE id = $2", session_id, run_id
+        )
+
+    return {"run_id": run_id, "status": "running"}
+
+
 async def get_run(run_id: int, user: dict) -> dict:
     async with get_conn() as conn:
         row = await conn.fetchrow("SELECT * FROM agent_sandbox_runs WHERE id = $1", run_id)
     if not row or row["user_id"] != user["id"]:
         raise SandboxError("Run not found", 404)
+
+    if row["execution_lane"] == "ai" and row["status"] in _ACTIVE_STATUSES and row["session_id"]:
+        row = await _sync_ai_run(row)
+
     return {
         "run_id": row["id"],
         "status": row["status"],
@@ -154,6 +256,47 @@ async def get_run(run_id: int, user: dict) -> dict:
         "created_at": row["created_at"],
         "finished_at": row["finished_at"],
     }
+
+
+async def _sync_ai_run(row) -> dict:
+    """Pulls fresh events from Managed Agents and updates the DB row.
+    Called from get_run() on every poll rather than a background task -- the
+    frontend already polls every 1.5s, so this piggybacks on that instead of
+    needing new scheduling infrastructure."""
+    run_id = row["id"]
+    try:
+        result = await managed_agents.sync_run(row["session_id"])
+    except Exception as exc:
+        logger.warning("Failed to sync Managed Agents session for run %s: %s", run_id, exc)
+        return row
+
+    status = row["status"]
+    exit_code = row["exit_code"]
+    finished = result["finished"]
+    if finished:
+        if result["result_status"] == "succeeded":
+            status, exit_code = "succeeded", 0
+        elif result["result_status"] == "failed":
+            status, exit_code = "failed", 1
+        else:
+            # Session went idle without ever emitting the SANDBOX_RESULT
+            # sentinel its system prompt requires -- treat as a failure
+            # rather than guessing which it meant.
+            status, exit_code = "failed", 1
+
+    async with get_conn() as conn:
+        await conn.execute(
+            """
+            UPDATE agent_sandbox_runs
+            SET logs = $1, log_bytes = $2, status = $3, exit_code = $4,
+                finished_at = CASE WHEN $5 THEN NOW() ELSE finished_at END
+            WHERE id = $6
+            """,
+            result["logs"][: settings.SANDBOX_MAX_LOG_BYTES],
+            len(result["logs"].encode("utf-8")),
+            status, exit_code, finished, run_id,
+        )
+        return await conn.fetchrow("SELECT * FROM agent_sandbox_runs WHERE id = $1", run_id)
 
 
 async def append_logs(
@@ -193,7 +336,12 @@ async def stop_run(run_id: int, user: dict) -> dict:
     if row["status"] not in _ACTIVE_STATUSES:
         return {"run_id": run_id, "status": row["status"]}
 
-    if row["fly_machine_id"]:
+    if row["execution_lane"] == "ai" and row["session_id"]:
+        try:
+            await managed_agents.stop_session(row["session_id"])
+        except Exception as exc:
+            logger.warning("Failed to stop sandbox session for run %s: %s", run_id, exc)
+    elif row["fly_machine_id"]:
         try:
             await fly_machines.destroy_machine(row["fly_machine_id"])
         except Exception as exc:
@@ -207,25 +355,40 @@ async def stop_run(run_id: int, user: dict) -> dict:
 
 
 async def reap_stale_runs() -> None:
-    """Backstop for runs whose machine never reported a terminal status (crash,
-    lost network, killed before it could call the ingest endpoint) -- force-
-    destroys the machine and marks the run timed out once it's past its TTL,
-    independent of the supervisor's own in-machine timeout."""
+    """Backstop for runs whose machine/session never reported a terminal
+    status (crash, lost network, killed before it could report back) --
+    force-tears-down the underlying machine or session and marks the run
+    timed out once it's past its TTL, independent of the manifest lane's
+    in-machine timeout or the AI lane's own max run time. The AI lane gets
+    its own, longer cutoff (SANDBOX_AI_MAX_RUN_SECONDS is meaningfully
+    bigger than SANDBOX_RUN_TTL_SECONDS) so a real in-progress install isn't
+    reaped as if it were stuck."""
     start = time.monotonic()
-    cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.SANDBOX_RUN_TTL_SECONDS)
+    manifest_cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.SANDBOX_RUN_TTL_SECONDS)
+    ai_cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.SANDBOX_AI_MAX_RUN_SECONDS + 60)
 
     async with get_conn() as conn:
         stale = await conn.fetch(
             """
-            SELECT id, fly_machine_id FROM agent_sandbox_runs
-            WHERE status = ANY($1::text[]) AND created_at < $2
+            SELECT id, fly_machine_id, execution_lane, session_id
+            FROM agent_sandbox_runs
+            WHERE status = ANY($1::text[])
+              AND (
+                    (execution_lane = 'ai' AND created_at < $3)
+                 OR (execution_lane != 'ai' AND created_at < $2)
+              )
             """,
-            list(_ACTIVE_STATUSES), cutoff,
+            list(_ACTIVE_STATUSES), manifest_cutoff, ai_cutoff,
         )
 
     reaped = 0
     for row in stale:
-        if row["fly_machine_id"]:
+        if row["execution_lane"] == "ai" and row["session_id"]:
+            try:
+                await managed_agents.stop_session(row["session_id"])
+            except Exception as exc:
+                logger.warning("Failed to stop stale sandbox session for run %s: %s", row["id"], exc)
+        elif row["fly_machine_id"]:
             try:
                 await fly_machines.destroy_machine(row["fly_machine_id"])
             except Exception as exc:

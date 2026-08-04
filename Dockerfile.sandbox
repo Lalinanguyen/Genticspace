@@ -22,6 +22,12 @@ RUN useradd --create-home --shell /bin/bash sandbox
 
 RUN pip install --no-cache-dir --break-system-packages httpx
 
+# Applies to every npm/npm ci invocation inside a manifest's BUILD_COMMAND,
+# regardless of the literal command string -- postinstall/preinstall hooks
+# are exactly where a malicious package would run code during install.
+# No equivalent exists here for pip/setup.py; that's a known residual gap.
+ENV npm_config_ignore_scripts=true
+
 WORKDIR /supervisor
 COPY sandbox/supervisor.py .
 

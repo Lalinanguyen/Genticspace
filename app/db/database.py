@@ -7,6 +7,69 @@ logger = logging.getLogger(__name__)
 
 pool: asyncpg.Pool | None = None
 
+# Guards against a genticspace_id-named schema, ported from the `deslop`
+# branch's app/db/database.py (see that branch's history: e362746 renamed
+# tracent_id -> genticspace_id, 1508e92 reverted it, 023b6e5 fixed a
+# fresh-database crash in the revert). This branch (`main`) never carried
+# either migration — it predates that whole rename saga and every _SCHEMA
+# statement below has always said `tracent_id` directly. This guard is
+# purely defensive: it only matters if this branch's backend is ever
+# deployed against a database that was last touched by `deslop`'s backend
+# mid-rename (i.e. still has genticspace_id) or that drifts back to it by
+# some other means. As of 2026-07-27 the live production database already
+# reads back tracent_id (verified via the public API), so this is a no-op
+# on the actual current database — added purely so this branch is no
+# longer the one copy of the schema with zero protection if that ever
+# changes. Guarded on IF EXISTS so it's a no-op on a fresh database too
+# (created with tracent_id directly by _SCHEMA, which hasn't run yet the
+# first time this executes).
+_RENAME_GENTICSPACE_TO_TRACENT = """
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='genticspace_id') THEN
+    ALTER TABLE agents RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE agent_skills RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE transfer_events RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE reputation_flags RENAME COLUMN genticspace_id TO tracent_id;
+    ALTER TABLE verification_requests RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_deployment_guides' AND column_name='genticspace_id') THEN
+    ALTER TABLE agent_deployment_guides RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_favorites' AND column_name='genticspace_id') THEN
+    ALTER TABLE agent_favorites RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reviews' AND column_name='genticspace_id') THEN
+    ALTER TABLE reviews RENAME COLUMN genticspace_id TO tracent_id;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='agents') THEN
+    UPDATE agents SET trust_tier = 'tracent' WHERE trust_tier = 'genticspace';
+    UPDATE agents SET trust_tier = 'tracent-hosted' WHERE trust_tier = 'genticspace-hosted';
+    UPDATE agents SET source = 'tracent' WHERE source = 'genticspace';
+    UPDATE agents SET source = 'tracent-hosted' WHERE source = 'genticspace-hosted';
+  END IF;
+END $$;
+"""
+
+
+async def _migrate_genticspace_to_tracent(conn: asyncpg.Connection) -> None:
+    async with conn.transaction():
+        agents_table_existed = await conn.fetchval(
+            "SELECT 1 FROM information_schema.tables WHERE table_name='agents'"
+        )
+        await conn.execute(_RENAME_GENTICSPACE_TO_TRACENT)
+        renamed = await conn.fetchval(
+            "SELECT 1 FROM information_schema.columns WHERE table_name='agents' AND column_name='tracent_id'"
+        )
+        if agents_table_existed and not renamed:
+            raise RuntimeError(
+                "genticspace_id -> tracent_id migration did not take effect: "
+                "agents.tracent_id still doesn't exist after running the rename"
+            )
+    logger.info("Schema migration check: agents.tracent_id present")
+
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS agents (
     tracent_id       TEXT PRIMARY KEY,
@@ -335,7 +398,7 @@ CREATE TABLE IF NOT EXISTS job_runs (
 
 -- Sandbox mode: lets a user run an agent's actual open-source repo in an
 -- isolated Fly Machine. sandbox_enabled only ever becomes true once a valid
--- tracent.yaml manifest (build/run commands) has been found in the agent's
+-- genticspace.yaml manifest (build/run commands) has been found in the agent's
 -- repo -- there is no admin allowlist, but there is also no attempt to guess
 -- build steps for repos that don't declare them.
 CREATE TABLE IF NOT EXISTS agent_sandbox_config (
@@ -369,6 +432,67 @@ CREATE TABLE IF NOT EXISTS agent_sandbox_runs (
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_user   ON agent_sandbox_runs(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_sandbox_runs_active ON agent_sandbox_runs(status)
     WHERE status IN ('queued', 'provisioning', 'running');
+
+-- AI-driven sandbox lane (Managed Agents), alongside the original
+-- manifest-driven Fly Machine lane above. A run's execution_lane is decided
+-- once at start_run() and stored here so later reads don't need to
+-- re-derive it. ingest_token/fly_machine_id are Fly-lane-only and unused
+-- for 'ai' runs -- the AI lane's ingest_token is never generated (hence
+-- the DROP NOT NULL) and Managed Agents' own session_id is stored instead.
+ALTER TABLE agent_sandbox_runs ALTER COLUMN ingest_token DROP NOT NULL;
+ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS execution_lane TEXT NOT NULL DEFAULT 'manifest';
+ALTER TABLE agent_sandbox_runs ADD COLUMN IF NOT EXISTS session_id TEXT;
+
+-- Per-client API keys (see app/db/auth.py). Only a sha256 hash of the raw
+-- key is ever stored; the raw key is returned once, at mint time, by
+-- POST /admin/api-keys and never persisted or logged. `scope` determines
+-- which master key (ADMIN_API_KEY vs PARTNER_API_KEY) this row stands in for.
+CREATE TABLE IF NOT EXISTS api_keys (
+    id           SERIAL PRIMARY KEY,
+    key_hash     TEXT NOT NULL UNIQUE,
+    owner_email  TEXT NOT NULL,
+    label        TEXT,
+    scope        TEXT NOT NULL DEFAULT 'partner',
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    revoked_at   TIMESTAMPTZ
+);
+
+-- Traceability for every mutating /admin/* action (see app/routes/admin.py's
+-- log_admin_action). `actor` is the identity string verify_admin_key returns
+-- (a master-key sentinel or a per-client key's owner_email), not the raw key.
+CREATE TABLE IF NOT EXISTS admin_actions (
+    id          SERIAL PRIMARY KEY,
+    actor       TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    target      TEXT,
+    detail      TEXT,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON admin_actions(target);
+
+-- Sandbox-mode admission record: a small, manually hand-picked cohort of
+-- agents eligible for (future) sandboxed trial-runs. This table does NOT
+-- mean anything actually executes -- it's the gate an admin can flip, most
+-- notably to force `status = 'disabled'` as a kill switch (see
+-- POST /admin/sandbox/{tracent_id}/disable in app/routes/admin.py).
+CREATE TABLE IF NOT EXISTS sandbox_cohort (
+    tracent_id      TEXT NOT NULL REFERENCES agents(tracent_id),
+    admitted_at     TIMESTAMPTZ DEFAULT NOW(),
+    admitted_by     TEXT NOT NULL,
+    manifest_path   TEXT,
+    status          TEXT NOT NULL DEFAULT 'pending_security_review',
+    PRIMARY KEY (tracent_id)
+);
+
+-- Server-side session record backing each issued JWT (embedded as the "sid"
+-- claim), so a token can be invalidated before its exp by setting revoked_at.
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id  TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    issued_at   TIMESTAMPTZ DEFAULT NOW(),
+    revoked_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 """
 
 
@@ -380,11 +504,18 @@ async def init_db() -> None:
         # The startup scrapers/backfills fire off many concurrent DB-touching
         # tasks at once; a small pool here means real user requests can queue
         # behind them indefinitely (pool.acquire() has no default timeout).
-        # 20/machine x 2 machines = 40, well under this RDS instance's
-        # max_connections=79, leaving headroom for local/admin connections.
-        max_size=20,
+        # This app runs on a single machine now (see fly.toml's [[mounts]]
+        # comment -- pinned to 1 machine for the uploads Fly volume), so the
+        # old 20/machine x 2-machine budget collapsed to just 20 total,
+        # which wasn't enough headroom against this RDS instance's
+        # max_connections=79 once background jobs and real traffic overlapped
+        # (confirmed via TimeoutError acquiring a pool connection in prod
+        # logs). Bumped to 40 -- still well under 79 now that only one
+        # machine is drawing from that budget.
+        max_size=40,
     )
     async with pool.acquire() as conn:
+        await _migrate_genticspace_to_tracent(conn)
         await conn.execute(_SCHEMA)
     logger.info("Database initialised")
 

@@ -51,6 +51,7 @@ function filtersToSearchParams(filters: MarketplaceFilters): string {
   if (filters.mcp_only) params.set("mcp_only", "true");
   if (filters.x402_only) params.set("x402_only", "true");
   if (filters.safe_only) params.set("safe_only", "true");
+  if (filters.with_photo) params.set("with_photo", "true");
   if (filters.industry) params.set("industry", filters.industry);
   if (filters.license) params.set("license", filters.license);
   if (filters.deployment) params.set("deployment", filters.deployment);
@@ -154,6 +155,25 @@ export function getMyAgents(token: string): Promise<{ agents: Agent[] }> {
   return request("/public/my-agents", {
     headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+// Separate from request(): that helper always sends Content-Type:
+// application/json, but a multipart upload needs the browser to set its
+// own Content-Type with the multipart boundary -- setting it manually
+// here would omit the boundary and the backend couldn't parse the body.
+export async function uploadImage(file: File, token: string): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/public/uploads`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.detail || res.statusText);
+  }
+  return res.json();
 }
 
 export function createAgentListing(
@@ -273,6 +293,13 @@ export function submitAgentReview(
   });
 }
 
+export function deleteAgentReview(tracentId: string, token: string): Promise<{ status: string }> {
+  return request(`/public/agents/${tracentId}/reviews`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export function sendContactMessage(email: string, topic: string, message: string): Promise<{ status: string }> {
   return request("/public/contact", {
     method: "POST",
@@ -286,6 +313,22 @@ export function getSandboxConfig(tracentId: string): Promise<SandboxConfig> {
 
 export function getSandboxReadyAgents(): Promise<{ agents: Agent[] }> {
   return request("/public/sandbox/agents");
+}
+
+export interface SandboxTrial {
+  tracent_id: string;
+  name: string | null;
+  description: string | null;
+  image_url: string | null;
+  run_count: number;
+  last_run_at: string;
+  latest_status: string;
+}
+
+export function getMySandboxTrials(token: string): Promise<{ trials: SandboxTrial[] }> {
+  return request("/public/sandbox/my-trials", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export function startSandboxRun(tracentId: string, token: string): Promise<{ run_id: number; status: string }> {

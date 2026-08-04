@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#edefe9; font-family:'Space Grotesk',sans-serif; }
+  a { color:#3540c0; } a:hover { color:#e8404f; }
+</style>
+</helmet>
+<section style="padding:56px; display:flex; flex-direction:column; gap:24px;">
+  <div style="font-size:14px; color:#8a8d84; letter-spacing:0.08em; text-transform:uppercase;">Turn 4 — adding a G</div>
+  <div style="display:flex; flex-wrap:wrap; gap:32px;">
+
+    <div id="4a" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">4a</div>
+      <div style="font-size:13px; color:#8a8d84;">Quartet + G — one leaf tile becomes the letter</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="display:grid; grid-template-columns:46px 46px; grid-template-rows:46px 46px; gap:10px; transform:rotate(45deg);">
+          <div style="background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+          <div style="background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8404f; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#3540c0; border-radius:70% 0 70% 0; display:flex; align-items:center; justify-content:center;"><div style="transform:rotate(-45deg); color:#fbfcf9; font-size:30px; font-weight:700; line-height:1;">G</div></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="display:grid; grid-template-columns:14px 14px; grid-template-rows:14px 14px; gap:3px; transform:rotate(45deg);">
+          <div style="background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+          <div style="background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8404f; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#3540c0; border-radius:70% 0 70% 0; display:flex; align-items:center; justify-content:center;"><div style="transform:rotate(-45deg); color:#fbfcf9; font-size:10px; font-weight:700; line-height:1;">G</div></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="4b" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">4b</div>
+      <div style="font-size:13px; color:#8a8d84;">G with leaf counter — the leaf sits inside the letter</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:110px; height:110px; display:flex; align-items:center; justify-content:center;">
+          <div style="font-size:110px; font-weight:700; color:#3540c0; line-height:1; font-family:'Space Grotesk',sans-serif;">G</div>
+          <div style="position:absolute; width:34px; height:34px; top:36px; left:36px; background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
+          <div style="font-size:34px; font-weight:700; color:#3540c0; line-height:1;">G</div>
+          <div style="position:absolute; width:11px; height:11px; top:11px; left:11px; background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="4c" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">4c</div>
+      <div style="font-size:13px; color:#8a8d84;">G badge, leaf sprouting from the corner</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:116px; height:116px;">
+          <div style="position:absolute; width:96px; height:96px; bottom:0; left:0; border-radius:26px; background:#3540c0; display:flex; align-items:center; justify-content:center;">
+            <div style="color:#fbfcf9; font-size:58px; font-weight:700; line-height:1;">G</div>
+          </div>
+          <div style="position:absolute; width:42px; height:42px; top:0; right:0; background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:34px; height:34px;">
+          <div style="position:absolute; width:28px; height:28px; bottom:0; left:0; border-radius:8px; background:#3540c0; display:flex; align-items:center; justify-content:center;">
+            <div style="color:#fbfcf9; font-size:17px; font-weight:700; line-height:1;">G</div>
+          </div>
+          <div style="position:absolute; width:12px; height:12px; top:0; right:0; background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="4d" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">4d</div>
+      <div style="font-size:13px; color:#8a8d84;">Orbit G — ring reads as G, leaf as the crossbar</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:110px; height:110px;">
+          <div style="position:absolute; inset:5px; border:16px solid #3540c0; border-radius:50%;"></div>
+          <div style="position:absolute; width:34px; height:34px; top:38px; right:0; background:#fbfcf9;"></div>
+          <div style="position:absolute; width:38px; height:16px; top:47px; right:5px; background:#3cb8a2; border-radius:8px 0 8px 8px;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:32px; height:32px;">
+          <div style="position:absolute; inset:1px; border:5px solid #3540c0; border-radius:50%;"></div>
+          <div style="position:absolute; width:10px; height:10px; top:11px; right:0; background:#fbfcf9;"></div>
+          <div style="position:absolute; width:12px; height:5px; top:14px; right:1px; background:#3cb8a2; border-radius:3px 0 3px 3px;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+  </div>
+  <div style="font-size:14px; color:#8a8d84; letter-spacing:0.08em; text-transform:uppercase; margin-top:24px;">Turn 3 — leaf quartet, made ownable</div>
+  <div style="display:flex; flex-wrap:wrap; gap:32px;">
+
+    <div id="3a" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">3a</div>
+      <div style="font-size:13px; color:#8a8d84;">One leaf becomes a dot — the "agent" among leaves</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="display:grid; grid-template-columns:46px 46px; grid-template-rows:46px 46px; gap:10px; transform:rotate(45deg);">
+          <div style="background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+          <div style="background:#3540c0; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8404f; border-radius:50%;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="display:grid; grid-template-columns:14px 14px; grid-template-rows:14px 14px; gap:3px; transform:rotate(45deg);">
+          <div style="background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+          <div style="background:#3540c0; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8404f; border-radius:50%;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="3b" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">3b</div>
+      <div style="font-size:13px; color:#8a8d84;">Asymmetric — leaves grow in size, spiral rhythm</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:116px; height:116px; transform:rotate(45deg);">
+          <div style="position:absolute; width:28px; height:28px; top:26px; left:26px; background:#e8a23c; border-radius:70% 0 70% 0;"></div>
+          <div style="position:absolute; width:40px; height:40px; top:14px; right:8px; background:#e8404f; border-radius:0 70% 0 70%;"></div>
+          <div style="position:absolute; width:40px; height:40px; bottom:8px; left:14px; background:#3cb8a2; border-radius:0 70% 0 70%;"></div>
+          <div style="position:absolute; width:52px; height:52px; bottom:2px; right:2px; background:#3540c0; border-radius:70% 0 70% 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:34px; height:34px; transform:rotate(45deg);">
+          <div style="position:absolute; width:8px; height:8px; top:8px; left:8px; background:#e8a23c; border-radius:70% 0 70% 0;"></div>
+          <div style="position:absolute; width:12px; height:12px; top:4px; right:2px; background:#e8404f; border-radius:0 70% 0 70%;"></div>
+          <div style="position:absolute; width:12px; height:12px; bottom:2px; left:4px; background:#3cb8a2; border-radius:0 70% 0 70%;"></div>
+          <div style="position:absolute; width:16px; height:16px; bottom:0; right:0; background:#3540c0; border-radius:70% 0 70% 0;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="3c" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">3c</div>
+      <div style="font-size:13px; color:#8a8d84;">Broken symmetry — three leaves, one drifts off orbit</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:120px; height:112px;">
+          <div style="position:relative; width:102px; height:102px; transform:rotate(45deg); margin-top:5px;">
+            <div style="position:absolute; width:46px; height:46px; top:0; left:0; background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+            <div style="position:absolute; width:46px; height:46px; bottom:0; left:0; background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+            <div style="position:absolute; width:46px; height:46px; bottom:0; right:0; background:#3540c0; border-radius:70% 0 70% 0;"></div>
+          </div>
+          <div style="position:absolute; width:44px; height:44px; top:0; right:0; background:#e8404f; border-radius:0 70% 0 70%; transform:rotate(70deg);"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:36px; height:34px;">
+          <div style="position:relative; width:30px; height:30px; transform:rotate(45deg); margin-top:2px;">
+            <div style="position:absolute; width:13px; height:13px; top:0; left:0; background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+            <div style="position:absolute; width:13px; height:13px; bottom:0; left:0; background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+            <div style="position:absolute; width:13px; height:13px; bottom:0; right:0; background:#3540c0; border-radius:70% 0 70% 0;"></div>
+          </div>
+          <div style="position:absolute; width:13px; height:13px; top:0; right:0; background:#e8404f; border-radius:0 70% 0 70%; transform:rotate(70deg);"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="3d" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">3d</div>
+      <div style="font-size:13px; color:#8a8d84;">Leaf pair — just two leaves, offset like quotation marks</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="width:52px; height:52px; background:#3cb8a2; border-radius:70% 0 70% 0; margin-top:22px;"></div>
+          <div style="width:52px; height:52px; background:#3540c0; border-radius:70% 0 70% 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="display:flex; gap:4px; align-items:flex-start;">
+          <div style="width:16px; height:16px; background:#3cb8a2; border-radius:70% 0 70% 0; margin-top:7px;"></div>
+          <div style="width:16px; height:16px; background:#3540c0; border-radius:70% 0 70% 0;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+  </div>
+  <div style="font-size:14px; color:#8a8d84; letter-spacing:0.08em; text-transform:uppercase; margin-top:24px;">Turn 2 — leaves &amp; magnifying glass</div>
+  <div style="display:flex; flex-wrap:wrap; gap:32px;">
+
+    <div id="2a" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">2a</div>
+      <div style="font-size:13px; color:#8a8d84;">Sprout — two leaves on a stem, growth</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:110px; height:110px;">
+          <div style="position:absolute; width:52px; height:52px; top:8px; left:0; background:#3cb8a2; border-radius:0 70% 0 70%; transform:rotate(-8deg);"></div>
+          <div style="position:absolute; width:52px; height:52px; top:8px; right:0; background:#3540c0; border-radius:70% 0 70% 0; transform:rotate(8deg);"></div>
+          <div style="position:absolute; width:10px; height:44px; bottom:0; left:50px; background:#e8a23c; border-radius:6px;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:34px; height:34px;">
+          <div style="position:absolute; width:16px; height:16px; top:2px; left:0; background:#3cb8a2; border-radius:0 70% 0 70%; transform:rotate(-8deg);"></div>
+          <div style="position:absolute; width:16px; height:16px; top:2px; right:0; background:#3540c0; border-radius:70% 0 70% 0; transform:rotate(8deg);"></div>
+          <div style="position:absolute; width:4px; height:14px; bottom:0; left:15px; background:#e8a23c; border-radius:3px;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="2b" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">2b</div>
+      <div style="font-size:13px; color:#8a8d84;">Leaf quartet — four leaves meeting at center</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="display:grid; grid-template-columns:46px 46px; grid-template-rows:46px 46px; gap:10px; transform:rotate(45deg);">
+          <div style="background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+          <div style="background:#3540c0; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8404f; border-radius:70% 0 70% 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="display:grid; grid-template-columns:14px 14px; grid-template-rows:14px 14px; gap:3px; transform:rotate(45deg);">
+          <div style="background:#3cb8a2; border-radius:70% 0 70% 0;"></div>
+          <div style="background:#3540c0; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8a23c; border-radius:0 70% 0 70%;"></div>
+          <div style="background:#e8404f; border-radius:70% 0 70% 0;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="2c" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">2c</div>
+      <div style="font-size:13px; color:#8a8d84;">Lens — magnifying glass, discovery</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:110px; height:110px;">
+          <div style="position:absolute; width:70px; height:70px; top:0; left:0; border:13px solid #3540c0; border-radius:50%;"></div>
+          <div style="position:absolute; width:14px; height:44px; bottom:0; right:8px; background:#3cb8a2; border-radius:8px; transform:rotate(-45deg); transform-origin:center;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:32px; height:32px;">
+          <div style="position:absolute; width:20px; height:20px; top:0; left:0; border:5px solid #3540c0; border-radius:50%;"></div>
+          <div style="position:absolute; width:5px; height:13px; bottom:0; right:3px; background:#3cb8a2; border-radius:3px; transform:rotate(-45deg);"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="2d" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">2d</div>
+      <div style="font-size:13px; color:#8a8d84;">Lens on leaf — magnifier revealing a leaf</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:110px; height:110px;">
+          <div style="position:absolute; width:66px; height:66px; top:0; left:0; border:11px solid #3540c0; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <div style="width:36px; height:36px; background:#3cb8a2; border-radius:0 70% 0 70%;"></div>
+          </div>
+          <div style="position:absolute; width:13px; height:42px; bottom:0; right:10px; background:#e8a23c; border-radius:7px; transform:rotate(-45deg);"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:32px; height:32px;">
+          <div style="position:absolute; width:20px; height:20px; top:0; left:0; border:4px solid #3540c0; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <div style="width:11px; height:11px; background:#3cb8a2; border-radius:0 70% 0 70%;"></div>
+          </div>
+          <div style="position:absolute; width:5px; height:13px; bottom:0; right:3px; background:#e8a23c; border-radius:3px; transform:rotate(-45deg);"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+  </div>
+  <div style="font-size:14px; color:#8a8d84; letter-spacing:0.08em; text-transform:uppercase; margin-top:24px;">Turn 1 — logo directions for genticspace.com</div>
+  <div style="display:flex; flex-wrap:wrap; gap:32px;">
+
+    <div id="1a" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">1a</div>
+      <div style="font-size:13px; color:#8a8d84;">Grid — four shapes, echoing the agent-card grid</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="display:grid; grid-template-columns:44px 44px; grid-template-rows:44px 44px; gap:8px;">
+          <div style="background:#3cb8a2; border-radius:14px;"></div>
+          <div style="background:#3540c0; border-radius:50%;"></div>
+          <div style="background:#e8404f; border-radius:50% 0 50% 50%;"></div>
+          <div style="background:#e8a23c; border-radius:14px 50% 50% 50%;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="display:grid; grid-template-columns:15px 15px; grid-template-rows:15px 15px; gap:3px;">
+          <div style="background:#3cb8a2; border-radius:5px;"></div>
+          <div style="background:#3540c0; border-radius:50%;"></div>
+          <div style="background:#e8404f; border-radius:50% 0 50% 50%;"></div>
+          <div style="background:#e8a23c; border-radius:5px 50% 50% 50%;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="1b" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">1b</div>
+      <div style="font-size:13px; color:#8a8d84;">Pinwheel — four petals rotating around a center</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:104px; height:104px;">
+          <div style="position:absolute; width:48px; height:48px; top:0; left:0; background:#3cb8a2; border-radius:50% 50% 0 50%;"></div>
+          <div style="position:absolute; width:48px; height:48px; top:0; right:0; background:#3540c0; border-radius:50% 50% 50% 0;"></div>
+          <div style="position:absolute; width:48px; height:48px; bottom:0; right:0; background:#e8404f; border-radius:0 50% 50% 50%;"></div>
+          <div style="position:absolute; width:48px; height:48px; bottom:0; left:0; background:#e8a23c; border-radius:50% 0 50% 50%;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:32px; height:32px;">
+          <div style="position:absolute; width:15px; height:15px; top:0; left:0; background:#3cb8a2; border-radius:50% 50% 0 50%;"></div>
+          <div style="position:absolute; width:15px; height:15px; top:0; right:0; background:#3540c0; border-radius:50% 50% 50% 0;"></div>
+          <div style="position:absolute; width:15px; height:15px; bottom:0; right:0; background:#e8404f; border-radius:0 50% 50% 50%;"></div>
+          <div style="position:absolute; width:15px; height:15px; bottom:0; left:0; background:#e8a23c; border-radius:50% 0 50% 50%;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="1c" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">1c</div>
+      <div style="font-size:13px; color:#8a8d84;">Orbit — a ring and satellite dot, "space"</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="position:relative; width:104px; height:104px;">
+          <div style="position:absolute; inset:10px; border:14px solid #3540c0; border-radius:50%;"></div>
+          <div style="position:absolute; width:30px; height:30px; top:0; right:2px; background:#3cb8a2; border-radius:50%;"></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="position:relative; width:32px; height:32px;">
+          <div style="position:absolute; inset:3px; border:5px solid #3540c0; border-radius:50%;"></div>
+          <div style="position:absolute; width:10px; height:10px; top:0; right:0; background:#3cb8a2; border-radius:50%;"></div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+    <div id="1d" style="background:#fbfcf9; border-radius:20px; padding:40px; width:380px; box-shadow:0 2px 12px rgba(30,40,30,0.07); display:flex; flex-direction:column; gap:28px; position:relative;">
+      <div style="position:absolute; top:16px; right:16px; background:#e9ebe4; color:#6b6e64; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;">1d</div>
+      <div style="font-size:13px; color:#8a8d84;">Badge — app-icon "g", like the card badges</div>
+      <div style="display:flex; align-items:center; justify-content:center; padding:36px 0;">
+        <div style="width:104px; height:104px; border-radius:26px; background:linear-gradient(135deg,#3cb8a2,#3540c0); display:flex; align-items:center; justify-content:center;">
+          <div style="font-size:64px; font-weight:700; color:#fbfcf9; line-height:1; margin-top:-6px;">g</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; justify-content:center; padding-bottom:8px;">
+        <div style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#3cb8a2,#3540c0); display:flex; align-items:center; justify-content:center;">
+          <div style="font-size:21px; font-weight:700; color:#fbfcf9; line-height:1; margin-top:-2px;">g</div>
+        </div>
+        <div style="font-size:26px; font-weight:600; color:#23261f; letter-spacing:-0.02em;">genticspace</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

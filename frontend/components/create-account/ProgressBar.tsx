@@ -17,7 +17,7 @@ export function ProgressBar({ step, accountType }: { step: WizardStep; accountTy
         <div
           key={i}
           className="w-9 h-[3px] rounded-sm"
-          style={{ background: current >= i ? "#35C0B0" : "rgba(244,247,243,.15)" }}
+          style={{ background: current >= i ? "#35C0B0" : "rgba(28,38,33,.15)" }}
         />
       ))}
     </div>

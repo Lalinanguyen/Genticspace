@@ -3,7 +3,8 @@
 # Secrets (run once):
 #   fly secrets set ALCHEMY_API_KEY=<key>
 #   fly secrets set DATABASE_URL=<postgres-connection-string>
-#   fly secrets set API_KEY=$(openssl rand -hex 32)
+#   fly secrets set ADMIN_API_KEY=$(openssl rand -hex 32)
+#   fly secrets set PARTNER_API_KEY=$(openssl rand -hex 32)
 
 app = "tracent-registry"
 primary_region = "iad"
@@ -17,6 +18,16 @@ primary_region = "iad"
   ENDPOINT_CHECK_INTERVAL_MINUTES   = "30"
   CONTRACT_ADDRESS                  = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
   CORS_ORIGINS                      = "https://genticspace.com,https://www.genticspace.com,http://localhost:3000,https://tracent-sandbox-preview.fly.dev"
+  UPLOADS_PUBLIC_BASE_URL           = "https://api.genticspace.com"
+
+# Uploaded images (agent listing photo/screenshot) live on this volume.
+# Fly volumes attach to exactly one machine, not shared across an app's
+# machines -- so this app is pinned to a single machine (see `fly scale
+# count 1`) until uploads move to real object storage. Create once with:
+#   fly volumes create uploads_data --app tracent-registry --region iad --size 1
+[[mounts]]
+  source      = "uploads_data"
+  destination = "/data"
 
 [http_service]
   internal_port        = 8000
@@ -28,6 +39,14 @@ primary_region = "iad"
     type       = "connections"
     hard_limit = 25
     soft_limit = 20
+
+  [[http_service.checks]]
+    interval        = "15s"
+    timeout         = "5s"
+    grace_period    = "10s"
+    method          = "GET"
+    path            = "/health"
+    protocol        = "http"
 
 [[vm]]
   memory = "512mb"

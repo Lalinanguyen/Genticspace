@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 64" width="340" height="64">
+<g transform="translate(0,0) scale(0.64)">
+  <path d="M 27 24 A 27 27 0 0 1 73 24 A 27 27 0 0 1 27 24 Z" fill="#3cb8a2"></path>
+  <path d="M 24 27 A 27 27 0 0 1 24 73 A 27 27 0 0 1 24 27 Z" fill="#e8a23c"></path>
+  <path d="M 76 27 A 27 27 0 0 1 76 73 A 27 27 0 0 1 76 27 Z" fill="#3540c0"></path>
+  <circle cx="50" cy="77" r="15" fill="#e8404f"></circle>
+</g>
+<text x="76" y="43" font-family="&#39;Space Grotesk&#39;,sans-serif" font-size="30" font-weight="600" letter-spacing="-0.6" fill="#23261f">genticspace</text>
+</svg>

@@ -98,17 +98,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   if (profile.huggingface_handle) connects.push({ label: "Hugging Face", href: `https://huggingface.co/${profile.huggingface_handle}` });
   if (profile.other_link) connects.push({ label: "Other", href: profile.other_link });
 
+  const displayName = profile.company_name || profile.name;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Nav />
       <main className="flex-1 w-full max-w-[1000px] mx-auto px-[5%] py-12 box-border">
         <div className="flex flex-wrap items-start gap-6 mb-8 pb-8 border-b border-border">
           <div className="w-20 h-20 rounded bg-gradient-to-br from-blue to-blue-to flex items-center justify-center font-display font-bold text-2xl text-white flex-none">
-            {initials(profile.name || "?")}
+            {initials(displayName || "?")}
           </div>
 
           <div className="flex-1 min-w-[240px]">
-            <h1 className="font-display font-bold text-[26px] text-foreground mb-1">{profile.name || "Unnamed"}</h1>
+            <h1 className="font-display font-bold text-[26px] text-foreground mb-1">{displayName || "Unnamed"}</h1>
             {profile.follower_count !== null && (
               <div className="text-[13px] text-foreground-faint mb-2">
                 <span className="font-semibold text-foreground">{profile.follower_count.toLocaleString()}</span> followers
@@ -125,14 +127,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
             {profile.is_owner ? (
               <>
                 <Link
-                  href="/sandbox"
-                  className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground no-underline"
-                >
-                  Sandbox mode
-                </Link>
-                <Link
                   href="/settings"
-                  className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground no-underline"
+                  className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] bg-[rgba(28,38,33,.06)] border border-border-strong text-foreground no-underline"
                 >
                   Edit profile
                 </Link>
@@ -143,8 +139,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                 className="inline-block px-5 py-2.5 rounded font-semibold text-[13px] cursor-pointer text-center"
                 style={
                   profile.is_following
-                    ? { background: "rgba(244,247,243,.06)", border: "1px solid rgba(244,247,243,.14)", color: "#F4F7F3" }
-                    : { background: "#F4F7F3", color: "#00171F" }
+                    ? { background: "rgba(28,38,33,.06)", border: "1px solid rgba(28,38,33,.14)", color: "#1C2621" }
+                    : { background: "#1C2621", color: "#EEF1EA" }
                 }
               >
                 {profile.is_following ? "Following" : "Follow"}
@@ -165,7 +161,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                     href={c.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3.5 py-2 rounded-sm bg-[rgba(244,247,243,.04)] border border-border no-underline font-semibold text-[12.5px] text-foreground hover:border-border-strong transition-colors"
+                    className="px-3.5 py-2 rounded-sm bg-[rgba(28,38,33,.04)] border border-border no-underline font-semibold text-[12.5px] text-foreground hover:border-border-strong transition-colors"
                   >
                     {c.label}
                   </a>
@@ -180,7 +176,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   onClick={() => setTab(t)}
                   className="px-4 py-2.5 font-semibold text-[13px] cursor-pointer whitespace-nowrap"
                   style={{
-                    color: tab === t ? "#F4F7F3" : "rgba(244,247,243,.5)",
+                    color: tab === t ? "#1C2621" : "rgba(28,38,33,.5)",
                     borderBottom: tab === t ? "2px solid #35C0B0" : "2px solid transparent",
                   }}
                 >
@@ -238,7 +234,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                     <Link
                       key={`${c.source}:${c.name}`}
                       href={`/company/${c.source}/${encodeURIComponent(c.name)}`}
-                      className="px-3.5 py-2 rounded-sm bg-[rgba(244,247,243,.04)] border border-border no-underline font-semibold text-[12.5px] text-foreground hover:border-border-strong transition-colors"
+                      className="px-3.5 py-2 rounded-sm bg-[rgba(28,38,33,.04)] border border-border no-underline font-semibold text-[12.5px] text-foreground hover:border-border-strong transition-colors"
                     >
                       {c.name}
                     </Link>

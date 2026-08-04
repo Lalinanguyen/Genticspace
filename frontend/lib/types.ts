@@ -164,6 +164,8 @@ export interface Review {
 export interface UserProfile {
   id: number;
   name: string | null;
+  company_name?: string | null;
+  industry?: string | null;
   account_type?: "individual" | "business";
   bio?: string | null;
   purposes?: string[] | null;
@@ -251,6 +253,7 @@ export interface MarketplaceFilters {
   mcp_only?: boolean;
   x402_only?: boolean;
   safe_only?: boolean;
+  with_photo?: boolean;
   industry?: string;
   license?: string;
   deployment?: string;

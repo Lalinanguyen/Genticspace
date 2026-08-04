@@ -3,13 +3,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.db.auth import verify_api_key
+from app.db.auth import verify_partner_key
 from app.db.database import get_conn
 from app.services.agent_queries import query_agents
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/agents", tags=["agents"], dependencies=[Depends(verify_api_key)])
+router = APIRouter(prefix="/agents", tags=["agents"], dependencies=[Depends(verify_partner_key)])
 
 
 def _row_to_dict(row) -> dict:

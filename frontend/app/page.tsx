@@ -1,3 +1,4 @@
+import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 import { Nav } from "@/components/ui/Nav";
 import { Hero } from "@/components/landing/Hero";

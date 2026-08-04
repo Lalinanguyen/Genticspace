@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { createAgentListing, getMyAgents, ApiError } from "@/lib/api";
+import { createAgentListing, getMyAgents, uploadImage, ApiError } from "@/lib/api";
 import type { Agent, AgentListingInput } from "@/lib/types";
 import { AgentCard } from "@/components/marketplace/AgentCard";
 
@@ -76,9 +76,9 @@ function Pill({
       onClick={onClick}
       className="cursor-pointer px-[15px] py-2.5 rounded-sm border text-[12.5px] font-semibold select-none"
       style={{
-        background: active ? "rgba(53,192,176,.14)" : "rgba(244,247,243,.05)",
-        borderColor: active ? "rgba(53,192,176,.4)" : "rgba(244,247,243,.14)",
-        color: active ? "#35C0B0" : "rgba(244,247,243,.7)",
+        background: active ? "rgba(53,192,176,.14)" : "rgba(28,38,33,.05)",
+        borderColor: active ? "rgba(53,192,176,.4)" : "rgba(28,38,33,.14)",
+        color: active ? "#35C0B0" : "rgba(28,38,33,.7)",
       }}
     >
       {label}
@@ -140,7 +140,7 @@ function AddOtherPill({
     <span
       onClick={onOpen}
       className="cursor-pointer px-[15px] py-2.5 rounded-sm border border-dashed text-[12.5px] font-semibold select-none text-foreground-muted"
-      style={{ background: "rgba(244,247,243,.05)", borderColor: "rgba(244,247,243,.25)" }}
+      style={{ background: "rgba(28,38,33,.05)", borderColor: "rgba(28,38,33,.25)" }}
     >
       + Other
     </span>
@@ -157,9 +157,12 @@ function IconLabel({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-// No file upload infra exists yet, so these are URL-based rather than true
-// drag-and-drop uploads (the design's image-slot widgets are decorative
-// placeholders in the prototype itself, not a working upload either).
+const _ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif";
+const _MAX_UPLOAD_BYTES = 5_000_000;
+
+// Real file upload (POST /public/uploads), with pasting a link kept as a
+// fallback for anyone who already has an image hosted elsewhere -- click
+// the slot to pick a file, or use the small "paste a link instead" toggle.
 function ImageUrlSlot({
   value,
   onChange,
@@ -173,8 +176,32 @@ function ImageUrlSlot({
   height: number;
   placeholder: string;
 }) {
+  const { token } = useAuth();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !token) return;
+    if (file.size > _MAX_UPLOAD_BYTES) {
+      setError("Image must be under 5MB");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const { url } = await uploadImage(file, token);
+      onChange(url);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Upload failed, try again");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   if (editing) {
     return (
@@ -205,29 +232,50 @@ function ImageUrlSlot({
     );
   }
 
-  if (value) {
-    return (
-      <div
+  return (
+    <div className="flex flex-col gap-1.5" style={{ width }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={_ACCEPTED_IMAGE_TYPES}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      {value ? (
+        <div
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          className="rounded flex-none overflow-hidden bg-surface border border-border-strong cursor-pointer relative group"
+          style={{ width, height }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="text-[11.5px] font-semibold text-white">
+              {uploading ? "Uploading…" : "Click to replace"}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          className="rounded flex-none bg-[rgba(244,247,243,.06)] border border-border-strong cursor-pointer flex items-center justify-center text-center px-3"
+          style={{ width, height }}
+        >
+          <span className="text-[12px] font-semibold text-foreground-faint">
+            {uploading ? "Uploading…" : placeholder}
+          </span>
+        </div>
+      )}
+      {error && <span className="text-[11px] font-semibold text-error">{error}</span>}
+      <span
         onClick={() => {
-          setDraft(value);
+          setDraft(value || "");
           setEditing(true);
         }}
-        className="rounded flex-none overflow-hidden bg-surface border border-border-strong cursor-pointer relative group"
-        style={{ width, height }}
+        className="text-[11px] font-semibold text-foreground-faint cursor-pointer self-start hover:text-cyan"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={value} alt="" className="w-full h-full object-cover" />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onClick={() => setEditing(true)}
-      className="rounded flex-none bg-[rgba(244,247,243,.06)] border border-border-strong cursor-pointer flex items-center justify-center text-center px-3"
-      style={{ width, height }}
-    >
-      <span className="text-[12px] font-semibold text-foreground-faint">{placeholder}</span>
+        or paste a link instead
+      </span>
     </div>
   );
 }
@@ -354,7 +402,7 @@ export function ListingForm() {
       {/* FORM */}
       <div className="flex-1 flex flex-col gap-8" style={{ flexBasis: 520, minWidth: 300 }}>
         {/* BASICS */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-[18px] box-border">
+        <div className="p-[26px] rounded bg-surface-2 border border-border flex flex-col gap-[18px] box-border">
           <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-wide">
             Basics
           </span>
@@ -374,6 +422,7 @@ export function ListingForm() {
                 placeholder="e.g. Atlas Vision"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
+                maxLength={200}
                 className={textInputClass()}
               />
             </div>
@@ -574,6 +623,7 @@ export function ListingForm() {
               placeholder="What does this agent do, in one or two plain-English sentences?"
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
+              maxLength={5000}
               className="w-full box-border min-h-[84px] px-3.5 py-3 rounded bg-surface border border-border-strong text-foreground text-[14px] leading-relaxed placeholder:text-foreground-faint resize-y"
             />
             {showAiSuggestion && (
@@ -599,7 +649,7 @@ export function ListingForm() {
         </div>
 
         {/* VISIBILITY */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex items-center justify-between gap-4 flex-wrap box-border">
+        <div className="p-[26px] rounded bg-surface-2 border border-border flex items-center justify-between gap-4 flex-wrap box-border">
           <div>
             <div className="font-display font-bold text-sm text-foreground mb-1">
               {form.is_private ? "Private listing" : "Public listing"}
@@ -623,7 +673,7 @@ export function ListingForm() {
         </div>
 
         {/* LICENSING & DEPLOYMENT */}
-        <div className="p-[26px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-[18px] box-border">
+        <div className="p-[26px] rounded bg-surface-2 border border-border flex flex-col gap-[18px] box-border">
           <span className="font-bold text-[13px] text-foreground-faint uppercase tracking-wide">
             Licensing &amp; deployment
           </span>
@@ -713,7 +763,7 @@ export function ListingForm() {
           Listing preview
         </div>
 
-        <div className="p-[22px] rounded bg-surface-2 border border-border shadow-[0_4px_12px_rgba(0,0,0,.15)] flex flex-col gap-3.5 box-border">
+        <div className="p-[22px] rounded bg-surface-2 border border-border flex flex-col gap-3.5 box-border">
           <div className="flex items-start gap-3.5">
             <div className="w-12 h-12 rounded flex-none bg-gradient-to-br from-blue to-cyan flex items-center justify-center font-display font-bold text-[15px] text-white">
               {initials}
