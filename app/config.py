@@ -49,8 +49,14 @@ class Settings(BaseSettings):
     GITHUB_SCRAPE_MAX_CANDIDATES: int = 1500
     GITHUB_SCRAPE_CONCURRENCY: int = 4
 
-    README_SCRAPE_INTERVAL_HOURS: int = 24
-    README_SCRAPE_BATCH_SIZE: int = 300
+    # Bumped from 24h/300 -- README fetches are free (no LLM cost, just a
+    # GitHub API call), and 300/day was leaving most of the catalog's real
+    # rate-limit headroom (5000/hour) unused while a genuine backlog sat
+    # unprocessed (confirmed: 1749 github agents, only 662 had a README
+    # before this was raised). 12h/1500 clears that backlog in ~1-2 runs
+    # instead of ~6 days.
+    README_SCRAPE_INTERVAL_HOURS: int = 12
+    README_SCRAPE_BATCH_SIZE: int = 1500
 
     ANTHROPIC_API_KEY: str | None = None
 

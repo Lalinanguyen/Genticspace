@@ -47,6 +47,17 @@ def _pick_description(company: dict) -> str | None:
     return None
 
 
+def _pick_readme_text(company: dict) -> str | None:
+    # long_description is YC's real substantive company writeup -- when
+    # one_liner exists too, _pick_description() above prefers the short
+    # one_liner for the `description` column and long_description would
+    # otherwise be discarded entirely. Captured separately here as this
+    # source's readme_text equivalent, so it still feeds deployment guide
+    # generation and description backfill for agents with a thin one_liner.
+    long_desc = (company.get("long_description") or "").strip()
+    return sanitize_text(long_desc) if long_desc else None
+
+
 def _pick_logo(company: dict) -> str | None:
     logo = company.get("small_logo_thumb_url") or ""
     # Companies without a logo get a relative placeholder path; only absolute
@@ -61,6 +72,7 @@ async def _upsert_company(company: dict) -> str | None:
         return None
 
     description = _pick_description(company)
+    readme_text = _pick_readme_text(company)
     website = company.get("website") or None
     yc_url = company.get("url") or f"https://www.ycombinator.com/companies/{source_id}"
     normalized_tags = [t.lower().replace(" ", "-") for t in (company.get("tags") or [])]
@@ -79,12 +91,12 @@ async def _upsert_company(company: dict) -> str | None:
             INSERT INTO agents (
                 tracent_id, source, source_id,
                 name, description, web_endpoint, provider_org, provider_url, image_url,
-                industry_tags,
+                industry_tags, readme_text, readme_fetched_at,
                 is_active, last_indexed
             ) VALUES (
                 $1, 'ycombinator', $2,
                 $3, $4, $5, $6, $7, $8,
-                $9,
+                $9, $10, CASE WHEN $10 IS NOT NULL THEN NOW() ELSE NULL END,
                 TRUE, NOW()
             )
             ON CONFLICT (source, source_id) DO UPDATE SET
@@ -95,11 +107,14 @@ async def _upsert_company(company: dict) -> str | None:
                 provider_url  = EXCLUDED.provider_url,
                 image_url     = COALESCE(EXCLUDED.image_url, agents.image_url),
                 industry_tags = CASE WHEN agents.industry_tags IS NULL THEN EXCLUDED.industry_tags ELSE agents.industry_tags END,
+                readme_text   = COALESCE(agents.readme_text, EXCLUDED.readme_text),
+                readme_fetched_at = CASE WHEN agents.readme_text IS NULL AND EXCLUDED.readme_text IS NOT NULL
+                                         THEN NOW() ELSE agents.readme_fetched_at END,
                 last_indexed  = NOW()
             """,
             tracent_id, source_id,
             name, description, website, name, yc_url, image_url,
-            industry_tags,
+            industry_tags, readme_text,
         )
 
     return tracent_id

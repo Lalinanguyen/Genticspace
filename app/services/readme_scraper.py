@@ -96,3 +96,18 @@ async def scrape_readmes() -> None:
         "README scrape complete: %d fetched, %d missing/failed, %.1fs%s",
         fetched, missing, elapsed, " [rate limited]" if rate_limited else "",
     )
+
+    if rate_limited:
+        # job_scheduling.run_locked only records last_finished_at (which
+        # resets this job's is_due() clock for a full
+        # README_SCRAPE_INTERVAL_HOURS) when this coroutine returns without
+        # raising. A run cut short by rate limiting -- especially one that
+        # dies on its very first request, processing 0/300 -- would
+        # otherwise be indistinguishable from a genuinely complete run, and
+        # silently stall backfill progress for a full interval (or longer in
+        # practice, since this app redeploys more often than most job
+        # intervals and leans on catch_up_overdue_jobs's is_due() check at
+        # startup to make real progress -- see that function's docstring).
+        # Raising keeps this run "due" so the next redeploy's catch-up pass
+        # retries it instead of waiting out the full interval.
+        raise RuntimeError(f"README scrape stopped early due to rate limiting, only {fetched}/{len(agents)} completed")
