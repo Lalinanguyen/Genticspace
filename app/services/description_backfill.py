@@ -286,9 +286,13 @@ async def backfill_huggingface(batch_size: int | None = None) -> None:
         return
 
     updated = 0
-    # Deliberately not fetching /api/users/{username}/avatar here — that's the
-    # author's personal HF profile picture, not an icon for the model/space
-    # itself. Leave image_url unset; the UI falls back to a generic icon.
+    # The publisher's HF avatar (already scraped into huggingface_profiles by
+    # huggingface_profile_scraper.py) is used as a stand-in image when no
+    # per-model/space icon exists -- not a perfect fit (it's the author's
+    # picture, not the model's own), but a real image beats a blank/generic
+    # icon for marketplace browsing. Revisit if per-repo thumbnails become
+    # available. Explicit product decision, not an oversight -- see git log
+    # for this comment if that changes again.
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_hf_headers(), follow_redirects=True) as client:
         for agent in batch:
             kind, _, repo_id = agent["source_id"].partition(":")
@@ -356,6 +360,10 @@ async def backfill_huggingface(batch_size: int | None = None) -> None:
                         deployment_types = ARRAY['Cloud'],
                         readme_text = COALESCE($5, readme_text),
                         readme_fetched_at = CASE WHEN $5 IS NOT NULL THEN NOW() ELSE readme_fetched_at END,
+                        image_url = COALESCE(
+                            agents.image_url,
+                            (SELECT avatar_url FROM huggingface_profiles WHERE username = agents.provider_org)
+                        ),
                         hf_enriched_at = NOW()
                     WHERE tracent_id = $1
                     """,

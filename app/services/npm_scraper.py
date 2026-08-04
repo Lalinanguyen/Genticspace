@@ -282,10 +282,12 @@ async def backfill_npm(batch_size: int | None = None) -> None:
                         license = COALESCE(license, $3),
                         industry_tags = CASE WHEN industry_tags IS NULL OR array_length(industry_tags, 1) IS NULL
                                              THEN $4 ELSE industry_tags END,
+                        readme_text = COALESCE($5, readme_text),
+                        readme_fetched_at = CASE WHEN $5 IS NOT NULL THEN NOW() ELSE readme_fetched_at END,
                         npm_enriched_at = NOW()
                     WHERE tracent_id = $1
                     """,
-                    agent["tracent_id"], description, license_name, industry_tags or None,
+                    agent["tracent_id"], description, license_name, industry_tags or None, readme_text,
                 )
             updated += 1
 
