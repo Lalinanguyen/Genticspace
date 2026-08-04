@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 import { Wizard } from "@/components/create-account/Wizard";
 
@@ -12,20 +12,7 @@ export default async function CreateAccountPage({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="sticky top-0 z-20 w-full box-border flex flex-wrap gap-4 items-center justify-between px-[5%] py-[18px] bg-background/65 backdrop-blur-[22px] border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-[30px] h-[30px] rounded bg-cyan shadow-[0_0_22px_rgba(53,192,176,.35)] flex items-center justify-center font-body font-extrabold text-base text-background">
-            G
-          </div>
-          <span className="font-body font-bold text-[19px] text-foreground tracking-tight">Genticspace</span>
-        </Link>
-        <div className="flex gap-3 items-center flex-none">
-          <span className="text-[13px] text-foreground-muted whitespace-nowrap">Already have an account?</span>
-          <Link href="/create-account?mode=login" className="font-semibold text-sm text-foreground whitespace-nowrap">
-            Sign in
-          </Link>
-        </div>
-      </div>
+      <Nav />
 
       <main className="relative flex-1 flex items-center justify-center px-[5%] py-14 overflow-hidden box-border">
         <div

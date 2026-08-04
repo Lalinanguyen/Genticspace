@@ -107,12 +107,21 @@ export function FeaturesBento({ typedText, matches }: { typedText: string; match
                     href={`/marketplace/${id}`}
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded bg-white border border-[rgba(28,38,33,.09)] hover:bg-cyan/6 transition-colors"
                   >
-                    <span
-                      className="w-[26px] h-[26px] rounded flex-none flex items-center justify-center font-display font-normal text-[10px] text-white"
-                      style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)` }}
-                    >
-                      {initials(label)}
-                    </span>
+                    {agent.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={agent.image_url}
+                        alt=""
+                        className="w-[26px] h-[26px] rounded flex-none object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="w-[26px] h-[26px] rounded flex-none flex items-center justify-center font-display font-normal text-[10px] text-white"
+                        style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)` }}
+                      >
+                        {initials(label)}
+                      </span>
+                    )}
                     <span className="flex-1 min-w-0">
                       <span className="font-display font-normal text-[13.5px] text-foreground">{label}</span>
                       {agent.industry_tags?.[0] && (

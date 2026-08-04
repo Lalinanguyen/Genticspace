@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/ui/Footer";
 import { forgotPassword, resetPassword, ApiError } from "@/lib/api";
 
@@ -43,14 +44,7 @@ function ContinueButton({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="sticky top-0 z-20 w-full box-border flex items-center px-[5%] py-[18px] bg-background/65 backdrop-blur-[22px] border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-[30px] h-[30px] rounded bg-cyan shadow-[0_0_22px_rgba(53,192,176,.35)] flex items-center justify-center font-body font-extrabold text-base text-background">
-            G
-          </div>
-          <span className="font-body font-bold text-[19px] text-foreground tracking-tight">Genticspace</span>
-        </Link>
-      </div>
+      <Nav />
       <main className="flex-1 flex items-center justify-center px-[5%] py-14 box-border">{children}</main>
       <Footer />
     </div>
