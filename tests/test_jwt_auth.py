@@ -11,15 +11,17 @@ def _creds(token: str) -> HTTPAuthorizationCredentials:
     return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
 
-def test_create_access_token_round_trips_through_decode():
-    token = jwt_auth.create_access_token(42, "a@example.com")
+async def test_create_access_token_round_trips_through_decode(monkeypatch):
+    monkeypatch.setattr(jwt_auth, "get_conn", make_fake_get_conn(FakeDB()))
+    token = await jwt_auth.create_access_token(42, "a@example.com")
     payload = jwt_auth.decode_access_token(token)
     assert payload["sub"] == "42"
     assert payload["email"] == "a@example.com"
 
 
-def test_create_access_token_honors_custom_expiry():
-    token = jwt_auth.create_access_token(1, "a@example.com", expires_minutes=-1)
+async def test_create_access_token_honors_custom_expiry(monkeypatch):
+    monkeypatch.setattr(jwt_auth, "get_conn", make_fake_get_conn(FakeDB()))
+    token = await jwt_auth.create_access_token(1, "a@example.com", expires_minutes=-1)
     with pytest.raises(HTTPException) as exc_info:
         jwt_auth.decode_access_token(token)
     assert exc_info.value.status_code == 401
@@ -65,7 +67,7 @@ async def test_get_current_user_loads_the_user_and_strips_password_hash(monkeypa
     })
     monkeypatch.setattr(jwt_auth, "get_conn", make_fake_get_conn(db))
 
-    token = jwt_auth.create_access_token(1, "a@example.com")
+    token = await jwt_auth.create_access_token(1, "a@example.com")
     user = await jwt_auth.get_current_user(credentials=_creds(token))
     assert user["email"] == "a@example.com"
     assert "password_hash" not in user
@@ -75,7 +77,7 @@ async def test_get_current_user_rejects_a_token_for_a_deleted_user(monkeypatch):
     db = FakeDB()  # no users
     monkeypatch.setattr(jwt_auth, "get_conn", make_fake_get_conn(db))
 
-    token = jwt_auth.create_access_token(999, "ghost@example.com")
+    token = await jwt_auth.create_access_token(999, "ghost@example.com")
     with pytest.raises(HTTPException) as exc_info:
         await jwt_auth.get_current_user(credentials=_creds(token))
     assert exc_info.value.status_code == 401

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:3000"
     FRONTEND_URL: str = "http://localhost:3000"
 
+    AUTH_RATE_LIMIT: str = "5/minute"
+    AUTH_TOKEN_RETENTION_DAYS: int = 7
+    AUTH_TOKEN_CLEANUP_INTERVAL_HOURS: int = 24
+
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
     SMTP_USER: str | None = None

@@ -474,6 +474,16 @@ CREATE TABLE IF NOT EXISTS sandbox_cohort (
     PRIMARY KEY (tracent_id)
 );
 
+-- Server-side session record backing each issued JWT (embedded as the "sid"
+-- claim), so a token can be invalidated before its exp by setting revoked_at.
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id  TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    issued_at   TIMESTAMPTZ DEFAULT NOW(),
+    revoked_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
 -- Repo Completion pipeline (see app/services/license_classifier.py and
 -- app/services/repo_consent.py). One row per contributor-initiated completion
 -- attempt on a listing -- 1:many so a contributor can retry, mirroring
@@ -578,3 +588,19 @@ _ACQUIRE_TIMEOUT_SECONDS = 10.0
 async def get_conn():
     async with pool.acquire(timeout=_ACQUIRE_TIMEOUT_SECONDS) as conn:
         yield conn
+
+
+async def cleanup_expired_auth_tokens() -> None:
+    async with get_conn() as conn:
+        otps_deleted = await conn.execute(
+            "DELETE FROM email_otps WHERE expires_at < NOW() - make_interval(days => $1)",
+            settings.AUTH_TOKEN_RETENTION_DAYS,
+        )
+        reset_tokens_deleted = await conn.execute(
+            "DELETE FROM password_reset_tokens WHERE expires_at < NOW() - make_interval(days => $1)",
+            settings.AUTH_TOKEN_RETENTION_DAYS,
+        )
+    logger.info(
+        "Auth token cleanup: %s, %s",
+        otps_deleted, reset_tokens_deleted,
+    )
