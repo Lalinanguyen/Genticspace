@@ -6,7 +6,7 @@ import { listReputationFlags, resolveFlag, ReputationFlag } from "@/lib/adminApi
 const SEVERITY_COLOR: Record<string, string> = {
   high: "#ef233c",
   medium: "#e0a72b",
-  low: "rgba(244,247,243,.5)",
+  low: "rgba(28,38,33,.5)",
 };
 
 export default function AdminFlagsPage() {

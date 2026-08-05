@@ -8,7 +8,7 @@ import { Footer } from "@/components/ui/Footer";
 import { getAdminStats, getStoredAdminKey, setStoredAdminKey, clearStoredAdminKey } from "@/lib/adminApi";
 
 const inputClass =
-  "w-full box-border px-3.5 py-2.5 rounded bg-[rgba(244,247,243,.06)] border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
+  "w-full box-border px-3.5 py-2.5 rounded bg-surface border border-border-strong text-foreground text-sm focus:outline-none focus:border-cyan";
 
 const NAV_LINKS = [
   { href: "/admin", label: "Overview" },
@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={link.href}
               className="px-4 py-2.5 font-semibold text-[13px] cursor-pointer whitespace-nowrap"
               style={{
-                color: pathname === link.href ? "#F4F7F3" : "rgba(244,247,243,.5)",
+                color: pathname === link.href ? "#1C2621" : "rgba(28,38,33,.5)",
                 borderBottom: pathname === link.href ? "2px solid #35C0B0" : "2px solid transparent",
               }}
             >

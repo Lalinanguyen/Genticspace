@@ -28,18 +28,6 @@ router = APIRouter(prefix="/agents", tags=["agents"], dependencies=[Depends(veri
 # defeats the point.
 submit_router = APIRouter(prefix="/agents", tags=["agents"])
 
-# Separate, unauthenticated router for the new anonymous submission path
-# (POST /agents/submit) — deliberately NOT part of `router` above, which is
-# key-gated at the router level. This is a distinct, lower-trust channel
-# from the existing authenticated Contribute flow (POST /public/agents,
-# source='tracent', instant-live, no moderation) — that flow is unchanged.
-# Anonymous submissions land as source='self-submitted',
-# moderation_status='pending', invisible until an admin approves them via
-# POST /admin/submissions/{tracent_id}/review. Rate-limited instead of
-# key-gated since requiring an API key for an anonymous end-user action
-# defeats the point.
-submit_router = APIRouter(prefix="/agents", tags=["agents"])
-
 
 def _row_to_dict(row) -> dict:
     # Strip fields that must only ever be visible through the authenticated
