@@ -6,24 +6,10 @@ on:
     branches: [main]
 
 jobs:
-  backend:
-    name: Backend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: requirements-lock.txt
-
-      - name: Install dependencies
-        run: pip install -r requirements-lock.txt
-
-      - name: Run tests
-        run: pytest
-
+  # Backend tests moved to .github/workflows/tests.yml, which runs pytest
+  # against a real postgres:16 service container -- tests/conftest.py's
+  # suite requires a reachable Postgres (see docs/testing.md) and no longer
+  # works against the old FakeDB-mocked setup this job used to run.
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

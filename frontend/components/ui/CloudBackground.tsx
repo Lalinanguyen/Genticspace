@@ -67,7 +67,7 @@ export function CloudBackground({ bankRef }: { bankRef?: React.RefObject<HTMLEle
       };
     };
 
-    let clouds: Cloud[] = [];
+    const clouds: Cloud[] = [];
     const bank: { fx: number; dy: number; r: number; ph: number; a: number }[] = [];
     const sparks: { x: number; y: number; s: number; ph: number; sp: number }[] = [];
 

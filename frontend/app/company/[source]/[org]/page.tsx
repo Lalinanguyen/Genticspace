@@ -56,7 +56,7 @@ export default function OrgProfilePage({
 
   useEffect(() => {
     let cancelled = false;
-    setLoadFailed(false);
+    Promise.resolve().then(() => setLoadFailed(false));
     getOrgProfile(source, org, token || undefined)
       .then((p) => {
         if (!cancelled) setProfile(p);

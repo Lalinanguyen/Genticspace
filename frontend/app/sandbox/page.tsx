@@ -38,7 +38,6 @@ function SandboxPageInner() {
     } else {
       getSandboxReadyAgents().then((res) => setAgents(res.agents));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, token, forceBrowse]);
 
   return (

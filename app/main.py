@@ -192,9 +192,20 @@ app.include_router(sandbox_internal_router)
 app.include_router(uploads_router)
 
 # StaticFiles requires the directory to exist at mount time, not just when a
-# file is first written to it.
-os.makedirs(settings.UPLOADS_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_DIR), name="uploads")
+# file is first written to it. UPLOADS_DIR defaults to /data (the production
+# Fly volume mount) which doesn't exist -- and isn't writable -- in CI or a
+# plain local import (e.g. tests/conftest.py importing this module without
+# ever running lifespan). Best-effort, same as _check_mailer_config()
+# above: skip the mount rather than fail every import outside production.
+try:
+    os.makedirs(settings.UPLOADS_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_DIR), name="uploads")
+except OSError as exc:
+    logger.warning(
+        "Could not create/mount UPLOADS_DIR=%s (%s) -- /uploads will 404. "
+        "Expected outside production (CI, local dev without the Fly volume).",
+        settings.UPLOADS_DIR, exc,
+    )
 
 
 @app.get("/health", tags=["meta"])

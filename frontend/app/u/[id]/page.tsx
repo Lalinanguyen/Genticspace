@@ -110,7 +110,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     let cancelled = false;
-    setLoadFailed(false);
+    Promise.resolve().then(() => setLoadFailed(false));
     getUserProfile(userId, token || undefined)
       .then((p) => {
         if (!cancelled) setProfile(p);
