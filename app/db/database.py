@@ -398,6 +398,7 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 -- every restart and kept multi-hour-interval backfills (GitHub enrichment,
 -- README scraping, etc.) from ever reaching a first successful full pass.
 CREATE TABLE IF NOT EXISTS job_runs (
+
     job_id           TEXT PRIMARY KEY,
     last_started_at  TIMESTAMPTZ,
     last_finished_at TIMESTAMPTZ

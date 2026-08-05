@@ -317,7 +317,7 @@ export const GlobeCanvas = forwardRef<GlobeHandle, { activeIndex: number; onActi
           ctx.lineWidth = 2 * DPR;
           ctx.strokeStyle = "#fff";
           ctx.stroke();
-          ctx.font = `600 ${13 * DPR}px Raleway, sans-serif`;
+          ctx.font = `600 ${13 * DPR}px "Alte Haas Grotesk", sans-serif`;
           ctx.textBaseline = "middle";
           ctx.lineWidth = 3 * DPR;
           ctx.strokeStyle = "rgba(238,241,234,.9)";

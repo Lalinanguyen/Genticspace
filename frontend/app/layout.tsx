@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Raleway } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
+const alteHaasGrotesk = localFont({
+  variable: "--font-alte-haas-grotesk",
+  src: [
+    { path: "../public/fonts/AlteHaasGroteskRegular.woff", weight: "400", style: "normal" },
+    { path: "../public/fonts/AlteHaasGroteskBold.woff", weight: "700", style: "normal" },
+  ],
 });
 
-const raleway = Raleway({
-  variable: "--font-raleway",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+const remingtonedType = localFont({
+  variable: "--font-remingtoned-type",
+  src: "../public/fonts/RemingtonedType.woff",
+  weight: "400",
+  style: "normal",
 });
 
 export const metadata: Metadata = {
@@ -27,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${raleway.variable}`}>
+    <html lang="en" className={`${alteHaasGrotesk.variable} ${remingtonedType.variable}`}>
       <body className="min-h-screen bg-background text-foreground font-body antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
